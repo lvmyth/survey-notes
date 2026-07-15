@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>万能线元法坐标计算</title>
+    <style>
+        #particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+        html,body{overflow-x:hidden}
+        html{background:var(--bg-nav)}
+        body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;padding-top:64px;line-height:1.6}
+        .navbar,.container{position:relative;z-index:1}
+
+        .container{max-width:1200px;margin:0 auto;padding:1rem;width:100%;box-sizing:border-box;background:var(--bg);overflow-x:hidden}
+        .panel{display:flex;gap:10px;min-height:0}
+        .panel .panel-left{flex:1;min-width:0;overflow-y:auto;padding:0 8px}
+        .panel .panel-right{flex:1;min-width:0;padding:0 8px}
+        .panel .panel-right{flex:1;min-width:0;padding:0 8px}
+
+        .panel-subtitle{font-size:16px;font-weight:700;color:var(--primary-dark);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--primary);display:flex;align-items:center;gap:8px}
+
+        .calc-btn{display:block;margin:12px auto;padding:10px 30px;font-size:14px;font-weight:700;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer}
+        .calc-btn:hover{background:var(--primary-dark)}
+        .btn{padding:6px 12px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s}
+        .btn:hover{opacity:0.85}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-success{background:#4CAF50;color:#fff}
+        .btn-warning{background:#FF9800;color:#fff}
+        .btn-danger{background:#e74c3c;color:#fff}
+        .btn-secondary{background:#78909C;color:#fff}
+
+        .container .card{background:var(--bg-card);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);width:100%}
+        .container .card h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;padding-left:8px;border-left:3px solid var(--primary)}
+
+        .info-tip{background:#f1f8e9;border-left:4px solid var(--primary-light);padding:10px 14px;border-radius:6px;font-size:12px;color:#2e7d32;margin-bottom:12px}
+        .info-tip strong{display:block;margin-bottom:4px}
+
+        .formula-box{background:#f8faf5;border-left:4px solid var(--primary);padding:12px;border-radius:8px;margin-bottom:14px}
+        .formula-box h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;border-left:none;padding-left:0}
+        .formula-item{font-family:'Consolas',monospace;font-size:11px;color:#555;margin:6px 0;padding:4px 8px;background:var(--bg-card);border-radius:4px;border:1px solid var(--border)}
+
+        .elem-table{width:100%;min-width:600px;border-collapse:collapse;font-size:12px;margin-bottom:10px}
+        .elem-table th{background:var(--primary-dark);color:#fff;padding:4px 4px;text-align:center;font-weight:700;font-size:11px}
+        .elem-table td{padding:3px 4px;border:1px solid var(--border)}
+        .elem-table input,.elem-table select{width:100%;min-width:50px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:12px;font-family:Consolas,monospace;text-align:center;box-sizing:border-box;min-height:26px}
+        .elem-table input:focus,.elem-table select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(44,110,73,0.15)}
+
+        .param-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+        .param-row label{font-size:12px;font-weight:600;color:var(--text);min-width:50px}
+        .param-row input{width:120px;padding:2px 4px;border:1px solid var(--border);border-radius:3px;font-size:12px;font-family:Consolas,monospace;text-align:center;box-sizing:border-box;min-height:26px}
+        .param-row input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(44,110,73,0.15)}
+
+        .mode-switch{display:flex;gap:12px;margin-bottom:12px}
+        .mode-switch label{display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer}
+
+        .result-item{padding:10px;margin-bottom:8px;background:var(--bg-card);border-radius:6px;border-left:4px solid var(--primary);font-size:12px}
+        .result-item:last-child{border-left-color:#FF5722}
+        .result-label{font-weight:700;color:var(--primary-dark)}
+        .result-value{color:var(--text)}
+        .result-box{background:#f8faf5;padding:14px;border-radius:8px;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap;line-height:1.6}
+
+        .canvas-container{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;width:100%}
+        #canvas{display:block;width:100%;height:550px}
+        .zoom-bar{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:10}
+        .zoom-bar button{width:28px;height:26px;font-size:13px;font-weight:700;background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+        .zoom-bar button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+        .zoom-bar .zoom-reset{width:auto;padding:0 6px;font-size:11px}
+
+        .history-box{background:var(--bg-card);border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow);margin-top:14px}
+        .history-box h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+        .history-box h3 button{font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--text-light)}
+        .history-box h3 button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+        .hist-item{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-family:Consolas,monospace;border-bottom:1px solid var(--border);overflow:hidden}
+        .hist-item:last-child{border:none}
+        .hist-item .tag{display:inline-block;background:var(--primary-light);color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;white-space:nowrap;flex-shrink:0}
+        .hist-item .del{color:#ccc;cursor:pointer;margin-left:auto;padding:0 4px;flex-shrink:0}
+        .hist-item .del:hover{color:#e74c3c}
+        .hist-item .coord{flex:1;min-width:0}
+
+        .hidden{display:none}
+        .type-line{color:#E53935;font-weight:700}
+        .type-circle{color:var(--primary-dark);font-weight:700}
+        .type-spiroir{color:#4CAF50;font-weight:700}
+
+        @media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+        @media(max-width:768px){
+            .panel{flex-direction:column}
+            .panel .panel-left,.panel .panel-right{width:100%;padding:0 4px}
+            #canvas{height:350px}
+            .elem-table{font-size:11px}
+            .elem-table input,.elem-table select{font-size:11px;min-width:40px}
+            .param-row input{font-size:12px}
+        }
+        @media(max-width:480px){
+            .container{padding:0.4rem}
+            .panel .panel-left,.panel .panel-right{padding:0}
+            #canvas{height:280px}
+            .zoom-bar{top:4px;right:4px}
+            .zoom-bar button{width:24px;height:24px;font-size:12px}
+            .param-row{flex-wrap:wrap;gap:4px}
+            .param-row label{min-width:40px;font-size:11px}
+            .param-row input{font-size:11px}
+        }
+    </style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+<div class="panel">
+
+  <!-- 左侧：输入面板 -->
+  <div class="panel-left">
+    <div class="card">
+      <h3>📋 线元数据表</h3>
+      <div style="overflow-x:auto;">
+      <table class="elem-table" id="elemTable">
+                    <thead>
+                        <tr>
+                            <th style="width:30px">#</th>
+                            <th>起点桩号</th>
+                            <th>终点桩号</th>
+                            <th>起点X</th>
+                            <th>起点Y</th>
+                            <th>方位角°</th>
+                            <th>类型</th>
+                            <th>半径</th>
+                            <th>转向</th>
+                            <th>Ls</th>
+                            <th>A</th>
+                            <th style="width:40px"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="elemBody">
+                    </tbody>
+                </table>
+                </div>
+                <div style="font-size:11px;color:#757575;padding:2px 0 4px 4px;">💡 方位角支持：90.5（度） / 90 30 20（空格分隔度分秒） / 90°30′20″</div>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="addRow()">➕ 添加</button>
+                    <button class="btn btn-danger" onclick="clearTable()">🗑️ 清空</button>
+                    <button class="btn btn-warning" onclick="importCSV()">📂 导入CSV</button>
+                    <button class="btn btn-primary" onclick="exportTableCSV()">💾 导出CSV</button>
+                    <button class="btn btn-secondary" onclick="loadExample(1)">📥 示例1</button>
+                    <button class="btn btn-secondary" onclick="loadExample(2)">📥 示例2</button>
+                    <button class="btn btn-secondary" onclick="loadExample(3)">📥 示例3</button>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div class="card">
+          <h3>⚙️ 计算参数</h3>
+          <div style="display:flex;gap:12px">
+          <div style="flex:1;min-width:0">
+                <div class="mode-switch">
+                    <label>
+                        <input type="radio" name="mode" value="forward" checked onchange="toggleMode()">
+                        📍 正算（桩号→坐标）
+                    </label>
+                    <label>
+                        <input type="radio" name="mode" value="inverse" onchange="toggleMode()">
+                        📏 反算（坐标→桩号）
+                    </label>
+                </div>
+
+                <div id="forwardParams">
+                    <div class="param-row">
+                        <label>桩号：</label>
+                        <input type="text" id="pkInput" value="K0+065.000" placeholder="如 K0+065.000">
+                    </div>
+                    <div class="param-row">
+                        <label>偏距：</label>
+                        <input type="text" id="offsetInput" value="0.000" placeholder="单位：m">
+                        <span style="font-size:11px;color:var(--text-light);white-space:nowrap">（右偏为正）</span>
+                    </div>
+                    <button class="calc-btn" onclick="calculate()" style="margin:4px 0 0;display:block">🧮 坐标计算</button>
+                </div>
+
+                <div id="inverseParams" class="hidden">
+                    <div class="param-row">
+                        <label>目标X：</label>
+                        <input type="text" id="invX" value="50020.000">
+                    </div>
+                    <div class="param-row">
+                        <label>目标Y：</label>
+                        <input type="text" id="invY" value="30020.000">
+                    </div>
+                    <button class="calc-btn" onclick="calculate()" style="margin:4px 0 0;display:block">🧮 坐标计算</button>
+                </div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div id="resultContainer2">
+                <div class="result-box" id="resultBox2" style="text-align:center;color:#9E9E9E;font-size:12px;min-height:120px;">
+                    计算结果将在此显示
+                </div>
+            </div>
+          </div>
+          </div>
+    </div>
+
+            <div class="canvas-container" style="margin-top:12px;">
+                <div class="zoom-bar">
+                    <button onclick="zoomOut()">−</button>
+                    <span id="zoom-label" style="font-size:11px;font-weight:700;color:var(--text-light);background:rgba(255,255,255,0.9);padding:2px 6px;border-radius:3px;border:1px solid var(--border);line-height:22px">100%</span>
+                    <button onclick="zoomIn()">+</button>
+                    <button class="zoom-reset" onclick="zoomReset()">↺</button>
+                </div>
+                <canvas id="canvas" style="height:550px"></canvas>
+            </div>
+<div style="text-align:center;padding:1.2rem 0 1.5rem;border-top:1px solid var(--border);margin-top:0.8rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+    </div>
+
+  <!-- 右侧：结果面板 -->
+  <div class="panel-right">
+    <div class="card">
+      <h3>📊 计算结果</h3>
+            <div id="resultContainer">
+                <div class="result-box" id="resultBox" style="text-align:center;color:#9E9E9E;">
+                    请输入线元数据并点击"坐标计算"按钮<br>计算结果将在此显示
+                </div>
+            </div>
+
+            <button class="btn btn-warning" onclick="exportCSV()" style="margin-top:10px">📤 导出CSV</button>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+    // ========== 核心计算引擎 ==========
+    const LineElementCalc = {
+        calculate(elements, pk, offset = 0) {
+            const idx = this.findElement(elements, pk);
+            if (idx === null) return null;
+
+            const elem = elements[idx];
+            const L = pk - elem.start_station;
+            let x, y, az;
+
+            if (elem.curve_type === 'LINE') {
+                const aRad = elem.start_azimuth * Math.PI / 180;
+                x = elem.start_x + L * Math.cos(aRad);
+                y = elem.start_y + L * Math.sin(aRad);
+                az = aRad;
+            } else if (elem.curve_type === 'SPIROIR') {
+                [x, y, az] = this.spiroroidOffset(
+                    elem.start_x, elem.start_y, elem.start_azimuth * Math.PI / 180,
+                    L, elem.a_param, elem.turn
+                );
+            } else if (elem.curve_type === 'CIRCLE') {
+                [x, y, az] = this.circleOffset(
+                    elem.start_x, elem.start_y, elem.start_azimuth * Math.PI / 180,
+                    L, elem.radius
+                );
+            }
+
+            // 偏距计算（垂直于切线方向，与转向无关）
+            if (Math.abs(offset) > 1e-8) {
+                const nx = -Math.sin(az);
+                const ny = Math.cos(az);
+                x += nx * offset;
+                y += ny * offset;
+            }
+
+            let azDeg = az * 180 / Math.PI;
+            azDeg = ((azDeg % 360) + 360) % 360;
+
+            return { x, y, azimuth: azDeg, elementIndex: idx };
+        },
+
+        findElement(elements, pk) {
+            for (let i = 0; i < elements.length; i++) {
+                if (elements[i].start_station <= pk && pk <= elements[i].end_station) {
+                    return i;
+                }
+            }
+            return null;
+        },
+
+        spiroroidOffset(sx, sy, saRad, l, Aparam, turn) {
+            const A2 = Aparam * Aparam;
+            if (A2 <= 1e-10) return [sx + l * Math.cos(saRad), sy + l * Math.sin(saRad), saRad];
+            const l2 = l * l, l3 = l2 * l, l4 = l2 * l2, l5 = l2 * l3, l6 = l2 * l4, l7 = l2 * l5;
+            const l8 = l4 * l4, l9 = l2 * l7, l10 = l2 * l8, l11 = l2 * l9, l12 = l6 * l6, l13 = l2 * l11, l14 = l2 * l12, l15 = l2 * l13;
+            const A4 = A2 * A2, A6 = A4 * A2, A8 = A6 * A2, A10 = A8 * A2, A12 = A10 * A2, A14 = A12 * A2;
+            // 缓和曲线局部坐标（yl 为左偏方向）
+            let xl = l - l5/(40*A4) + l9/(3456*A8) - l13/(599040*A12);
+            let yl = l3/(6*A2) - l7/(336*A6) + l11/(42240*A10) - l15/(9676800*A14);
+            let tau = l2/(2*A2) - l6/(240*A6) + l10/(34560*A10) - l14/(17418240*A14);
+            if (turn === 'R') { yl = -yl; tau = -tau; }  // 右偏→yl指向右侧
+            // 旋转变换到全局坐标
+            const cosA = Math.cos(saRad);
+            const sinA = Math.sin(saRad);
+            return [sx + xl * cosA - yl * sinA, sy + xl * sinA + yl * cosA, saRad + tau];
+        },
+
+        circleOffset(sx, sy, saRad, l, radius) {
+            const absR = Math.abs(radius);
+            if (absR < 1e-10) return [sx + l * Math.cos(saRad), sy + l * Math.sin(saRad), saRad];
+            const theta = l / absR;
+            const isRight = radius > 0;
+            // 圆曲线局部坐标（yl为左偏方向，右偏则取反）
+            const xl = absR * Math.sin(theta);
+            const yl = isRight ? -absR * (1 - Math.cos(theta)) : absR * (1 - Math.cos(theta));
+            // 旋转变换到全局坐标
+            const cosA = Math.cos(saRad);
+            const sinA = Math.sin(saRad);
+            return [sx + xl * cosA - yl * sinA, sy + xl * sinA + yl * cosA, saRad + (isRight ? -theta : theta)];
+        }
+    };
+
+    // ========== 全局变量 ==========
+    let elements = [];
+    let results = [];
+    let curvePoints = [];
+    let lastElems = [];
+    let zoomLevel = 1.0;
+
+    // ========== 页面初始化 ==========
+    function addRow(data = null) {
+        const tbody = document.getElementById('elemBody');
+        const row = tbody.insertRow();
+
+        const defaultData = data || {
+            start_station: '', end_station: '', start_x: '', start_y: '',
+            start_azimuth: '', curve_type: 'LINE', radius: '0', turn: 'R',
+            curve_len: '0', a_param: ''
+        };
+
+        const cells = [
+            { html: `<button class="btn btn-danger" onclick="this.closest('tr').remove()" style="padding:4px 8px;font-size:10px;">✕</button>`, width: '30px' },
+            { value: defaultData.start_station, type: 'text', placeholder: 'K0+000' },
+            { value: defaultData.end_station, type: 'text', placeholder: 'K0+050' },
+            { value: defaultData.start_x, type: 'text', placeholder: '50000' },
+            { value: defaultData.start_y, type: 'text', placeholder: '30000' },
+            { value: defaultData.start_azimuth, type: 'text', placeholder: '90' },
+            { value: defaultData.curve_type, type: 'select', options: ['LINE', 'CIRCLE', 'SPIROIR'] },
+            { value: defaultData.radius, type: 'text', placeholder: 'R' },
+            { value: defaultData.turn, type: 'select', options: ['L', 'R'] },
+            { value: defaultData.curve_len, type: 'text', placeholder: 'Ls' },
+            { value: defaultData.a_param, type: 'text', placeholder: 'A' },
+        ];
+
+        cells.forEach(cell => {
+            const td = row.insertCell();
+            if (cell.html) {
+                td.innerHTML = cell.html;
+                if (cell.width) td.style.width = cell.width;
+            } else {
+                if (cell.type === 'select') {
+                    const select = document.createElement('select');
+                    cell.options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt;
+                        option.textContent = opt;
+                        if (opt === cell.value) option.selected = true;
+                        select.appendChild(option);
+                    });
+                    /* 类型列颜色 */
+                    if (cell.options.length === 3) {
+                        select.className = {'LINE':'ct-line','CIRCLE':'ct-circle','SPIROIR':'ct-spiroir'}[cell.value] || '';
+                        select.addEventListener('change', function() {
+                            this.className = {'LINE':'ct-line','CIRCLE':'ct-circle','SPIROIR':'ct-spiroir'}[this.value] || '';
+                        });
+                    }
+                    /* 转向列颜色 */
+                    if (cell.options.length === 2 && cell.options[0] === 'L') {
+                        select.className = {'L':'turn-l','R':'turn-r'}[cell.value] || '';
+                        select.addEventListener('change', function() {
+                            this.className = {'L':'turn-l','R':'turn-r'}[this.value] || '';
+                        });
+                    }
+                    td.appendChild(select);
+                } else {
+                    const input = document.createElement('input');
+                    input.type = cell.type;
+                    input.value = cell.value;
+                    input.placeholder = cell.placeholder;
+                    td.appendChild(input);
+                }
+            }
+        });
+    }
+
+    function removeRow() {
+        const tbody = document.getElementById('elemBody');
+        if (tbody.rows.length <= 1) return;
+        tbody.deleteRow(tbody.rows.length - 1);
+    }
+
+    function clearTable() {
+        if (confirm('确定清空所有线元数据？')) {
+            document.getElementById('elemBody').innerHTML = '';
+        }
+    }
+
+    function importCSV() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    const lines = ev.target.result.split('\n').filter(l => l.trim());
+                    if (lines.length < 2) { alert('CSV文件至少需要标题行+1行数据'); return; }
+                    document.getElementById('elemBody').innerHTML = '';
+                    for (let i = 1; i < lines.length; i++) {
+                        const vals = lines[i].split(',').map(v => v.trim());
+                        if (vals.length < 11) continue;
+                        addRow({
+                            start_station: vals[1] || '',
+                            end_station: vals[2] || '',
+                            start_x: vals[3] || '',
+                            start_y: vals[4] || '',
+                            start_azimuth: vals[5] || '',
+                            curve_type: vals[6] || 'LINE',
+                            radius: vals[7] || '0',
+                            turn: vals[8] || 'R',
+                            curve_len: vals[9] || '0',
+                            a_param: vals[10] || '',
+                        });
+                    }
+                } catch (err) { alert('导入失败: ' + err.message); }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
+
+    function exportTableCSV() {
+        const tbody = document.getElementById('elemBody');
+        if (tbody.rows.length === 0) { alert('表格为空'); return; }
+        let csv = '\uFEFF序号,起点桩号,终点桩号,起点X,起点Y,方位角°,类型,半径,转向,缓和长,回旋参数A\n';
+        for (let i = 0; i < tbody.rows.length; i++) {
+            const cells = tbody.rows[i].cells;
+            try {
+                const row = [];
+                row.push(i + 1);
+                for (let j = 1; j <= 10; j++) {
+                    const el = cells[j].querySelector('input,select');
+                    row.push(el ? el.value : '');
+                }
+                csv += row.join(',') + '\n';
+            } catch (e) { /* skip bad row */ }
+        }
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = '线元数据.csv';
+        a.click(); URL.revokeObjectURL(url);
+    }
+
+    const EXAMPLES = {
+        1: [
+            { start_station: 'K0+000.000', end_station: 'K0+050.000', start_x: '50000.000', start_y: '30000.000', start_azimuth: '90.000000', curve_type: 'LINE', radius: '0', turn: 'R', curve_len: '0', a_param: '0' },
+            { start_station: 'K0+050.000', end_station: 'K0+080.000', start_x: '50000.000', start_y: '30050.000', start_azimuth: '90.000000', curve_type: 'CIRCLE', radius: '500', turn: 'R', curve_len: '0', a_param: '0' },
+            { start_station: 'K0+080.000', end_station: 'K0+150.000', start_x: '50000.900', start_y: '30079.982', start_azimuth: '86.562253', curve_type: 'LINE', radius: '0', turn: 'R', curve_len: '0', a_param: '0' },
+        ],
+        2: [
+            { start_station: 'K0+000.000', end_station: 'K0+050.000', start_x: '50000.000', start_y: '30000.000', start_azimuth: '75.000000', curve_type: 'LINE', radius: '0', turn: 'R', curve_len: '0', a_param: '0' },
+            { start_station: 'K0+050.000', end_station: 'K0+080.000', start_x: '50012.941', start_y: '30048.296', start_azimuth: '75.000000', curve_type: 'CIRCLE', radius: '400', turn: 'R', curve_len: '0', a_param: '0' },
+            { start_station: 'K0+080.000', end_station: 'K0+120.000', start_x: '50021.784', start_y: '30076.956', start_azimuth: '70.702817', curve_type: 'LINE', radius: '0', turn: 'R', curve_len: '0', a_param: '0' },
+            { start_station: 'K0+120.000', end_station: 'K0+145.000', start_x: '50035.003', start_y: '30114.709', start_azimuth: '70.702817', curve_type: 'CIRCLE', radius: '300', turn: 'L', curve_len: '0', a_param: '0' },
+            { start_station: 'K0+145.000', end_station: 'K0+200.000', start_x: '50042.273', start_y: '30138.621', start_azimuth: '75.477465', curve_type: 'LINE', radius: '0', turn: 'R', curve_len: '0', a_param: '0' },
+        ],
+        3: [
+            { start_station: 'K0+000.000', end_station: 'K0+100.000', start_x: '50000.000', start_y: '30000.000', start_azimuth: '90.000000', curve_type: 'LINE', radius: '0', turn: 'R', curve_len: '0', a_param: '0' },
+            { start_station: 'K0+100.000', end_station: 'K0+120.000', start_x: '50000.000', start_y: '30100.000', start_azimuth: '90.000000', curve_type: 'SPIROIR', radius: '200', turn: 'R', curve_len: '20', a_param: '63.2456' },
+            { start_station: 'K0+120.000', end_station: 'K0+140.000', start_x: '50000.333', start_y: '30119.995', start_azimuth: '87.135454', curve_type: 'CIRCLE', radius: '200', turn: 'R', curve_len: '0', a_param: '0' },
+            { start_station: 'K0+140.000', end_station: 'K0+160.000', start_x: '50002.329', start_y: '30139.887', start_azimuth: '81.405876', curve_type: 'SPIROIR', radius: '200', turn: 'R', curve_len: '20', a_param: '63.2456' },
+            { start_station: 'K0+160.000', end_station: 'K0+250.000', start_x: '50005.647', start_y: '30159.608', start_azimuth: '78.541330', curve_type: 'LINE', radius: '0', turn: 'R', curve_len: '0', a_param: '0' },
+        ],
+    };
+
+    function loadExample(n = 1) {
+        // 清空表格
+        document.getElementById('elemBody').innerHTML = '';
+        const examples = EXAMPLES[n] || EXAMPLES[1];
+        examples.forEach(ex => addRow(ex));
+        const names = { 1: '简单曲线', 2: 'S型弯道', 3: '缓和曲线' };
+
+        // 清空上次结果
+        results = [];
+        curvePoints = [];
+        lastElems = [];
+        const rc = document.getElementById('resultContainer');
+        if (rc) rc.innerHTML =
+            '<div style="padding:20px;text-align:center;color:#9E9E9E;">请点击「坐标计算」查看结果</div>';
+        const rc2 = document.getElementById('resultContainer2');
+        if (rc2) rc2.innerHTML = rc.innerHTML;
+
+        // 重置桩号
+        const pi = document.getElementById('pkInput');
+        if (pi) {
+            const pd = { 1: 'K0+065.000', 2: 'K0+132.000', 3: 'K0+130.000' };
+            pi.value = pd[n] || 'K0+065.000';
+        }
+
+        // 清空画布和重置缩放
+        zoomLevel = 1.0; updateZoomLabel();
+        try {
+            const c = document.getElementById('canvas');
+            if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+        } catch (e) {}
+
+        // 状态提示
+        try {
+            const bg = document.querySelector('.btn-group');
+            if (!bg) return;
+            const old = document.getElementById('exStat');
+            if (old) old.remove();
+            const el = document.createElement('span');
+            el.id = 'exStat';
+            el.style.cssText = 'font-size:12px;color:#1565C0;margin-left:10px;';
+            el.textContent = `✅ 已加载「${names[n]}」`;
+            bg.appendChild(el);
+            setTimeout(() => { try { el.remove(); } catch (e) {} }, 3000);
+        } catch (e) {}
+    }
+
+    function parseStation(pkStr) {
+        pkStr = (pkStr || '').trim().toUpperCase();
+        if (!pkStr) return NaN;
+        // 支持 K0+065.000 或 65.000 或 K0+065 格式
+        if (pkStr.includes('+')) {
+            const parts = pkStr.split('+');
+            if (parts.length !== 2) return NaN;
+            const km = parseFloat(parts[0].replace('K', '')) || 0;
+            const m = parseFloat(parts[1]);
+            if (isNaN(m)) return NaN;
+            return km * 1000 + m;
+        }
+        const val = parseFloat(pkStr.replace('K', ''));
+        return isNaN(val) ? NaN : val;
+    }
+
+    function formatStation(s) {
+        const km = Math.floor(s / 1000);
+        const m = s % 1000;
+        return `K${km}+${m.toFixed(3).padStart(7, '0')}`;
+    }
+
+    function parseAzimuth(s) {
+        /* 解析方位角：支持 45.5 | 45°30'20" | 45d30m20s | 45 30 20 */
+        s = (s || '').trim();
+        if (!s) return 0;
+        // 空格分隔：45 30 20
+        const parts = s.split(/\s+/);
+        if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+            return parseFloat(parts[0]) + parseFloat(parts[1]) / 60 + parseFloat(parts[2]) / 3600;
+        }
+        const m = s.match(/([\d.]+)\s*[°d]\s*([\d.]*)\s*['′m]\s*([\d.]*)\s*["″s]?\s*/);
+        if (m) {
+            const d = parseFloat(m[1] || 0);
+            const mi = parseFloat(m[2] || 0);
+            const sec = parseFloat(m[3] || 0);
+            return d + mi / 60 + sec / 3600;
+        }
+        return parseFloat(s.replace(/[°d]/g, ''));
+    }
+
+    function parseElements() {
+        const tbody = document.getElementById('elemBody');
+        const elems = [];
+        for (let i = 0; i < tbody.rows.length; i++) {
+            const cells = tbody.rows[i].cells;
+            try {
+                const elem = {
+                    start_station: parseStation(cells[1].querySelector('input').value),
+                    end_station: parseStation(cells[2].querySelector('input').value),
+                    start_x: parseFloat(cells[3].querySelector('input').value || '0'),
+                    start_y: parseFloat(cells[4].querySelector('input').value || '0'),
+                    start_azimuth: parseAzimuth(cells[5].querySelector('input').value),
+                    curve_type: cells[6].querySelector('select').value,
+                    radius: parseFloat(cells[7].querySelector('input').value || '0'),
+                    turn: cells[8].querySelector('select').value,
+                    curve_len: Math.abs(parseFloat(cells[9].querySelector('input').value || '0')),
+                    a_param: parseFloat(cells[10].querySelector('input').value || '0'),
+                };
+                if (!elem.start_station && !elem.end_station) continue;
+                if (isNaN(elem.start_station) || isNaN(elem.end_station)) {
+                    throw new Error('桩号格式错误，需如 K0+050');
+                }
+                // 圆曲线：半径带符号（正=右偏，负=左偏）
+                if (elem.curve_type === 'CIRCLE') {
+                    elem.radius = elem.turn === 'R' ? Math.abs(elem.radius) : -Math.abs(elem.radius);
+                } else {
+                    // 直线/缓和曲线取绝对值
+                    elem.radius = Math.abs(elem.radius);
+                }
+                // 缓和曲线自动计算回旋参数 A = √(R·Ls)（仅当用户未填写时）
+                if (elem.curve_type === 'SPIROIR' && elem.a_param === 0 && elem.radius > 0 && elem.curve_len > 0) {
+                    elem.a_param = Math.sqrt(elem.radius * elem.curve_len);
+                }
+                if (elem.curve_type === 'SPIROIR' && elem.a_param === 0) {
+                    throw new Error('缓和曲线需要有效的回旋参数A或半径R和缓和曲线长Ls');
+                }
+                elems.push(elem);
+            } catch (e) {
+                alert(`第${i+1}行数据格式有误，请检查`);
+                return null;
+            }
+        }
+        elems.sort((a, b) => a.start_station - b.start_station);
+        return elems;
+    }
+
+    function toggleMode() {
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        document.getElementById('forwardParams').classList.toggle('hidden', mode !== 'forward');
+        document.getElementById('inverseParams').classList.toggle('hidden', mode !== 'inverse');
+    }
+
+    // ========== 计算核心 ==========
+    function calculate() {
+        const elems = parseElements();
+        lastElems = elems;
+        if (!elems || elems.length === 0) {
+            alert('请至少输入一个线元数据');
+            return;
+        }
+
+        // 检查连续性
+        for (let i = 1; i < elems.length; i++) {
+            if (Math.abs(elems[i-1].end_station - elems[i].start_station) > 0.001) {
+                alert(`线元${i}和${i+1}不连续！请检查终点桩号和起点桩号是否衔接。`);
+                return;
+            }
+        }
+
+        const mode = document.querySelector('input[name="mode"]:checked').value;
+        results = [];
+        curvePoints = [];
+
+        if (mode === 'forward') {
+            const pk = parseStation(document.getElementById('pkInput').value);
+            const offset = parseFloat(document.getElementById('offsetInput').value || '0');
+
+            const result = LineElementCalc.calculate(elems, pk, offset);
+            if (!result) {
+                alert(`桩号 ${document.getElementById('pkInput').value} 不在任何线元范围内`);
+                return;
+            }
+
+            result.pk_str = formatStation(pk);
+            result.pk = pk;
+            result.offset = offset;
+            results.push(result);
+
+            // 生成全线元曲线数据用于绘图
+            const startS = elems[0].start_station;
+            const endS = elems[elems.length - 1].end_station;
+            const curveCount = Math.max(100, Math.min(500, Math.ceil((endS - startS) / 10)));
+            const step = (endS - startS) / curveCount;
+            for (let s = 0; s <= curveCount; s++) {
+                const currS = startS + s * step;
+                const r = LineElementCalc.calculate(elems, currS, 0);
+                if (r) {
+                    r.pk_str = formatStation(currS);
+                    r.pk = currS;
+                    r.offset = 0;
+                    curvePoints.push(r);
+                }
+            }
+        } else {
+            const tx = parseFloat(document.getElementById('invX').value);
+            const ty = parseFloat(document.getElementById('invY').value);
+
+            // 阶段1：粗搜索（1000点遍历全线路）
+            let bestPk = null, bestDist = Infinity;
+            const totalStart = elems[0].start_station;
+            const totalEnd = elems[elems.length - 1].end_station;
+            const totalLen = totalEnd - totalStart;
+            const coarsePoints = Math.max(2000, Math.ceil(totalLen / 5));
+            const coarseStep = totalLen / coarsePoints;
+
+            for (let i = 0; i <= coarsePoints; i++) {
+                const pk = totalStart + i * coarseStep;
+                const r = LineElementCalc.calculate(elems, pk, 0);
+                if (r) {
+                    const d = Math.hypot(r.x - tx, r.y - ty);
+                    if (d < bestDist) {
+                        bestDist = d;
+                        bestPk = pk;
+                    }
+                }
+            }
+
+            // 阶段2：二分法精化（在最优位置附近精确定位）
+            if (bestPk !== null) {
+                let lo = Math.max(totalStart, bestPk - coarseStep);
+                let hi = Math.min(totalEnd, bestPk + coarseStep);
+                for (let iter = 0; iter < 30; iter++) {
+                    const mid = (lo + hi) / 2;
+                    const r = LineElementCalc.calculate(elems, mid, 0);
+                    if (!r) break;
+                    if (Math.hypot(r.x - tx, r.y - ty) < bestDist) {
+                        bestDist = Math.hypot(r.x - tx, r.y - ty);
+                        bestPk = mid;
+                    }
+                    // 比较中点与两端，缩小搜索区间
+                    const rLo = LineElementCalc.calculate(elems, lo, 0);
+                    const rHi = LineElementCalc.calculate(elems, hi, 0);
+                    if (!rLo || !rHi) break;
+                    const dLo = Math.hypot(rLo.x - tx, rLo.y - ty);
+                    const dHi = Math.hypot(rHi.x - tx, rHi.y - ty);
+                    if (dLo < dHi) hi = mid;
+                    else lo = mid;
+                }
+            }
+
+            if (bestPk === null || bestDist > 10) {
+                alert('未找到合适位置，最近距离 ' + (bestDist || 0).toFixed(2) + 'm');
+                return;
+            }
+
+            const rBest = LineElementCalc.calculate(elems, bestPk, 0);
+            if (rBest) {
+                // 计算有符号偏距（法向量方向，左偏为正）
+                const rPrev = LineElementCalc.calculate(elems, bestPk - 0.01, 0);
+                let offset = Math.hypot(tx - rBest.x, ty - rBest.y);
+                if (rPrev) {
+                    const dx = rBest.x - rPrev.x, dy = rBest.y - rPrev.y;
+                    const len = Math.hypot(dx, dy);
+                    if (len > 0) {
+                        const nx = -dy / len, ny = dx / len;  // 法向量（指向左侧）
+                        const dot = (tx - rBest.x) * nx + (ty - rBest.y) * ny;
+                        if (dot < 0) offset = -offset;
+                    }
+                }
+                results.push({
+                    pk: bestPk,
+                    pk_str: formatStation(bestPk),
+                    x: rBest.x, y: rBest.y,
+                    azimuth: rBest.azimuth,
+                    elementIndex: Math.max(0, elems.findIndex(e => bestPk >= e.start_station && bestPk <= e.end_station)),
+                    offset: offset,
+                });
+            }
+
+            // 生成全线元曲线点用于绘图
+            const curveCount = Math.max(100, Math.min(500, Math.ceil(totalLen / 10)));
+            const totalStep = totalLen / curveCount;
+            for (let i = 0; i <= curveCount; i++) {
+                const pk = totalStart + i * totalStep;
+                const r = LineElementCalc.calculate(elems, pk, 0);
+                if (r) {
+                    r.pk_str = formatStation(pk);
+                    r.pk = pk;
+                    r.offset = 0;
+                    curvePoints.push(r);
+                }
+            }
+        }
+
+        displayResults();
+        drawResults();
+    }
+
+    function formatDMS(deg) {
+        const d = Math.floor(deg);
+        const mf = (deg - d) * 60;
+        const m = Math.floor(mf);
+        const s = (mf - m) * 60;
+        return `${d}°${String(m).padStart(2, '0')}′${s.toFixed(2).padStart(5, '0')}″`;
+    }
+
+    function displayResults() {
+        const container = document.getElementById('resultContainer');
+        let html = '';
+        results.forEach((r, i) => {
+            html += `<div class="result-item">`;
+            html += `<div><span class="result-label">桩号：</span><span class="result-value">${r.pk_str}</span></div>`;
+            html += `<div><span class="result-label">偏距：</span><span class="result-value">${r.offset >= 0 ? '+' : ''}${r.offset.toFixed(3)} m</span> <span style="font-size:10px;color:#888;">（右偏为正）</span></div>`;
+            html += `<div><span class="result-label">X：</span><span class="result-value">${r.x.toFixed(4)} m</span></div>`;
+            html += `<div><span class="result-label">Y：</span><span class="result-value">${r.y.toFixed(4)} m</span></div>`;
+            html += `<div><span class="result-label">方位角：</span><span class="result-value">${formatDMS(r.azimuth)} (${r.azimuth.toFixed(6)}°)</span></div>`;
+            html += `<div><span class="result-label">线元：</span><span class="result-value">第 ${r.elementIndex + 1} 个</span></div>`;
+            html += `</div>`;
+        });
+        if (curvePoints.length > 0) {
+            html += `<div style="padding:8px;font-size:11px;color:#9E9E9E;text-align:center;">曲线点: ${curvePoints.length} 个（仅用于绘图）</div>`;
+        }
+        container.innerHTML = html || '<div style="padding:20px;text-align:center;color:#9E9E9E;">暂无计算结果</div>';
+        const container2 = document.getElementById('resultContainer2');
+        if (container2) container2.innerHTML = container.innerHTML;
+    }
+
+    // ========== 绘图 ==========
+    function zoomIn() {
+        zoomLevel = Math.min(zoomLevel * 1.25, 10.0);
+        updateZoomLabel();
+        drawResults();
+    }
+    function zoomOut() {
+        zoomLevel = Math.max(zoomLevel * 0.8, 0.1);
+        updateZoomLabel();
+        drawResults();
+    }
+    function zoomReset() {
+        zoomLevel = 1.0;
+        updateZoomLabel();
+        drawResults();
+    }
+    function updateZoomLabel() {
+        const lbl = document.getElementById('zoom-label');
+        if (lbl) lbl.textContent = Math.round(zoomLevel * 100) + '%';
+    }
+    function onCanvasWheel(e) {
+        e.preventDefault();
+        if (e.deltaY < 0) {
+            zoomLevel = Math.min(zoomLevel * 1.15, 10.0);
+        } else {
+            zoomLevel = Math.max(zoomLevel * 0.87, 0.1);
+        }
+        updateZoomLabel();
+        drawResults();
+    }
+
+    function drawResults() {
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const w = canvas.clientWidth, h = 550;
+        canvas.width = w * 2;
+        canvas.height = h * 2;
+        ctx.scale(2, 2);
+
+        // 鼠标滚轮缩放（一次性绑定）
+        if (!canvas._wheelBound) {
+            canvas.addEventListener('wheel', onCanvasWheel, { passive: false });
+            canvas._wheelBound = true;
+        }
+        ctx.clearRect(0, 0, w, h);
+
+        if (results.length === 0) {
+            ctx.fillStyle = '#9E9E9E';
+            ctx.font = '14px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('点击"坐标计算"后显示图示', w/2, h/2);
+            return;
+        }
+
+        const margin = 60;
+
+        // 收集所有绘图数据：曲线点 + 结果点
+        const allPts = [...curvePoints, ...results];
+
+        // 计算范围（使用所有点）
+        const allXs = allPts.map(r => r.x);
+        const allYs = allPts.map(r => r.y);
+        const minX = Math.min(...allXs), maxX = Math.max(...allXs);
+        const minY = Math.min(...allYs), maxY = Math.max(...allYs);
+        const spanX = maxX - minX || 100;
+        const spanY = maxY - minY || 100;
+        const span = Math.max(spanX, spanY) * 1.4;
+        const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+        const baseScale = Math.min((w - margin*2) / span, (h - margin*2) / span, 30);
+        const scale = baseScale * zoomLevel;
+
+        const toScreen = (vx, vy) => [(vx - cx) * scale + w/2, -(vy - cy) * scale + h/2];
+
+        // 网格
+        const grid = Math.pow(10, Math.floor(Math.log10(span / 5)));
+        ctx.strokeStyle = '#E0E0E0';
+        ctx.lineWidth = 1;
+        let gx = Math.floor((cx - span/2) / grid) * grid;
+        while (gx < cx + span/2) {
+            const [px] = toScreen(gx, 0);
+            if (px >= 0 && px <= w) {
+                ctx.beginPath(); ctx.moveTo(px, margin); ctx.lineTo(px, h-margin); ctx.stroke();
+            }
+            gx += grid;
+        }
+        let gy = Math.floor((cy - span/2) / grid) * grid;
+        while (gy < cy + span/2) {
+            const [, py] = toScreen(0, gy);
+            if (py >= margin && py <= h - margin) {
+                ctx.beginPath(); ctx.moveTo(margin, py); ctx.lineTo(w-margin, py); ctx.stroke();
+            }
+            gy += grid;
+        }
+
+        // 收集所有线元数据（从上次计算的元素数组读取）
+        const elemData = [];
+        for (let ei = 0; ei < lastElems.length; ei++) {
+            const e = lastElems[ei];
+            elemData.push({
+                start_s: e.start_station,
+                end_s: e.end_station,
+                start_x: e.start_x,
+                start_y: e.start_y,
+                start_az: e.start_azimuth,
+                ct: e.curve_type,
+                type_label: {'LINE':'直线','CIRCLE':'圆曲线','SPIROIR':'缓和曲线'}[e.curve_type] || '',
+            });
+        }
+
+        // 绘制所有线元曲线（使用 curvePoints 避免重复计算）
+        const colors = ['#E53935', '#1565C0', '#4CAF50', '#FF9800', '#9C27B0'];
+        let prevPt = null;
+        for (let i = 0; i < curvePoints.length; i++) {
+            const pt = curvePoints[i];
+            const [px, py] = toScreen(pt.x, pt.y);
+            if (prevPt) {
+                ctx.strokeStyle = colors[(prevPt.elementIndex || 0) % colors.length];
+                ctx.lineWidth = 2.5;
+                ctx.beginPath(); ctx.moveTo(prevPt.x, prevPt.y); ctx.lineTo(px, py); ctx.stroke();
+            }
+            prevPt = {x: px, y: py, elementIndex: pt.elementIndex};
+        }
+
+        // 各线元起点标记
+        for (let ei = 0; ei < lastElems.length; ei++) {
+            const ed = elemData[ei];
+            const r = curvePoints.find(p => Math.abs(p.pk - ed.start_s) < 0.001);
+            if (r) {
+                const [sx, sy] = toScreen(r.x, r.y);
+                ctx.fillStyle = colors[ei % colors.length];
+                ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = colors[ei % colors.length];
+                ctx.font = 'bold 8px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(formatStation(ed.start_s) + ' ' + ed.type_label, sx, sy - 10);
+            }
+        }
+
+        // 结果点
+        const last = results[results.length - 1];
+        const [lx, ly] = toScreen(last.x, last.y);
+        ctx.fillStyle = '#FF5722';
+        ctx.beginPath(); ctx.arc(lx, ly, 8, 0, 2*Math.PI); ctx.fill();
+        ctx.strokeStyle = 'white'; ctx.lineWidth = 2; ctx.stroke();
+
+        ctx.fillStyle = '#FF5722';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`P(${last.x.toFixed(1)}, ${last.y.toFixed(1)})`, lx, ly - 14);
+        ctx.font = '10px sans-serif';
+        ctx.fillText(`偏距: ${last.offset >= 0 ? '+' : ''}${last.offset.toFixed(2)}m`, lx, ly + 22);
+
+        // 坐标轴
+        const axisLen = 30;
+        const [ox, oy] = toScreen(minX, minY);
+        ctx.strokeStyle = '#E53935'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + axisLen, oy); ctx.stroke();
+        ctx.fillStyle = '#E53935'; ctx.font = 'bold 10px sans-serif';
+        ctx.fillText('X', ox + axisLen + 8, oy + 4);
+        ctx.strokeStyle = '#1565C0';
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox, oy - axisLen); ctx.stroke();
+        ctx.fillStyle = '#1565C0';
+        ctx.fillText('Y', ox - 6, oy - axisLen - 6);
+
+        // 图例
+        ctx.fillStyle = '#424242';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('图例：', margin + 5, margin + 15);
+        for (let i = 0; i < Math.min(elemData.length, 4); i++) {
+            const color = colors[i % colors.length];
+            const ly2 = margin + 30 + i * 18;
+            ctx.strokeStyle = color; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(margin + 5, ly2); ctx.lineTo(margin + 25, ly2); ctx.stroke();
+            ctx.fillStyle = '#333'; ctx.font = '9px sans-serif';
+            ctx.fillText(elemData[i].type_label + ' ' + formatStation(elemData[i].start_s), margin + 28, ly2 + 4);
+        }
+
+        // 底部版权
+        ctx.fillStyle = '#BDBDBD';
+        ctx.font = '8px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('By Lvmyth AI', w - 5, h - 5);
+    }
+
+    function exportCSV() {
+        if (results.length === 0) {
+            alert('请先进行计算');
+            return;
+        }
+        let csv = '\uFEFF桩号,偏距,X坐标,Y坐标,方位角(度),线元号\n';
+        results.forEach(r => {
+            csv += `${r.pk_str},${r.offset.toFixed(3)},${r.x.toFixed(4)},${r.y.toFixed(4)},${r.azimuth.toFixed(6)},${r.elementIndex + 1}\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '万能线元法计算结果.csv';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // 初始化
+    window.addEventListener('load', () => {
+        try {
+            loadExample(1);
+            drawResults();
+        } catch (e) {
+            console.error('初始化错误:', e);
+        }
+    });
+    window.addEventListener('resize', () => { if (results.length > 0) drawResults(); });
+    </script>
+<script>
+// 粒子背景
+var c_p=document.getElementById('particleCanvas'),x=c_p.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c_p.width=innerWidth;H=c_p.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>隧道超欠挖计算 - 测量员在线工具箱</title>
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html,body{overflow-x:hidden}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei','PingFang SC',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:1rem;width:100%;box-sizing:border-box;background:var(--bg);overflow-x:hidden}
+.panel{display:flex;gap:10px;min-height:0}
+.panel .panel-left{flex:0 0 400px;min-width:350px;overflow-y:auto;padding:0 8px}
+.panel .panel-right{flex:1;min-width:0;overflow-y:auto;padding:0 8px}
+.container .card{background:var(--bg-card);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);width:100%}
+.container .card h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;padding-left:8px;border-left:3px solid var(--primary)}
+
+.section-title{font-size:13px;font-weight:600;color:var(--primary-dark);margin-bottom:8px}
+.input-group{margin-bottom:10px}
+.input-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:8px}
+.field-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;flex-wrap:wrap}
+.field-row:last-child{margin-bottom:0}
+.container .field-row label{font-size:12px;color:var(--text);min-width:55px;flex-shrink:0;width:auto}
+.container .field-row input,.container .field-row select{padding:3px 5px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:Consolas,monospace;outline:none;background:var(--bg-card);flex:none}
+.container .field-row input:focus,.container .field-row select:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(44,110,73,0.15)}
+.field-row .hint,.hint{font-size:9px;color:var(--text-light)}
+.field-row .unit{font-size:11px;color:var(--text-light);white-space:nowrap}
+.btn-group{display:flex;flex-direction:column;gap:5px;margin-top:6px}
+.btn-group-row{display:flex;gap:5px}
+.btn{padding:7px 14px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;justify-content:center}
+.btn:hover{opacity:0.85}
+.btn-full{width:100%}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{background:var(--primary-dark)}
+.btn-success{background:#4CAF50;color:#fff}
+.btn-secondary{background:#78909C;color:#fff}
+.summary-box{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:10px 12px;font-family:Consolas,monospace;font-size:12px;line-height:1.6;margin-bottom:10px;white-space:pre-wrap}
+.canvas-container{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative;margin-bottom:10px}
+#canvas{display:block;width:100%;height:420px}
+.zoom-bar{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:10;align-items:center}
+.zoom-bar button{width:26px;height:24px;font-size:13px;font-weight:700;background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.1);color:var(--text)}
+.zoom-bar button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+.zoom-bar .zlbl{font-weight:700;min-width:34px;text-align:center;font-size:11px;background:rgba(255,255,255,0.9);padding:2px 6px;border-radius:3px;border:1px solid var(--border);line-height:20px;color:var(--text-light)}
+.zoom-bar .zbtn{width:auto;padding:0 6px;font-size:11px;height:24px}
+.legend{display:flex;gap:8px;margin-left:12px;font-size:10px;align-items:center;flex-wrap:wrap;color:var(--text-light)}
+.result-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:4px}
+.result-table-wrap table{width:100%;border-collapse:collapse;font-size:11px;min-width:500px}
+.result-table-wrap td,.result-table-wrap th{border:1px solid var(--border);padding:3px 5px;text-align:center;white-space:nowrap}
+.result-table-wrap th{padding:5px 4px;background:var(--primary-dark);color:#fff;font-weight:600;position:sticky;top:0}
+.result-table-wrap tr:nth-child(even){background:#fafafa}
+.result-table-wrap .over{color:#d32f2f;font-weight:600}
+.result-table-wrap .under{color:#2e7d32;font-weight:600}
+textarea{width:100%;height:110px;border:1px solid var(--border);border-radius:4px;padding:5px 6px;font-family:Consolas,monospace;font-size:11px;resize:vertical;background:var(--bg-card);outline:none;margin-top:5px;box-sizing:border-box}
+textarea:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(44,110,73,0.15)}
+.info-tip{background:#f1f8e9;border-left:4px solid var(--primary-light);padding:8px 10px;border-radius:6px;font-size:11px;color:#2e7d32;margin-bottom:10px}
+.info-tip strong{display:block;margin-bottom:4px}
+@media(max-width:768px){.panel{flex-direction:column}.panel .panel-left,.panel .panel-right{flex:1 1 100%;min-width:0;padding:0 4px}#canvas{height:300px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.4rem}#canvas{height:250px}.zoom-bar button{width:24px;height:22px;font-size:12px}}
+</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+<div class="panel">
+
+  <!-- 左侧输入面板 -->
+  <div class="panel-left">
+    <div class="card">
+      <h3>📋 参数输入</h3>
+
+    <div class="info-tip">
+      <strong>💡 使用说明：</strong>选择断面类型和中线类型，填入参数；<br>
+      测量点每行格式：<strong>点号 X Y Z</strong>（空格分隔）。<br>
+      点击「示例(直线)」或「示例(曲线)」加载测试数据。
+    </div>
+    </div>
+
+    <!-- 断面参数 -->
+    <div class="card">
+      <h3>🏗️ 断面参数</h3>
+      <div class="input-card">
+        <div class="field-row">
+          <label style="min-width:55px">断面类型</label>
+          <select id="profileType" onchange="toggleProfile()" style="width:110px;padding:4px 6px">
+            <option value="standard">标准马蹄形</option>
+            <option value="circular">圆形</option>
+            <option value="egg">蛋形</option>
+            <option value="rect">矩形</option>
+          </select>
+        </div>
+        <div id="profileStandard">
+          <div class="field-row"><label>宽 W</label><input id="tw" value="12" style="width:70px"><span class="unit">m</span><label>高 H</label><input id="th" value="8.5" style="width:70px"><span class="unit">m</span></div>
+          <div class="field-row"><label>拱顶 R1</label><input id="tr1" value="6" style="width:70px"><span class="unit">m</span><label>仰拱 R2</label><input id="tr2" value="18" style="width:70px"><span class="unit">m</span></div>
+          <div class="field-row"><label>侧墙高 Hw</label><input id="thw" value="3.5" style="width:70px"><span class="unit">m</span><label>仰拱深 Hi</label><input id="thi" value="1.5" style="width:70px"><span class="unit">m</span></div>
+          <div class="field-row"><span id="invertInfo" class="hint" style="color:#e65100"></span></div>
+        </div>
+        <div id="profileCircular" style="display:none">
+          <div class="field-row"><label>半径 R</label><input id="tcR" value="5" style="width:80px"><span class="unit">m</span></div>
+        </div>
+        <div id="profileEgg" style="display:none">
+          <div class="field-row"><label>宽 W</label><input id="teW" value="10" style="width:70px"><span class="unit">m</span><label>高 H</label><input id="teH" value="8" style="width:70px"><span class="unit">m</span></div>
+          <div class="field-row"><label>顶半径 R1</label><input id="teR1" value="5" style="width:70px"><span class="unit">m</span><label>底半径 R2</label><input id="teR2" value="8" style="width:70px"><span class="unit">m</span></div>
+        </div>
+        <div id="profileRect" style="display:none">
+          <div class="field-row"><label>宽 W</label><input id="trW" value="10" style="width:70px"><span class="unit">m</span><label>高 H</label><input id="trH" value="7" style="width:70px"><span class="unit">m</span></div>
+        </div>
+        <div class="field-row" style="margin-top:4px">
+          <label>初期支护</label><input id="tlin" value="0.3" style="width:65px"><span class="unit">m</span>
+          <label>阈值</label><input id="ttol" value="0.05" style="width:65px"><span class="unit">m</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>🛤️ 隧道中线</h3>
+      <div class="input-card">
+        <div class="field-row">
+          <label>中线类型</label>
+          <select id="alignType" onchange="toggleAlign()" style="width:110px;padding:4px 6px">
+            <option value="line">直线</option>
+            <option value="curve">曲线(交点法)</option>
+          </select>
+        </div>
+        <div id="alignLine">
+          <div class="field-row"><label>起点 X</label><input id="cx0" value="500000" style="width:80px"><span style="font-size:11px;color:#888;margin:0 2px">Y</span><input id="cy0" value="3000000" style="width:80px"></div>
+          <div class="field-row"><label>方位角</label><input id="caz" value="45" style="width:70px"><span class="unit">°</span><span class="hint">(空格=度分秒)</span></div>
+        </div>
+        <div id="alignCurve" style="display:none">
+          <div class="field-row"><label>起点 X</label><input id="ccX" value="500000" style="width:80px"><span style="font-size:11px;color:#888;margin:0 2px">Y</span><input id="ccY" value="3000000" style="width:80px"></div>
+          <div class="field-row"><label>起始方位</label><input id="ccAz" value="45" style="width:70px"><span class="unit">°</span><span class="hint">(空格=度分秒)</span></div>
+          <div class="field-row"><label>JD里程</label><input id="ccJdKm" value="1" style="width:55px"><span class="unit">km+</span><input id="ccJdM" value="200" style="width:70px"></div>
+          <div class="field-row"><label>转角 α</label><input id="ccAlpha" type="text" value="32" style="width:65px" placeholder="32 15 30"><span class="unit">° (空格=度分秒)</span><label style="min-width:18px">R</label><input id="ccR" value="400" style="width:55px"><span class="unit">m</span><label style="min-width:55px">缓和长 Ls</label><input id="ccLs" value="80" style="width:55px"><span class="unit">m</span></div>
+        </div>
+        <div class="field-row" style="margin-top:6px">
+          <label style="min-width:50px">路面标高</label><input id="croad" value="100" style="width:70px;margin-left:4px"><span class="unit">m</span>
+          <span style="font-size:12px;color:#555;white-space:nowrap">坡度</span><input id="cslope" value="0" style="width:55px"><span class="unit">%</span>
+          <span class="hint">(正=上坡)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>📐 测量点</h3>
+      <div class="hint" style="margin-bottom:4px;font-size:10px;color:var(--text-light)">每行：点号 X Y Z（空格/Tab分隔）</div>
+      <textarea id="ptText" placeholder="A1 500010.000 3000010.000 108.200&#10;B1 500020.000 3000020.000 106.500&#10;..."></textarea>
+    </div>
+
+    <div class="card">
+      <div class="btn-group" style="margin:0">
+        <button class="btn btn-primary btn-full" onclick="doCalc()">🧮 计算</button>
+      <div class="btn-group-row">
+        <button class="btn btn-secondary" onclick="document.getElementById('fileInput').click()" style="flex:1">📂 导入CSV</button>
+        <button class="btn btn-success" onclick="exportCSV()" style="flex:1">📤 导出CSV</button>
+        <input type="file" id="fileInput" accept=".csv,.txt" style="display:none" onchange="importFile(event)">
+      </div>
+      <div class="btn-group-row">
+        <button class="btn btn-secondary" onclick="loadLineSample()" style="flex:1">📋 示例(直线)</button>
+        <button class="btn btn-secondary" onclick="loadCurveSample()" style="flex:1">📋 示例(曲线)</button>
+      </div>
+    </div>
+    </div>
+    </div>
+
+  <!-- 右侧结果面板 -->
+  <div class="panel-right">
+    <div class="card">
+      <h3>📊 计算结果与图示</h3>
+
+    <!-- 汇总 -->
+    <div class="summary-box" id="summaryText">输入参数后点击「计算」</div>
+
+    <!-- 画布 -->
+    <div class="canvas-container">
+      <div class="zoom-bar">
+        <button onclick="zoom(0.8)">−</button>
+        <span class="zlbl" id="zoomLabel">100%</span>
+        <button onclick="zoom(1.25)">+</button>
+        <button class="zbtn" onclick="zoomReset()">↺</button>
+      </div>
+      <div style="position:absolute;top:8px;left:8px;z-index:10;display:flex;gap:8px;flex-wrap:wrap;font-size:10px;align-items:center;background:rgba(255,255,255,0.85);padding:4px 8px;border-radius:4px;border:1px solid var(--border)">
+        <span style="color:#1565c0">─ 设计线</span>
+        <span style="color:#90caf9">- - 支护线</span>
+        <span style="color:#d32f2f">● 超挖</span>
+        <span style="color:#2e7d32">● 欠挖</span>
+        <span style="color:#333">● 合格</span>
+      </div>
+      <canvas id="canvas"></canvas>
+    </div>
+    </div>
+
+    <!-- 结果表格 -->
+    <div class="card">
+      <h3>📋 逐点计算结果</h3>
+      <div class="result-table-wrap">
+        <div id="resultTablePlaceholder" style="text-align:center;color:var(--text-light);padding:10px;font-size:12px">请先点击「计算」</div>
+        <table id="resultTable" style="display:none;width:100%">
+          <thead id="resultHeader"></thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<div style="text-align:center;padding:1.2rem 0 1.5rem;border-top:1px solid var(--border);margin-top:0.8rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+//  1. 隧道断面引擎（解析法 - 与Python版完全一致）
+// ═══════════════════════════════════════════════════════════════════════════
+
+class TunnelProfile {
+  constructor(ptype, params) {
+    this.type = ptype;
+    this.lining = params.lining || 0;
+    this.tol = params.tol || 0.05;
+
+    if (ptype === 'circular') {
+      this.R = params.R || 5;
+    } else if (ptype === 'rect') {
+      this.W = params.W || 10;
+      this.H = params.H || 7;
+    } else if (ptype === 'egg') {
+      this.W = params.W || 10;
+      this.H = params.H || 8;
+      this.R1 = params.R1 || 5;
+      this.R2 = params.R2 || 8;
+      // 蛋形预计算
+      const hw = this.W / 2;
+      const hh = this.H / 2;
+      this._yc_top = hh - this.R1;
+      this._yc_bottom = -hh + this.R2;
+      const d_centers = Math.abs(this._yc_bottom - this._yc_top);
+      if (d_centers <= Math.abs(this.R1 - this.R2) + 1e-9 || d_centers >= this.R1 + this.R2 - 1e-9) {
+        this._egg_valid = false;
+        this._y_boundary = (this._yc_top + this._yc_bottom) / 2;
+      } else {
+        const delta_y = this._yc_bottom - this._yc_top;
+        if (Math.abs(delta_y) < 1e-12) {
+          this._y_boundary = (this._yc_top + this._yc_bottom) / 2;
+          this._egg_valid = false;
+        } else {
+          this._y_boundary = ((this.R1 ** 2 - this.R2 ** 2) / delta_y + this._yc_top + this._yc_bottom) / 2;
+          this._egg_valid = true;
+          if (this.R1 < hw - 0.001 || this.R2 < hw - 0.001) this._egg_valid = false;
+          if (this._y_boundary > this._yc_top + this.R1 || this._y_boundary < this._yc_bottom - this.R2) this._egg_valid = false;
+        }
+      }
+    } else {  // standard 马蹄形
+      this.W = params.W || 12;
+      this.H = params.H || 8.5;
+      this.R1 = params.R1 || 6;
+      this.R2 = params.R2 || 18;
+      this.Hw = params.Hw || 3.5;
+      this.Hi = params.Hi || 1.5;
+
+      const hw = this.W / 2;
+      // 拱顶圆心（凸弧，圆心在弧下方/内部）
+      this._acx = 0;
+      this._acy = this.Hw - Math.sqrt(Math.max(0, this.R1 ** 2 - hw ** 2));
+      // 仰拱圆心（凹弧，圆心在仰拱底部下方 - 与Python版一致）
+      this._icx = 0;
+      this._icy = -this.Hi + Math.sqrt(Math.max(0, this.R2 ** 2 - hw ** 2));
+      // 仰拱角度范围（劣弧）
+      let aR = Math.atan2(hw - this._icx, -this.Hi - this._icy);
+      let aL = Math.atan2(-hw - this._icx, -this.Hi - this._icy);
+      this._aR_norm = aR >= 0 ? aR : aR + 2 * Math.PI;
+      this._aL_norm = aL >= 0 ? aL : aL + 2 * Math.PI;
+      this._invert_depth = -this.Hi - (this._icy - this.R2);
+    }
+  }
+
+  distanceToProfile(px, py) {
+    if (this.type === 'circular') return this._distCircular(px, py);
+    if (this.type === 'rect') return this._distRect(px, py);
+    if (this.type === 'egg') return this._distEgg(px, py);
+    return this._distStandard(px, py);
+  }
+
+  // ---------- 标准马蹄形（与Python版完全一致）----------
+  _distStandard(px, py) {
+    const W = this.W, Hw = this.Hw, Hi = this.Hi, R1 = this.R1, R2 = this.R2;
+    const hw = W / 2;
+    const acx = this._acx, acy = this._acy;
+    const icx = this._icx, icy = this._icy;
+    const aR_norm = this._aR_norm, aL_norm = this._aL_norm;
+
+    let minD = Infinity, cx = 0, cy = 0;
+
+    // 1. 拱顶圆弧
+    const da = Math.hypot(px - acx, py - acy);
+    const aa = Math.atan2(px - acx, py - acy);
+    if (aa >= -Math.PI / 2 && aa <= Math.PI / 2) {
+      const d = Math.abs(da - R1);
+      if (d < minD) { minD = d; cx = acx + R1 * Math.sin(aa); cy = acy + R1 * Math.cos(aa); }
+    }
+
+    // 2. 直墙
+    for (const wx of [-hw, hw]) {
+      if (py >= -Hi && py <= Hw) {
+        const d = Math.abs(px - wx);
+        if (d < minD) { minD = d; cx = wx; cy = py; }
+      }
+    }
+
+    // 3. 仰拱圆弧（凹形，劣弧）
+    let ai = Math.atan2(px - icx, py - icy);
+    let aiNorm = ai >= 0 ? ai : ai + 2 * Math.PI;
+    if (aiNorm >= aR_norm && aiNorm <= aL_norm) {
+      const di = Math.hypot(px - icx, py - icy);
+      const d = Math.abs(di - R2);
+      if (d < minD) { minD = d; cx = icx + R2 * Math.sin(ai); cy = icy + R2 * Math.cos(ai); }
+    }
+
+    // 4. 角点（兜底）
+    const corners = [[-hw, -Hi], [hw, -Hi], [-hw, Hw], [hw, Hw]];
+    for (const c of corners) {
+      const d = Math.hypot(px - c[0], py - c[1]);
+      if (d < minD) { minD = d; cx = c[0]; cy = c[1]; }
+    }
+
+    // 5. 符号判定（与Python版一致）
+    const sign = this._signStandard(px, py, cx, cy);
+    return { dist: sign * minD, cx, cy };
+  }
+
+  _signStandard(px, py, cx, cy) {
+    const hw = this.W / 2, Hi = this.Hi, Hw = this.Hw;
+    const acx = this._acx, acy = this._acy;
+    const icx = this._icx, icy = this._icy;
+    const aR_norm = this._aR_norm, aL_norm = this._aL_norm;
+
+    // 拱顶区域
+    const da = Math.hypot(px - acx, py - acy);
+    const aa = Math.atan2(px - acx, py - acy);
+    if (aa >= -Math.PI / 2 && aa <= Math.PI / 2) {
+      return da > this.R1 ? 1 : (da < this.R1 ? -1 : 0);
+    }
+
+    // 仰拱区域
+    let ai = Math.atan2(px - icx, py - icy);
+    let aiNorm = ai >= 0 ? ai : ai + 2 * Math.PI;
+    if (aiNorm >= aR_norm && aiNorm <= aL_norm) {
+      const di = Math.hypot(px - icx, py - icy);
+      return di < this.R2 ? -1 : (di > this.R2 ? 1 : 0);
+    }
+
+    // 直墙区域
+    if (py >= -Hi && py <= Hw) {
+      return Math.abs(px) > hw ? 1 : -1;
+    }
+
+    // 角点区域
+    const outD = Math.hypot(cx, cy);
+    const measD = Math.hypot(px, py);
+    return measD > outD ? 1 : -1;
+  }
+
+  // ---------- 圆形 ----------
+  _distCircular(px, py) {
+    const d = Math.hypot(px, py);
+    const a = Math.atan2(py, px);
+    const sign = d > this.R ? 1 : -1;
+    return { dist: sign * Math.abs(d - this.R), cx: this.R * Math.cos(a), cy: this.R * Math.sin(a) };
+  }
+
+  // ---------- 矩形 ----------
+  _distRect(px, py) {
+    const hw = this.W / 2, hh = this.H / 2;
+    const inside = px >= -hw && px <= hw && py >= -hh && py <= hh;
+    if (inside) {
+      const d = Math.min(px + hw, hw - px, py + hh, hh - py);
+      return { dist: -d, cx: Math.max(-hw, Math.min(hw, px)), cy: Math.max(-hh, Math.min(hh, py)) };
+    }
+    const dx = Math.max(0, Math.abs(px) - hw);
+    const dy = Math.max(0, Math.abs(py) - hh);
+    const d = Math.hypot(dx, dy);
+    return { dist: d, cx: Math.max(-hw, Math.min(hw, px)), cy: Math.max(-hh, Math.min(hh, py)) };
+  }
+
+  // ---------- 蛋形（修复版，与Python版一致）----------
+  _distEgg(px, py) {
+    const yc_top = this._yc_top;
+    const yc_bot = this._yc_bottom;
+    const yb = this._y_boundary;
+
+    if (!this._egg_valid) {
+      const d1 = Math.hypot(px, py - yc_top);
+      const s1 = d1 > this.R1 ? 1 : -1;
+      const r1 = s1 * Math.abs(d1 - this.R1);
+      const a1 = Math.atan2(px, py - yc_top);
+
+      const d2 = Math.hypot(px, py - yc_bot);
+      const s2 = d2 > this.R2 ? 1 : -1;
+      const r2 = s2 * Math.abs(d2 - this.R2);
+      const a2 = Math.atan2(px, py - yc_bot);
+
+      if (Math.abs(r1) <= Math.abs(r2)) {
+        return { dist: r1, cx: this.R1 * Math.sin(a1), cy: yc_top + this.R1 * Math.cos(a1) };
+      } else {
+        return { dist: r2, cx: this.R2 * Math.sin(a2), cy: yc_bot + this.R2 * Math.cos(a2) };
+      }
+    }
+
+    if (py >= yb) {
+      const d = Math.hypot(px, py - yc_top);
+      const sign = d > this.R1 ? 1 : -1;
+      const a = Math.atan2(px, py - yc_top);
+      return { dist: sign * Math.abs(d - this.R1), cx: this.R1 * Math.sin(a), cy: yc_top + this.R1 * Math.cos(a) };
+    } else {
+      const d = Math.hypot(px, py - yc_bot);
+      const sign = d > this.R2 ? 1 : -1;
+      const a = Math.atan2(px, py - yc_bot);
+      return { dist: sign * Math.abs(d - this.R2), cx: this.R2 * Math.sin(a), cy: yc_bot + this.R2 * Math.cos(a) };
+    }
+  }
+
+  // ========== 设计轮廓点 ==========
+  getDesignPoints(n = 200) {
+    if (this.type === 'circular') return this._ptsCircular(n);
+    if (this.type === 'rect') return this._ptsRect(n);
+    if (this.type === 'egg') return this._ptsEgg(n);
+    return this._ptsStandard(n);
+  }
+
+  _ptsStandard(n) {
+    const pts = [];
+    const W = this.W, Hw = this.Hw, Hi = this.Hi, R1 = this.R1, R2 = this.R2;
+    const hw = W / 2;
+    const acx = this._acx, acy = this._acy;
+    const icx = this._icx, icy = this._icy;
+    const aR_norm = this._aR_norm, aL_norm = this._aL_norm;
+
+    // 仰拱（从右角到左角过底部）
+    for (let i = 0; i <= 30; i++) {
+      const a = aR_norm + (aL_norm - aR_norm) * i / 30;
+      pts.push([icx + R2 * Math.sin(a), icy + R2 * Math.cos(a)]);
+    }
+    // 左侧直墙
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      pts.push([-hw, -Hi + (Hw + Hi) * t]);
+    }
+    // 拱顶
+    for (let i = 0; i <= 40; i++) {
+      const a = -Math.PI / 2 + Math.PI * i / 40;
+      const x = acx + R1 * Math.sin(a);
+      const y = acy + R1 * Math.cos(a);
+      if (Math.abs(x) <= hw + 0.01) pts.push([x, y]);
+    }
+    // 右侧直墙
+    for (let i = 0; i <= 10; i++) {
+      const t = i / 10;
+      pts.push([hw, Hw - (Hw + Hi) * t]);
+    }
+    return pts;
+  }
+
+  _ptsCircular(n) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) {
+      const a = -Math.PI / 2 + 2 * Math.PI * i / n;
+      pts.push([this.R * Math.sin(a), this.R * Math.cos(a)]);
+    }
+    return pts;
+  }
+
+  _ptsRect(n) {
+    const hw = this.W / 2, hh = this.H / 2;
+    return [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh], [-hw, -hh]];
+  }
+
+  _ptsEgg(n) {
+    const pts = [];
+    const hw = this.W / 2, hh = this.H / 2, R1 = this.R1, R2 = this.R2;
+    const yc_top = this._yc_top, yc_bot = this._yc_bottom;
+    const safeAsin = v => Math.asin(Math.max(-1, Math.min(1, v)));
+    const safeAcos = v => Math.acos(Math.max(-1, Math.min(1, v)));
+
+    if (this._egg_valid) {
+      const yb = this._y_boundary;
+      const cosTop = (yb - yc_top) / R1;
+      const aHalfTop = safeAcos(cosTop);
+      const aTopStart = -aHalfTop;
+      const aTopEnd = aHalfTop;
+      for (let i = 0; i <= 30; i++) {
+        const a = aTopStart + (aTopEnd - aTopStart) * i / 30;
+        pts.push([R1 * Math.sin(a), yc_top + R1 * Math.cos(a)]);
+      }
+      const cosBot = (yb - yc_bot) / R2;
+      const aBotHalf = safeAcos(cosBot);
+      const aBotStart = aBotHalf;
+      const aBotEnd = 2 * Math.PI - aBotHalf;
+      for (let i = 0; i <= 30; i++) {
+        const a = aBotStart + (aBotEnd - aBotStart) * i / 30;
+        pts.push([R2 * Math.sin(a), yc_bot + R2 * Math.cos(a)]);
+      }
+    } else {
+      const aTopStart = R1 > 0 ? safeAsin(-hw / R1) : -Math.PI / 2;
+      const aTopEnd = R1 > 0 ? safeAsin(hw / R1) : Math.PI / 2;
+      for (let i = 0; i <= 30; i++) {
+        const a = aTopStart + (aTopEnd - aTopStart) * i / 30;
+        pts.push([R1 * Math.sin(a), yc_top + R1 * Math.cos(a)]);
+      }
+      const aBotStart = R2 > 0 ? Math.PI - safeAsin(hw / R2) : Math.PI / 2;
+      const aBotEnd = R2 > 0 ? Math.PI + safeAsin(hw / R2) : 3 * Math.PI / 2;
+      for (let i = 0; i <= 30; i++) {
+        const a = aBotStart + (aBotEnd - aBotStart) * i / 30;
+        pts.push([R2 * Math.sin(a), yc_bot + R2 * Math.cos(a)]);
+      }
+    }
+    return pts;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  2. 交点法曲线引擎（与Python版完全一致）
+// ═══════════════════════════════════════════════════════════════════════════
+
+class JiaoDianCalc {
+  constructor(jd, alphaDeg, R, Ls) {
+    this.jd = jd;
+    this.alphaDeg = Math.abs(alphaDeg);
+    this.turn = alphaDeg > 0 ? '右' : '左';
+    this.R = R;
+    this.Ls = Ls;
+    this.sign = alphaDeg > 0 ? 1 : -1;
+    this.alpha = this.alphaDeg * Math.PI / 180;
+    this._calc();
+  }
+
+  _calc() {
+    const R = this.R, Ls = this.Ls, a = this.alpha;
+    this.beta0 = Ls / (2 * R);
+    this.q = Ls / 2 - Ls ** 3 / (240 * R ** 2);
+    this.p = Ls ** 2 / (24 * R) - Ls ** 4 / (2688 * R ** 3);
+    this.Th = (R + this.p) * Math.tan(a / 2) + this.q;
+    let Ly = R * (a - 2 * this.beta0);
+    if (Ly < -1e-9) throw new Error('圆曲线长度为负');
+    this.Ly = Math.max(Ly, 0);
+    this.Lh = this.Ly + 2 * Ls;
+    this.Eh = (R + this.p) / Math.cos(a / 2) - R;
+    this.Dh = 2 * this.Th - this.Lh;
+    this.ZH = this.jd - this.Th;
+    this.HY = this.ZH + Ls;
+    this.QZ = this.HY + this.Ly / 2;
+    this.YH = this.QZ + this.Ly / 2;
+    this.HZ = this.YH + Ls;
+  }
+
+  getFunc(ZHx, ZHy, azDeg) {
+    const az0 = azDeg * Math.PI / 180;
+    const s = this.sign, R = this.R, Ls = this.Ls, a = this.alpha, zh = this.ZH;
+    const LsLy = Ls + this.Ly;
+
+    const xHy = Ls - Ls ** 3 / (40 * R ** 2) + Ls ** 5 / (3456 * R ** 4);
+    const yHy = s * (Ls ** 2 / (6 * R) - Ls ** 4 / (336 * R ** 3) + Ls ** 6 / (42240 * R ** 5));
+    const phiYh = this.Ly / R;
+    const xYh = xHy + R * Math.sin(phiYh);
+    const yYh = yHy + s * R * (1 - Math.cos(phiYh));
+    const yhTang = s * (this.beta0 + phiYh);
+    const xHz = xYh + (xHy * Math.cos(yhTang) - yHy * Math.sin(yhTang));
+    const yHz = yYh + (xHy * Math.sin(yhTang) + yHy * Math.cos(yhTang));
+
+    return (mileage, offset = 0) => {
+      const l = mileage - zh;
+      let xl, yl, taz;
+      if (l < 0) {
+        xl = l; yl = 0; taz = az0;
+      } else if (Ls > 0 && l <= Ls) {
+        xl = l - l ** 5 / (40 * R ** 2 * Ls ** 2) + l ** 9 / (3456 * R ** 4 * Ls ** 4);
+        yl = s * (l ** 3 / (6 * R * Ls) - l ** 7 / (336 * R ** 3 * Ls ** 3) + l ** 11 / (42240 * R ** 5 * Ls ** 5));
+        taz = az0 + s * l ** 2 / (2 * R * Ls);
+      } else if (l <= LsLy) {
+        const lc = l - Ls, phi = lc / R;
+        xl = xHy + R * Math.sin(phi);
+        yl = yHy + s * R * (1 - Math.cos(phi));
+        taz = az0 + s * (this.beta0 + phi);
+      } else if (l <= this.Lh) {
+        const lc2 = l - LsLy;
+        const xc2 = lc2 - lc2 ** 5 / (40 * R ** 2 * Ls ** 2) + lc2 ** 9 / (3456 * R ** 4 * Ls ** 4);
+        const yc2 = s * (lc2 ** 3 / (6 * R * Ls) - lc2 ** 7 / (336 * R ** 3 * Ls ** 3) + lc2 ** 11 / (42240 * R ** 5 * Ls ** 5));
+        xl = xYh + (xc2 * Math.cos(yhTang) - yc2 * Math.sin(yhTang));
+        yl = yYh + (xc2 * Math.sin(yhTang) + yc2 * Math.cos(yhTang));
+        taz = az0 + yhTang + s * lc2 ** 2 / (2 * R * Ls);
+      } else {
+        const sa = l - this.Lh;
+        xl = xHz + sa * Math.cos(a);
+        yl = yHz + s * sa * Math.sin(a);
+        taz = az0 + s * a;
+      }
+
+      let x = ZHx + xl * Math.cos(az0) - yl * Math.sin(az0);
+      let y = ZHy + xl * Math.sin(az0) + yl * Math.cos(az0);
+      if (offset !== 0) {
+        const na = taz + Math.PI / 2;
+        x += offset * Math.cos(na);
+        y += offset * Math.sin(na);
+      }
+      return { x, y, az: taz };
+    };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  3. 全局状态
+// ═══════════════════════════════════════════════════════════════════════════
+
+let tunnel = null, centerlinePts = [], results = [], zoomLevel = 1;
+const LABELS = { standard: '马蹄形', circular: '圆形', egg: '蛋形', rect: '矩形' };
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  4. UI 切换
+// ═══════════════════════════════════════════════════════════════════════════
+
+function $(id) { return document.getElementById(id); }
+
+function parseDMS(text) {
+  text = (text || '').trim().replace(/°/g,' ').replace(/'/g,' ').replace(/"/g,' ');
+  const parts = text.split(/\\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    const d = Math.abs(parseFloat(parts[0]));
+    const m = parseFloat(parts[1]) || 0;
+    const s = parseFloat(parts[2]) || 0;
+    const sign = parseFloat(parts[0]) < 0 ? -1 : 1;
+    return sign * (d + m/60 + s/3600);
+  }
+  return parseFloat(text) || 0;
+}
+
+function toggleProfile() {
+  const types = ['standard', 'circular', 'egg', 'rect'];
+  const sel = $('profileType').selectedIndex;
+  for (let i = 0; i < types.length; i++) {
+    const id = 'profile' + types[i].charAt(0).toUpperCase() + types[i].slice(1);
+    $(id).style.display = i === sel ? '' : 'none';
+  }
+}
+
+function toggleAlign() {
+  const sel = $('alignType').selectedIndex;
+  $('alignLine').style.display = sel === 0 ? '' : 'none';
+  $('alignCurve').style.display = sel === 1 ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  5. 中线生成
+// ═══════════════════════════════════════════════════════════════════════════
+
+function generateCenterline() {
+  centerlinePts = [];
+  const sel = $('alignType').selectedIndex;
+  if (sel === 0) {
+    const cx = parseFloat($('cx0').value) || 0;
+    const cy = parseFloat($('cy0').value) || 0;
+    const az = parseDMS($('caz').value) * Math.PI / 180;
+    for (let d = -50; d <= 250; d++) {
+      centerlinePts.push({ x: cx + d * Math.cos(az), y: cy + d * Math.sin(az), station: d, az });
+    }
+  } else {
+    const zhX = parseFloat($('ccX').value) || 500000;
+    const zhY = parseFloat($('ccY').value) || 3000000;
+    const startAz = parseDMS($('ccAz').value) || 45;
+    const jd = (parseFloat($('ccJdKm').value) || 0) * 1000 + (parseFloat($('ccJdM').value) || 0);
+    const alpha = parseDMS($('ccAlpha').value) || 32;
+    const R = parseFloat($('ccR').value) || 400;
+    const Ls = parseFloat($('ccLs').value) || 80;
+    try {
+      const calc = new JiaoDianCalc(jd, alpha, R, Ls);
+      const func = calc.getFunc(zhX, zhY, startAz);
+      const start = Math.floor(calc.ZH - 50);
+      const end = Math.ceil(calc.HZ + 50);
+      for (let s = start; s <= end; s++) {
+        const { x, y, az } = func(s, 0);
+        centerlinePts.push({ x, y, station: s, az });
+      }
+    } catch (e) {
+      alert('中线计算错误: ' + e.message);
+    }
+  }
+}
+
+function coordToOffset(x, y, z) {
+  if (!centerlinePts.length) generateCenterline();
+  const road = parseFloat($('croad').value) || 0;
+  const slope = (parseFloat($('cslope').value) || 0) / 100;
+  let minD = Infinity, best = null;
+  for (const p of centerlinePts) {
+    const d = Math.hypot(x - p.x, y - p.y);
+    if (d < minD) { minD = d; best = p; }
+  }
+  if (!best) return { offset: 0, elev: z - road, station: 0, designElev: road };
+  const dx = x - best.x, dy = y - best.y;
+  const offset = -dx * Math.sin(best.az) + dy * Math.cos(best.az);
+  const designElev = road + best.station * slope;
+  return { offset, elev: z - designElev, station: best.station, designElev };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  6. 参数读取
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getParams() {
+  const types = ['standard', 'circular', 'egg', 'rect'];
+  const ptype = types[$('profileType').selectedIndex];
+  const lining = parseFloat($('tlin').value) || 0;
+  const tol = parseFloat($('ttol').value) || 0.05;
+  const p = { type: ptype, lining, tol };
+  if (ptype === 'circular') {
+    p.R = parseFloat($('tcR').value) || 5;
+  } else if (ptype === 'rect') {
+    p.W = parseFloat($('trW').value) || 10;
+    p.H = parseFloat($('trH').value) || 7;
+  } else if (ptype === 'egg') {
+    p.W = parseFloat($('teW').value) || 10;
+    p.H = parseFloat($('teH').value) || 8;
+    p.R1 = parseFloat($('teR1').value) || 5;
+    p.R2 = parseFloat($('teR2').value) || 8;
+  } else {
+    p.W = parseFloat($('tw').value) || 12;
+    p.H = parseFloat($('th').value) || 8.5;
+    p.R1 = parseFloat($('tr1').value) || 6;
+    p.R2 = parseFloat($('tr2').value) || 18;
+    p.Hw = parseFloat($('thw').value) || 3.5;
+    p.Hi = parseFloat($('thi').value) || 1.5;
+  }
+  return p;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  7. 核心计算
+// ═══════════════════════════════════════════════════════════════════════════
+
+function doCalc() {
+  try {
+    const p = getParams();
+    try {
+      tunnel = new TunnelProfile(p.type, p);
+    } catch (e) {
+      alert('断面参数错误: ' + e.message);
+      return;
+    }
+
+    // 仰拱校验
+    if (p.type === 'standard') {
+      const hw = p.W / 2;
+      if (p.R2 > hw) {
+        const actualDepth = p.R2 - Math.sqrt(p.R2 ** 2 - hw ** 2);
+        $('invertInfo').textContent = `R2=${p.R2}m → 实际仰拱深=${actualDepth.toFixed(3)}m (设定Hi=${p.Hi}m)` +
+          (Math.abs(actualDepth - p.Hi) > 0.01 ? ' ⚠不一致!' : ' ✓');
+      } else {
+        $('invertInfo').textContent = `⚠ R2=${p.R2} ≤ hw=${hw}，仰拱无法构成!`;
+      }
+    }
+
+    generateCenterline();
+    const raw = $('ptText').value.trim();
+    if (!raw) { alert('请先输入测量点数据'); return; }
+    const lines = raw.split('\n');
+    results = [];
+
+    for (const line of lines) {
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 3) continue;
+      const pid = parts[0];
+      let off, elev, coordData;
+      if (parts.length >= 4) {
+        const x = parseFloat(parts[1]);
+        const y = parseFloat(parts[2]);
+        const z = parseFloat(parts[3]);
+        if (isNaN(x) || isNaN(y) || isNaN(z)) continue;
+        const ct = coordToOffset(x, y, z);
+        off = ct.offset;
+        elev = ct.elev;
+        coordData = { x, y, z, designElev: ct.designElev };
+      } else {
+        off = parseFloat(parts[1]);
+        elev = parseFloat(parts[2]);
+        if (isNaN(off) || isNaN(elev)) continue;
+        coordData = { designElev: null };
+      }
+
+      const { dist: rawDist, cx, cy } = tunnel.distanceToProfile(off, elev);
+      const adjDist = rawDist - p.lining;
+      let category;
+      if (adjDist > p.tol) category = '超挖';
+      else if (adjDist < -p.tol) category = '欠挖';
+      else category = '合格';
+
+      results.push({
+        id: pid,
+        offset: off,
+        elev: elev,
+        rawDist: rawDist,
+        adjustDist: adjDist,
+        category: category,
+        designElev: coordData.designElev,
+        coordX: coordData.x,
+        coordY: coordData.y,
+        coordZ: coordData.z,
+      });
+    }
+
+    // 汇总显示
+    const over = results.filter(r => r.category === '超挖').length;
+    const under = results.filter(r => r.category === '欠挖').length;
+    const ok = results.length - over - under;
+    const pname = LABELS[p.type] || '标准';
+    let paramStr;
+    if (p.type === 'circular') paramStr = `R=${p.R}m`;
+    else if (p.type === 'rect') paramStr = `W=${p.W}m x H=${p.H}m`;
+    else if (p.type === 'egg') paramStr = `W=${p.W}m x H=${p.H}m  R1=${p.R1}m  R2=${p.R2}m`;
+    else paramStr = `W=${p.W}m x H=${p.H}m  R1=${p.R1}m  R2=${p.R2}m`;
+    const slopeVal = parseFloat($('cslope').value) || 0;
+
+    $('summaryText').innerHTML =
+      `🏗️ ${pname} ${paramStr}<br>` +
+      `初期支护: ${p.lining}m &nbsp; 纵坡: ${slopeVal}% &nbsp; 阈值: ±${p.tol}m<br>` +
+      `📊 测量: <b>${results.length}</b>点 &nbsp; ` +
+      `<span style="color:#d32f2f">🔴 超挖: ${over}</span> &nbsp; ` +
+      `<span style="color:#2e7d32">🟢 欠挖: ${under}</span> &nbsp; ` +
+      `<span style="color:#333">⚪ 合格: ${ok}</span>`;
+
+    updateTable();
+    redraw();
+  } catch (e) {
+    alert('计算错误: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  8. 结果表格
+// ═══════════════════════════════════════════════════════════════════════════
+
+function updateTable() {
+  if (!results.length) {
+    $('resultTablePlaceholder').style.display = 'block';
+    $('resultTable').style.display = 'none';
+    return;
+  }
+  $('resultTablePlaceholder').style.display = 'none';
+  $('resultTable').style.display = 'table';
+
+  const hasCoord = results[0].coordX !== undefined;
+  const cols = hasCoord
+    ? ['点号', 'X(m)', 'Y(m)', 'Z(m)', '偏距(m)', '高差(m)', '径向差(m)', '净空差(m)', '判定']
+    : ['点号', '偏距(m)', '高差(m)', '径向差(m)', '净空差(m)', '判定'];
+
+  $('resultHeader').innerHTML = cols.map(c => `<th>${c}</th>`).join('');
+
+  let bodyHtml = '';
+  for (const r of results) {
+    const cls = r.category === '超挖' ? 'over' : (r.category === '欠挖' ? 'under' : 'ok');
+    let rowHtml = `<tr><td class="${cls}">${r.id}</td>`;
+    if (hasCoord) {
+      rowHtml += `<td class="${cls}">${r.coordX.toFixed(3)}</td>`;
+      rowHtml += `<td class="${cls}">${r.coordY.toFixed(3)}</td>`;
+      rowHtml += `<td class="${cls}">${r.coordZ.toFixed(3)}</td>`;
+    }
+    rowHtml += `<td class="${cls}">${r.offset.toFixed(3)}</td>`;
+    rowHtml += `<td class="${cls}">${r.elev.toFixed(3)}</td>`;
+    rowHtml += `<td class="${cls}">${r.rawDist.toFixed(3)}</td>`;
+    rowHtml += `<td class="${cls}">${r.adjustDist.toFixed(3)}</td>`;
+    rowHtml += `<td class="${cls}">${r.category}</td></tr>`;
+    bodyHtml += rowHtml;
+  }
+  $('resultBody').innerHTML = bodyHtml;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  9. Canvas 绘图
+// ═══════════════════════════════════════════════════════════════════════════
+
+function resizeCanvas() {
+  const canvas = $('canvas');
+  const w = canvas.clientWidth, h = 420;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(w, 100) * dpr;
+  canvas.height = h * dpr;
+  canvas._w = Math.max(w, 100);
+  canvas._h = h;
+  return canvas.getContext('2d');
+}
+
+function redraw() {
+  if (!tunnel) return;
+  const p = getParams();
+  const ctx = resizeCanvas();
+  const w = $('canvas')._w, h = $('canvas')._h;
+  ctx.clearRect(0, 0, w, h);
+
+  let dim;
+  if (p.type === 'circular') dim = p.R * 2;
+  else dim = Math.max(p.W || 0, p.H || 0);
+  const maxDim = dim + 2;
+  const margin = 50;
+  const scale = Math.min((w - margin * 2) / (maxDim * 2), (h - margin * 2) / (maxDim * 2)) * zoomLevel;
+
+  const toX = (px) => w / 2 + px * scale;
+  const toY = (py) => h * 0.55 - py * scale;
+
+  // 网格
+  const gridStep = Math.max(1, Math.round(dim / 10));
+  ctx.strokeStyle = '#F0F0F0';
+  ctx.lineWidth = 0.5;
+  for (let i = -Math.ceil(dim * 2); i <= Math.ceil(dim * 2); i += gridStep) {
+    const sx = toX(i);
+    ctx.beginPath(); ctx.moveTo(sx, 0); ctx.lineTo(sx, h); ctx.stroke();
+    const sy = toY(i);
+    ctx.beginPath(); ctx.moveTo(0, sy); ctx.lineTo(w, sy); ctx.stroke();
+  }
+
+  // 中心线
+  ctx.strokeStyle = '#E0E0E0';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 路面标注
+  const roadY = toY(0);
+  ctx.fillStyle = '#999';
+  ctx.font = '10px "Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('路面 ±0.00', w / 2 + 5, roadY - 3);
+
+  // 设计轮廓
+  const pts = tunnel.getDesignPoints(200);
+  if (pts.length >= 2) {
+    ctx.strokeStyle = '#1565c0';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      const sx = toX(pts[i][0]), sy = toY(pts[i][1]);
+      if (i === 0) ctx.moveTo(sx, sy);
+      else ctx.lineTo(sx, sy);
+    }
+    ctx.stroke();
+  }
+
+  // 初期支护线
+  const lining = p.lining;
+  if (lining > 0) {
+    const outer = [];
+    for (const pt of pts) {
+      let ccx, ccy;
+      if (p.type === 'circular') { ccx = 0; ccy = 0; }
+      else if (p.type === 'standard') { ccx = 0; ccy = tunnel._acy; }
+      else { ccx = 0; ccy = (p.Hw || p.H * 0.5) * 0.4; }
+      const dx = pt[0] - ccx, dy = pt[1] - ccy;
+      const d = Math.hypot(dx, dy) || 1;
+      outer.push([pt[0] + dx / d * lining, pt[1] + dy / d * lining]);
+    }
+    if (outer.length >= 2) {
+      ctx.strokeStyle = '#90caf9';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      for (let i = 0; i < outer.length; i++) {
+        const sx = toX(outer[i][0]), sy = toY(outer[i][1]);
+        if (i === 0) ctx.moveTo(sx, sy);
+        else ctx.lineTo(sx, sy);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // 测量点
+  const colorMap = { '超挖': '#d32f2f', '欠挖': '#2e7d32', '合格': '#333' };
+  for (const r of results) {
+    const sx = toX(r.offset), sy = toY(r.elev);
+    const color = colorMap[r.category] || '#333';
+    const r2 = r.category !== '合格' ? 5 : 4;
+    ctx.beginPath();
+    ctx.arc(sx, sy, r2, 0, 2 * Math.PI);
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#555';
+    ctx.font = '9px Consolas,monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText(r.id, sx + r2 + 2, sy + 3);
+  }
+
+  // 水印
+  ctx.fillStyle = '#ccc';
+  ctx.font = '9px "Microsoft YaHei",sans-serif';
+  ctx.textAlign = 'right';
+  ctx.fillText('By Lvmyth AI', w - 6, h - 4);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  10. 缩放
+// ═══════════════════════════════════════════════════════════════════════════
+
+function zoom(f) {
+  zoomLevel = Math.max(0.1, Math.min(zoomLevel * f, 10));
+  $('zoomLabel').textContent = Math.round(zoomLevel * 100) + '%';
+  redraw();
+}
+
+function zoomReset() {
+  zoomLevel = 1;
+  $('zoomLabel').textContent = '100%';
+  redraw();
+}
+
+// 鼠标滚轮缩放
+$('canvas').addEventListener('wheel', (e) => {
+  e.preventDefault();
+  zoom(e.deltaY < 0 ? 1.15 : 0.87);
+}, { passive: false });
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  11. 导入/导出
+// ═══════════════════════════════════════════════════════════════════════════
+
+function exportCSV() {
+  if (!results.length) {
+    alert('请先点击「计算」！');
+    return;
+  }
+  const p = getParams();
+  const hasCoord = results[0].coordX !== undefined;
+  let csv = '\uFEFF隧道超欠挖计算结果\n';
+  csv += `断面,${p.type},初期支护,${p.lining}m,阈值,±${p.tol}m\n`;
+  csv += hasCoord ? '点号,X(m),Y(m),Z(m),偏距(m),高差(m),径向差(m),净空差(m),判定\n'
+                  : '点号,偏距(m),高差(m),径向差(m),净空差(m),判定\n';
+  for (const r of results) {
+    if (hasCoord) {
+      csv += `${r.id},${r.coordX.toFixed(3)},${r.coordY.toFixed(3)},${r.coordZ.toFixed(3)},`;
+      csv += `${r.offset.toFixed(3)},${r.elev.toFixed(3)},${r.rawDist.toFixed(3)},${r.adjustDist.toFixed(3)},${r.category}\n`;
+    } else {
+      csv += `${r.id},${r.offset.toFixed(3)},${r.elev.toFixed(3)},${r.rawDist.toFixed(3)},${r.adjustDist.toFixed(3)},${r.category}\n`;
+    }
+  }
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '隧道超欠挖结果.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    $('ptText').value = e.target.result;
+    doCalc();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  12. 示例数据
+// ═══════════════════════════════════════════════════════════════════════════
+
+function loadLineSample() {
+  $('alignType').selectedIndex = 0;
+  toggleAlign();
+  const cx = parseFloat($('cx0').value) || 500000;
+  const cy = parseFloat($('cy0').value) || 3000000;
+  const azRad = parseDMS($('caz').value) * Math.PI / 180;
+  const lines = [];
+  for (let i = 0; i < 10; i++) {
+    const st = 20 + i * 8;
+    const off = ((i % 3) - 1) * 5;
+    const x = cx + st * Math.cos(azRad) - off * Math.sin(azRad);
+    const y = cy + st * Math.sin(azRad) + off * Math.cos(azRad);
+    const z = 100 + 8.2 - Math.abs(off) * 1.0;
+    lines.push(`${String.fromCharCode(65 + i)} ${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`);
+  }
+  $('ptText').value = lines.join('\n');
+  doCalc();
+}
+
+function loadCurveSample() {
+  $('alignType').selectedIndex = 1;
+  toggleAlign();
+  $('ccX').value = '500000';
+  $('ccY').value = '3000000';
+  $('ccAz').value = '45';
+  $('ccJdKm').value = '1';
+  $('ccJdM').value = '200';
+  $('ccAlpha').value = '32';
+  $('ccR').value = '400';
+  $('ccLs').value = '80';
+  $('croad').value = '100';
+  $('cslope').value = '0';
+  try {
+    const calc = new JiaoDianCalc(1200, 32, 400, 80);
+    const func = calc.getFunc(500000, 3000000, 45);
+    const lines = [];
+    for (let i = 0; i < 10; i++) {
+      const st = Math.min(calc.ZH + 20 + i * 25, calc.HZ - 5);
+      const off = ((i % 3) - 1) * 4;
+      const { x, y } = func(st, off);
+      const z = 100 + 8.0 - Math.abs(off) * 0.3;
+      lines.push(`${String.fromCharCode(65 + i)} ${x.toFixed(3)} ${y.toFixed(3)} ${z.toFixed(3)}`);
+    }
+    $('ptText').value = lines.join('\n');
+  } catch (e) {
+    alert('曲线示例错误: ' + e.message);
+  }
+  doCalc();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  13. 初始化
+// ═══════════════════════════════════════════════════════════════════════════
+
+window.addEventListener('load', () => {
+  toggleProfile();
+  toggleAlign();
+  setTimeout(() => {
+    loadLineSample();
+    window.addEventListener('resize', redraw);
+  }, 50);
+});
+</script>
+<script>
+var c_p=document.getElementById('particleCanvas'),x=c_p.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c_p.width=innerWidth;H=c_p.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

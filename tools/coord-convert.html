@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> 坐标转换 - 测量员在线工具箱</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    #particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+    html{background:var(--bg-nav)}
+    body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+    .navbar,.container{position:relative;z-index:1}
+    .container{max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)}
+
+    /* tabs */
+    .tab-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 18px;
+      border-bottom: 2px solid #2c6e49;
+      padding-bottom: 0;
+    }
+    .tab-btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      background: #eef2ec;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 13px;
+      color: #3d5544;
+      transition: 0.15s;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab-btn:hover { background: #dce8dc; }
+    .tab-btn.active {
+      background: #2c6e49;
+      color: white;
+      border-bottom-color: #1e4d30;
+    }
+    .tab-pane { display: none; animation: fade 0.2s; }
+    .tab-pane.active { display: block; }
+    @keyframes fade { from { opacity: 0.3; } to { opacity: 1; } }
+
+    .panel {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+    .panel-left { flex: 0 0 380px; min-width: 320px; }
+    .panel-right { flex: 1; min-width: 200px; }
+    @media (max-width: 780px) {
+      .panel { flex-direction: column; }
+      .panel-left { flex: 1; min-width: 0; width: 100%; }
+      .panel-right { width: 100%; }
+    }
+    @media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+    @media(max-width:480px){.container{padding:0.6rem}.tab-btn{padding:6px 10px;font-size:12px}.dms-row input{width:45px}}
+
+    .card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px 14px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 6px rgba(0, 20, 10, 0.04);
+      border: 1px solid #e2ebe2;
+    }
+    .card h3 {
+      font-size: 15px;
+      margin: 0 0 12px 0;
+      color: #1a3b2a;
+      border-left: 4px solid #2c6e49;
+      padding-left: 10px;
+      font-weight: 600;
+    }
+    .btn {
+      background: #2c6e49;
+      border: none;
+      color: white;
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn:hover { background: #1f5538; }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #2c6e49;
+      color: #2c6e49;
+    }
+    .btn-outline:hover { background: #eaf3ea; }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    .cp-grid {
+      display: grid;
+      grid-template-columns: 50px 1fr;
+      gap: 8px 8px;
+      align-items: center;
+      margin: 6px 0;
+    }
+    .cp-grid .lb { font-weight: 600; color: #2d4a3a; font-size: 12px; }
+    .cp-grid input { max-width: 120px; }
+
+    .cp-tbl {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .cp-tbl th {
+      background: #1a3b2a;
+      color: white;
+      padding: 5px 3px;
+      text-align: center;
+    }
+    .cp-tbl td {
+      padding: 3px 2px;
+      border-bottom: 1px solid #e2ece2;
+      text-align: center;
+    }
+    .cp-tbl td input {
+      width: 100%;
+      padding: 4px 3px;
+      border: 1px solid #d0ddd0;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: 'Consolas', monospace;
+      text-align: center;
+      background: #fafcfa;
+    }
+    .cp-tbl .del {
+      color: #b53b3b;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .param-box {
+      background: #f4f8f4;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.9;
+      border: 1px solid #dce8dc;
+    }
+    .param-box .val { color: #1a6b3a; font-weight: 700; }
+
+    .res-box {
+      background: #f6faf6;
+      border-radius: 8px;
+      padding: 12px 14px;
+      min-height: 44px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      border: 1px solid #dce8dc;
+    }
+    .res-box .big {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1a4d2a;
+      display: block;
+      margin: 4px 0;
+    }
+
+    .select-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .select-row label { font-weight: 600; color: #2d4a3a; font-size: 13px; }
+    .select-row select, .select-row input {
+      padding: 5px 8px;
+      border: 1px solid #cbdccb;
+      border-radius: 6px;
+      font-size: 13px;
+      background: white;
+      font-family: 'Consolas', monospace;
+    }
+    .select-row input[type="number"] { width: 70px; }
+    .select-row input[readonly] { background: #f2f7f2; }
+
+    .dms-row {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .dms-row input {
+      width: 55px;
+      padding: 4px 4px;
+      border: 1px solid #cbdccb;
+      border-radius: 4px;
+      font-size: 13px;
+      text-align: center;
+      font-family: 'Consolas', monospace;
+    }
+    .dms-row .sep { color: #7a8f7a; font-size: 14px; }
+
+    textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbdccb;
+      border-radius: 6px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      resize: vertical;
+      background: #fafcfa;
+    }
+
+    .canvas-wrap{margin-top:6px}
+    canvas { width: 100%; height: auto; display: block; }
+
+    .hint { font-size: 12px; color: #5f745f; margin-top: 4px; }
+    .mt-2 { margin-top: 10px; }
+    .flex { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .gap-1 { gap: 4px; }
+    .text-mono { font-family: 'Consolas', monospace; }
+    .text-small { font-size: 12px; color: #3e5a3e; }
+  </style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+<div class="tab-row" id="tabBar">
+  <span class="tab-btn active" onclick="switchTab('fourParam')">📌 四参数</span>
+  <span class="tab-btn" onclick="switchTab('gaussFwd')">📡 高斯正算</span>
+  <span class="tab-btn" onclick="switchTab('gaussInv')">📡 高斯反算</span>
+  <span class="tab-btn" onclick="switchTab('zoneShift')">🔄 换带计算</span>
+</div>
+
+<!-- ========= 四参数 ========= -->
+<div class="tab-pane active" id="paneFourParam">
+<div class="panel">
+  <div class="panel-left">
+    <div class="card">
+      <h3>公共点 (≥2组)</h3>
+      <div style="overflow-x:auto">
+        <table class="cp-tbl" id="cpTable">
+          <thead><tr><th>#</th><th>源 X</th><th>源 Y</th><th>目标 X</th><th>目标 Y</th><th></th></tr></thead>
+          <tbody id="cpBody"></tbody>
+        </table>
+      </div>
+      <div class="flex gap-1" style="margin-top:8px">
+        <button class="btn btn-sm" onclick="addCpRow()">＋ 添加</button>
+        <button class="btn btn-sm btn-outline" onclick="loadCpDemo()">📋 示例</button>
+        <button class="btn btn-sm btn-outline" onclick="clearCp()">🗑 清空</button>
+      </div>
+    </div>
+    <button class="btn" style="width:100%; padding:10px; font-size:15px;" onclick="calcFourParam()">🔍 解算四参数</button>
+    <div class="card" id="fpResultCard" style="display:none">
+      <h3>四参数结果</h3>
+      <div class="param-box" id="fpResult"></div>
+      <div id="fpResidual" style="font-size:12px; color:#3c5a3c; white-space:pre-wrap; margin-top:6px; background:#f2f7f2; padding:6px 10px; border-radius:6px;"></div>
+    </div>
+  </div>
+  <div class="panel-right">
+    <div class="card">
+      <h3>单点转换</h3>
+      <div class="cp-grid">
+        <span class="lb">源 X</span><input id="fpSrcX" value="0" type="number" step="any">
+        <span class="lb">源 Y</span><input id="fpSrcY" value="0" type="number" step="any">
+      </div>
+      <button class="btn btn-sm" onclick="applyFourParam()" id="fpApplyBtn" disabled>▶ 转换</button>
+      <div class="res-box" id="fpApplyResult" style="margin-top:6px;"></div>
+    </div>
+    <div class="canvas-wrap"><canvas id="fpCanvas"></canvas></div>
+  </div>
+</div>
+</div>
+
+<!-- ========= 高斯正算 ========= -->
+<div class="tab-pane" id="paneGaussFwd">
+<div class="panel">
+  <div class="panel-left">
+    <div class="card">
+      <h3>椭球 & 投影</h3>
+      <div class="select-row"><label>椭球</label><select id="gfEllipsoid" style="flex:1"><option value="cgcs2000">CGCS2000</option><option value="xian80">西安80</option><option value="beijing54" selected>北京54</option><option value="wgs84">WGS84</option></select></div>
+      <div class="select-row">
+        <label>分带</label><select id="gfBand" onchange="updateGfZone()"><option value="3">3°</option><option value="6" selected>6°</option></select>
+        <label>带号</label><input id="gfZoneNum" value="20" type="number" onchange="updateGfZone()">
+      </div>
+      <div class="select-row">
+        <label>中央子午线</label><input id="gfCm" value="117" readonly style="width:70px;text-align:center"><span>°</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>输入经纬度</h3>
+      <div class="select-row"><label>纬度 B</label><div class="dms-row"><input id="gfBd" value="39" placeholder="度"><span class="sep">°</span><input id="gfBm" value="30" placeholder="分"><span class="sep">′</span><input id="gfBs" value="0" placeholder="秒"><span class="sep">″</span></div></div>
+      <div class="select-row"><label>经度 L</label><div class="dms-row"><input id="gfLd" value="116" placeholder="度"><span class="sep">°</span><input id="gfLm" value="15" placeholder="分"><span class="sep">′</span><input id="gfLs" value="0" placeholder="秒"><span class="sep">″</span></div></div>
+      <button class="btn" style="margin-top:8px;" onclick="calcGaussFwd()">📡 正算</button>
+    </div>
+    <div class="card" id="gfResultCard" style="display:none">
+      <h3>平面坐标 (含500km加常数)</h3>
+      <div class="res-box" id="gfResult"></div>
+    </div>
+  </div>
+  <div class="panel-right">
+    <div class="card">
+      <h3>批量正算</h3>
+      <div class="text-small" style="margin-bottom:6px;">每行: B L (度, 空格分隔, 可用小数)</div>
+      <textarea id="gfBatchInput" rows="5" placeholder="39.5 116.25&#10;39.55 116.30"></textarea>
+      <button class="btn btn-sm" style="margin-top:6px;" onclick="calcGaussFwdBatch()">批量转换</button>
+      <div class="res-box" id="gfBatchResult" style="font-size:12px; white-space:pre-wrap; margin-top:6px;"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========= 高斯反算 ========= -->
+<div class="tab-pane" id="paneGaussInv">
+<div class="panel">
+  <div class="panel-left">
+    <div class="card">
+      <h3>椭球 & 投影</h3>
+      <div class="select-row"><label>椭球</label><select id="giEllipsoid" onchange="updateGiZone()" style="flex:1"><option value="cgcs2000">CGCS2000</option><option value="xian80">西安80</option><option value="beijing54" selected>北京54</option><option value="wgs84">WGS84</option></select></div>
+      <div class="select-row">
+        <label>分带</label><select id="giBand" onchange="updateGiZone()"><option value="3">3°</option><option value="6" selected>6°</option></select>
+        <label>带号</label><input id="giZoneNum" value="20" type="number" onchange="updateGiZone()">
+      </div>
+      <div class="select-row">
+        <label>中央子午线</label><input id="giCm" value="117" readonly style="width:70px;text-align:center"><span>°</span>
+      </div>
+      <div class="hint">💡 Y坐标不含带号，但需保留500km加常数 (若误输带号将自动去除)</div>
+    </div>
+    <div class="card">
+      <h3>输入平面坐标</h3>
+      <div class="cp-grid"><span class="lb">X (北)</span><input id="giX" value="4375000.000" type="number" step="any"><span class="lb">Y (东)</span><input id="giY" value="500000.000" type="number" step="any"></div>
+      <button class="btn" style="margin-top:8px;" onclick="calcGaussInv()">📡 反算</button>
+    </div>
+    <div class="card" id="giResultCard" style="display:none">
+      <h3>经纬度结果</h3>
+      <div class="res-box" id="giResult"></div>
+    </div>
+  </div>
+  <div class="panel-right">
+    <div class="card">
+      <h3>批量反算</h3>
+      <div class="text-small" style="margin-bottom:6px;">每行: X Y (空格分隔, Y含500km加常数)</div>
+      <textarea id="giBatchInput" rows="5" placeholder="4375000 500000&#10;4378000 505000"></textarea>
+      <button class="btn btn-sm" style="margin-top:6px;" onclick="calcGaussInvBatch()">批量转换</button>
+      <div class="res-box" id="giBatchResult" style="font-size:12px; white-space:pre-wrap; margin-top:6px;"></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ========= 换带计算 ========= -->
+<div class="tab-pane" id="paneZoneShift">
+<div class="panel">
+  <div class="panel-left">
+    <div class="card">
+      <h3>椭球设置</h3>
+      <div class="select-row"><label>椭球</label><select id="zsEllipsoid" style="flex:1"><option value="cgcs2000">CGCS2000</option><option value="xian80">西安80</option><option value="beijing54" selected>北京54</option><option value="wgs84">WGS84</option></select></div>
+    </div>
+    <div class="card"><h3>源带</h3>
+      <div class="select-row"><label>分带</label><select id="zsSrcBand"><option value="3">3°</option><option value="6" selected>6°</option></select><label>带号</label><input id="zsSrcZone" value="20" type="number"></div>
+    </div>
+    <div class="card"><h3>目标带</h3>
+      <div class="select-row"><label>分带</label><select id="zsDstBand"><option value="3">3°</option><option value="6">6°</option></select><label>带号</label><input id="zsDstZone" value="39" type="number"></div>
+    </div>
+    <div class="card">
+      <h3>输入坐标</h3>
+      <div class="cp-grid"><span class="lb">X (北)</span><input id="zsX" value="4375000.000" type="number" step="any"><span class="lb">Y (东)</span><input id="zsY" value="500000.000" type="number" step="any"></div>
+      <div class="hint">💡 Y不含带号，保留500km加常数</div>
+      <button class="btn" style="margin-top:8px;" onclick="calcZoneShift()">🔄 换带计算</button>
+    </div>
+    <div class="card" id="zsResultCard" style="display:none">
+      <h3>换带结果</h3>
+      <div class="res-box" id="zsResult"></div>
+    </div>
+  </div>
+  <div class="panel-right">
+    <div class="card">
+      <h3>说明</h3>
+      <div style="font-size:13px; line-height:1.8; color:#2d4a3a;">
+        <p><strong>原理：</strong>源带坐标 → 反算经纬度 → 正算到目标带。</p>
+        <p><strong>6°带</strong> N → L₀ = N×6 − 3<br><strong>3°带</strong> n → L₀ = n×3</p>
+        <p style="background:#ecf5ec; padding:6px 10px; border-radius:6px; margin-top:6px;">例：6°带20号 → 117°  &nbsp; 3°带39号 → 117°</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div> <!-- container -->
+
+<script>
+// ======= 通用 =======
+function g(id){ return document.getElementById(id); }
+function gv(id){ return parseFloat(document.getElementById(id).value) || 0; }
+
+// ======= 椭球参数 =======
+const ELLIPSOID = {
+  cgcs2000: { a: 6378137, f: 1/298.257222101, name: 'CGCS2000' },
+  xian80:   { a: 6378140, f: 1/298.257,       name: '西安80' },
+  beijing54:{ a: 6378245, f: 1/298.3,         name: '北京54' },
+  wgs84:    { a: 6378137, f: 1/298.257223563, name: 'WGS84' }
+};
+function getE(name){ return ELLIPSOID[name] || ELLIPSOID.beijing54; }
+
+// ======= 角度 =======
+function dms2dd(d,m,s){ return d + m/60 + s/3600; }
+function dd2dms(v){ let d=Math.floor(v), mf=(v-d)*60, m=Math.floor(mf), s=(mf-m)*60; return [d,m,Math.round(s*1000)/1000]; }
+function fmtDMS(v){ let a=dd2dms(v); return a[0]+'°'+a[1]+'′'+a[2].toFixed(1)+'″'; }
+function d2r(v){ return v*Math.PI/180; }
+function r2d(v){ return v*180/Math.PI; }
+
+// ======= 高斯投影核心 =======
+function getEllipsoidParams(name){
+  let e = getE(name), a=e.a, f=e.f, ee=2*f - f*f, e2=ee/(1-ee);
+  return { a, f, ee, e2 };
+}
+function meridianArc(B, ep){
+  let a=ep.a, ee=ep.ee, e2=ee, e4=e2*e2, e6=e4*e2, e8=e6*e2;
+  let m0 = a*(1-ee);
+  let A0=1+3*ee/4+45*e4/64+175*e6/256+11025*e8/16384;
+  let A2=-(3*ee/8+15*e4/32+525*e6/1024+2205*e8/4096);
+  let A4=15*e4/256+105*e6/1024+2205*e8/16384;
+  let A6=-(35*e6/3072+105*e8/4096);
+  let A8=315*e8/131072;
+  let s2=Math.sin(2*B), s4=Math.sin(4*B), s6=Math.sin(6*B), s8=Math.sin(8*B);
+  return m0*(A0*B + A2*s2 + A4*s4 + A6*s6 + A8*s8);
+}
+function gaussForward(B, L, L0, ep){
+  let a=ep.a, ee=ep.ee, e2=ep.e2;
+  let l = L - L0, sinB=Math.sin(B), cosB=Math.cos(B);
+  let N = a / Math.sqrt(1 - ee*sinB*sinB);
+  let t = Math.tan(B), eta2 = e2*cosB*cosB;
+  let X = meridianArc(B, ep);
+  let l2=l*l,l3=l2*l,l4=l3*l,l5=l4*l,l6=l5*l;
+  let x = X + N/2*sinB*cosB*l2 + N/24*sinB*Math.pow(cosB,3)*(5 - t*t + 9*eta2 + 4*eta2*eta2)*l4 + N/720*sinB*Math.pow(cosB,5)*(61 - 58*t*t + t*t*t*t + 270*eta2 - 330*eta2*t*t)*l6;
+  let y = N*cosB*l + N/6*Math.pow(cosB,3)*(1 - t*t + eta2)*l3 + N/120*Math.pow(cosB,5)*(5 - 18*t*t + t*t*t*t + 14*eta2 - 58*eta2*t*t)*l5;
+  return { x, y, N };
+}
+function gaussInverse(x, y, L0, ep){
+  let a=ep.a, ee=ep.ee, e2=ep.e2;
+  let e4=ee*ee,e6=e4*ee,e8=e6*ee;
+  let A0=1+3*ee/4+45*e4/64+175*e6/256+11025*e8/16384;
+  let Bf = x / (a*(1-ee)*A0);
+  for(let i=0;i<20;i++){
+    let Xf=meridianArc(Bf,ep), Mf=a*(1-ee)/Math.pow(1-ee*Math.sin(Bf)*Math.sin(Bf),1.5);
+    let df=(Xf-x)/Mf; Bf-=df; if(Math.abs(df)<1e-12) break;
+  }
+  let Nf=a/Math.sqrt(1-ee*Math.sin(Bf)*Math.sin(Bf)), Mf=a*(1-ee)/Math.pow(1-ee*Math.sin(Bf)*Math.sin(Bf),1.5);
+  let tf=Math.tan(Bf), etaf2=e2*Math.cos(Bf)*Math.cos(Bf), cosBf=Math.cos(Bf);
+  let yN=y/Nf, yN2=yN*yN, yN4=yN2*yN2, yN6=yN4*yN2;
+  let B = Bf - tf/(2*(Mf/Nf))*yN2 + tf*(5+3*tf*tf+etaf2-9*etaf2*tf*tf)/(24*(Mf/Nf))*yN4 - tf*(61+90*tf*tf+45*Math.pow(tf,4))/(720*(Mf/Nf))*yN6;
+  let l = yN/cosBf - (1+2*tf*tf+etaf2)/(6*cosBf)*yN2*yN + (5+28*tf*tf+24*Math.pow(tf,4)+6*etaf2+8*etaf2*tf*tf)/(120*cosBf)*yN4*yN;
+  return { B, L: L0 + l };
+}
+function getCentralMeridian(band, zone){ return band==='6' ? zone*6-3 : zone*3; }
+
+// 智能处理Y坐标：如果大于100万说明含带号，自动去除
+function parseY(yInput) {
+  if (yInput > 1000000) {
+    return (yInput % 1000000) - 500000;
+  }
+  return yInput - 500000;
+}
+
+// ======= Tab =======
+function switchTab(name){
+  let ids=['fourParam','gaussFwd','gaussInv','zoneShift'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{ b.className='tab-btn'+(ids[i]===name?' active':''); });
+  document.querySelectorAll('.tab-pane').forEach((p,i)=>{ p.className='tab-pane'+(ids[i]===name?' active':''); });
+}
+
+// ======= 四参数 =======
+let cpData = [];
+let fourParams = null;
+function addCpRow(sx,sy,tx,ty){ cpData.push({sx:sx||'', sy:sy||'', tx:tx||'', ty:ty||''}); renderCp(); }
+function renderCp(){
+  g('cpBody').innerHTML = cpData.map((d,i)=>`<tr><td>${i+1}</td><td><input id="cpsx${i}" value="${d.sx}" placeholder="0.000"></td><td><input id="cpsy${i}" value="${d.sy}" placeholder="0.000"></td><td><input id="cptx${i}" value="${d.tx}" placeholder="0.000"></td><td><input id="cpty${i}" value="${d.ty}" placeholder="0.000"></td><td class="del" onclick="delCp(${i})">✕</td></tr>`).join('');
+}
+function delCp(i){ cpData.splice(i,1); renderCp(); }
+function clearCp(){ cpData=[]; renderCp(); g('fpResultCard').style.display='none'; g('fpApplyBtn').disabled=true; g('fpApplyResult').innerHTML=''; }
+function collectCp(){ for(let i=0;i<cpData.length;i++){ cpData[i].sx=g('cpsx'+i).value; cpData[i].sy=g('cpsy'+i).value; cpData[i].tx=g('cptx'+i).value; cpData[i].ty=g('cpty'+i).value; } }
+function loadCpDemo(){ cpData=[{sx:'500.000',sy:'500.000',tx:'510.000',ty:'520.000'},{sx:'600.000',sy:'450.000',tx:'612.500',ty:'468.500'},{sx:'480.000',sy:'620.000',tx:'488.500',ty:'641.200'}]; renderCp(); }
+
+function calcFourParam(){
+  collectCp(); let n=cpData.length; if(n<2){ alert('至少需要2组公共点'); return; }
+  
+  // 验证输入有效性
+  for(let i=0; i<n; i++){
+    let d = cpData[i];
+    if (isNaN(parseFloat(d.sx)) || isNaN(parseFloat(d.sy)) || isNaN(parseFloat(d.tx)) || isNaN(parseFloat(d.ty))) {
+      alert(`第 ${i+1} 行包含非数字内容或为空，请检查！`);
+      return;
+    }
+  }
+
+  let sxA=0,syA=0,txA=0,tyA=0;
+  for(let d of cpData){ sxA+=+d.sx; syA+=+d.sy; txA+=+d.tx; tyA+=+d.ty; }
+  sxA/=n; syA/=n; txA/=n; tyA/=n;
+  
+  let A=0,B=0,C=0;
+  for(let d of cpData){
+    let ux=+d.sx-sxA, uy=+d.sy-syA, vx=+d.tx-txA, vy=+d.ty-tyA;
+    A += ux*ux+uy*uy; B += ux*vx+uy*vy; C += ux*vy-uy*vx;
+  }
+  
+  // 检查点是否重合或共线
+  if (Math.abs(A) < 1e-10) {
+    alert('源坐标点重合或共线，无法计算四参数！');
+    return;
+  }
+
+  let k = Math.sqrt((B*B+C*C)/(A*A));
+  let da = Math.atan2(C,B);
+  let dx = txA - k*Math.cos(da)*sxA + k*Math.sin(da)*syA;
+  let dy = tyA - k*Math.sin(da)*sxA - k*Math.cos(da)*syA;
+  fourParams = { dx, dy, angle:da, scale:k };
+  
+  let angleDeg=r2d(da), angleDMS=fmtDMS(angleDeg), scalePpm=(k-1)*1e6;
+  g('fpResult').innerHTML = `ΔX = <span class="val">${dx.toFixed(4)}</span> m<br>ΔY = <span class="val">${dy.toFixed(4)}</span> m<br>旋转角 = <span class="val">${angleDMS}</span> (${angleDeg.toFixed(6)}°)<br>尺度比 k = <span class="val">${k.toFixed(8)}</span> (${scalePpm>=0?'+':''}${scalePpm.toFixed(2)} ppm)`;
+  
+  let resStr='';
+  for(let i=0;i<n;i++){
+    let d=cpData[i], sx=+d.sx, sy=+d.sy;
+    let cx=dx+k*Math.cos(da)*sx - k*Math.sin(da)*sy;
+    let cy=dy+k*Math.sin(da)*sx + k*Math.cos(da)*sy;
+    let rx=cx-(+d.tx), ry=cy-(+d.ty);
+    resStr += `点${i+1}：Vx=${rx.toFixed(4)}  Vy=${ry.toFixed(4)}  S=${Math.hypot(rx,ry).toFixed(4)}m\n`;
+  }
+  g('fpResidual').textContent = '残差：\n' + resStr;
+  g('fpResultCard').style.display='block';
+  g('fpApplyBtn').disabled=false;
+  drawFpPoints();
+}
+function applyFourParam(){
+  if(!fourParams) return;
+  let sx=gv('fpSrcX'), sy=gv('fpSrcY'), p=fourParams;
+  let cx=p.dx+p.scale*Math.cos(p.angle)*sx - p.scale*Math.sin(p.angle)*sy;
+  let cy=p.dy+p.scale*Math.sin(p.angle)*sx + p.scale*Math.cos(p.angle)*sy;
+  g('fpApplyResult').innerHTML = `<span class="big">X' = ${cx.toFixed(4)}</span><span class="big">Y' = ${cy.toFixed(4)}</span>`;
+}
+function drawFpPoints(){
+  let canvas=g('fpCanvas'), ctx=canvas.getContext('2d');
+  let W=canvas.parentElement.clientWidth||400, H=Math.max(260,W*0.6);
+  canvas.width=W*2; canvas.height=H*2; canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  ctx.setTransform(1,0,0,1,0,0); ctx.scale(2,2); ctx.clearRect(0,0,W,H);
+  let allX=[], allY=[];
+  cpData.forEach(d=>{ allX.push(+d.sx,+d.tx); allY.push(+d.sy,+d.ty); });
+  if(allX.length===0){ ctx.fillStyle='#999'; ctx.font='14px sans-serif'; ctx.textAlign='center'; ctx.fillText('添加公共点后计算，显示分布',W/2,H/2); return; }
+  let minX=Math.min(...allX), maxX=Math.max(...allX), minY=Math.min(...allY), maxY=Math.max(...allY);
+  let range=Math.max(maxX-minX, maxY-minY,1)*1.3, midX=(minX+maxX)/2, midY=(minY+maxY)/2, pad=40;
+  let px=x=>pad+(W-pad*2)*(x-(midX-range/2))/range, py=y=>H-pad-(H-pad*2)*(y-(midY-range/2))/range;
+  ctx.strokeStyle='#e4ece4'; ctx.lineWidth=0.5;
+  for(let i=0;i<=6;i++){ let x=pad+(W-pad*2)*i/6; ctx.beginPath(); ctx.moveTo(x,pad); ctx.lineTo(x,H-pad); ctx.stroke(); }
+  for(let i=0;i<=6;i++){ let y=pad+(H-pad*2)*i/6; ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(W-pad,y); ctx.stroke(); }
+  cpData.forEach((d,i)=>{
+    let sx=+d.sx,sy=+d.sy,tx=+d.tx,ty=+d.ty;
+    ctx.beginPath(); ctx.arc(px(sx),py(sy),5,0,Math.PI*2); ctx.fillStyle='#3498db'; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.arc(px(tx),py(ty),5,0,Math.PI*2); ctx.fillStyle='#c0392b'; ctx.fill(); ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px(sx),py(sy)); ctx.lineTo(px(tx),py(ty)); ctx.strokeStyle='rgba(44,110,73,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,3]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#1e3b2a'; ctx.font='11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText('P'+(i+1),px(sx),py(sy)-6);
+  });
+  ctx.fillStyle='#3498db'; ctx.fillRect(W-120,10,10,10); ctx.fillStyle='#1e3b2a'; ctx.font='11px sans-serif'; ctx.textAlign='left'; ctx.fillText('源',W-106,20);
+  ctx.fillStyle='#c0392b'; ctx.fillRect(W-120,28,10,10); ctx.fillStyle='#1e3b2a'; ctx.fillText('目标',W-106,38);
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.font='10px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('By Lvmyth AI',W-30,H-4);
+}
+
+// ======= 高斯正算 =======
+function updateGfZone(){ let band=g('gfBand').value, zone=+g('gfZoneNum').value; g('gfCm').value=getCentralMeridian(band,zone); }
+function calcGaussFwd(){
+  let ep=getEllipsoidParams(g('gfEllipsoid').value);
+  let B=d2r(dms2dd(gv('gfBd'),gv('gfBm'),gv('gfBs'))), L=d2r(dms2dd(gv('gfLd'),gv('gfLm'),gv('gfLs')));
+  let band=g('gfBand').value, zone=+g('gfZoneNum').value, L0=d2r(getCentralMeridian(band,zone));
+  let res=gaussForward(B,L,L0,ep);
+  g('gfResult').innerHTML = `<span class="big">X = ${res.x.toFixed(4)} m</span><span class="big">Y = ${(res.y+500000).toFixed(4)} m</span><span style="font-size:12px;color:#3e5a3e;">带号 ${zone} | 中央子午线 ${getCentralMeridian(band,zone).toFixed(1)}°</span>`;
+  g('gfResultCard').style.display='block';
+}
+function calcGaussFwdBatch(){
+  let ep=getEllipsoidParams(g('gfEllipsoid').value), band=g('gfBand').value, zone=+g('gfZoneNum').value, L0=d2r(getCentralMeridian(band,zone));
+  let lines=g('gfBatchInput').value.trim().split('\n').filter(l=>l.trim());
+  let out=[];
+  for(let i=0;i<lines.length;i++){ let p=lines[i].trim().split(/[\s,]+/); if(p.length<2) continue; let B=d2r(+p[0]), L=d2r(+p[1]); let res=gaussForward(B,L,L0,ep); out.push(`点${i+1}  X=${res.x.toFixed(4)}  Y=${(res.y+500000).toFixed(4)}`); }
+  g('gfBatchResult').textContent=out.join('\n');
+}
+
+// ======= 高斯反算 =======
+function updateGiZone(){ let band=g('giBand').value, zone=+g('giZoneNum').value; g('giCm').value=getCentralMeridian(band,zone); }
+function calcGaussInv(){
+  let ep=getEllipsoidParams(g('giEllipsoid').value);
+  let x=gv('giX'), yInput=gv('giY'), yNatural=parseY(yInput); // 智能去除带号
+  let band=g('giBand').value, zone=+g('giZoneNum').value, L0=d2r(getCentralMeridian(band,zone));
+  let res=gaussInverse(x,yNatural,L0,ep);
+  g('giResult').innerHTML = `<span class="big">B = ${fmtDMS(r2d(res.B))}</span><span class="big">L = ${fmtDMS(r2d(res.L))}</span><span style="font-size:12px;color:#3e5a3e;">(${r2d(res.B).toFixed(7)}°, ${r2d(res.L).toFixed(7)}°) | 带号 ${zone}</span>`;
+  g('giResultCard').style.display='block';
+}
+function calcGaussInvBatch(){
+  let ep=getEllipsoidParams(g('giEllipsoid').value), band=g('giBand').value, zone=+g('giZoneNum').value, L0=d2r(getCentralMeridian(band,zone));
+  let lines=g('giBatchInput').value.trim().split('\n').filter(l=>l.trim());
+  let out=[];
+  for(let i=0;i<lines.length;i++){ let p=lines[i].trim().split(/[\s,]+/); if(p.length<2) continue; let x=+p[0], yInput=+p[1], yNat=parseY(yInput); let res=gaussInverse(x,yNat,L0,ep); out.push(`点${i+1}  B=${fmtDMS(r2d(res.B))}  L=${fmtDMS(r2d(res.L))}`); }
+  g('giBatchResult').textContent=out.join('\n');
+}
+
+// ======= 换带 =======
+function calcZoneShift(){
+  let ep=getEllipsoidParams(g('zsEllipsoid').value);
+  let x=gv('zsX'), yInput=gv('zsY'), yNat=parseY(yInput); // 智能去除带号
+  let srcBand=g('zsSrcBand').value, srcZone=+g('zsSrcZone').value;
+  let dstBand=g('zsDstBand').value, dstZone=+g('zsDstZone').value;
+  let srcL0=d2r(getCentralMeridian(srcBand,srcZone)), dstL0=d2r(getCentralMeridian(dstBand,dstZone));
+  let geo=gaussInverse(x,yNat,srcL0,ep);
+  let res=gaussForward(geo.B,geo.L,dstL0,ep);
+  g('zsResult').innerHTML = `<span style="font-size:12px;color:#3e5a3e;">经纬度中间值：B=${fmtDMS(r2d(geo.B))}  L=${fmtDMS(r2d(geo.L))}</span><span class="big">X' = ${res.x.toFixed(4)} m</span><span class="big">Y' = ${(res.y+500000).toFixed(4)} m</span><span style="font-size:12px;color:#3e5a3e;">${srcBand}°带${srcZone} → ${dstBand}°带${dstZone}</span>`;
+  g('zsResultCard').style.display='block';
+}
+
+// ======= 窗口大小变化时重绘图表 =======
+window.addEventListener('resize', function() {
+  if (document.getElementById('paneFourParam').classList.contains('active')) {
+    drawFpPoints();
+  }
+});
+
+// ======= 初始化 =======
+addCpRow('500.000','500.000','510.000','520.000');
+addCpRow('600.000','450.000','612.500','468.500');
+updateGfZone();
+updateGiZone();
+</script>
+<script>
+// 粒子背景
+var c=document.getElementById('particleCanvas'),x=c.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

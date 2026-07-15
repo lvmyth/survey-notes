@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>测角后方交会 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)}
+.app{display:flex;gap:20px}
+.panel{flex:0 0 340px}
+.panel .card{background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+.panel .card h3{font-size:14px;color:var(--primary-dark);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.section-title{font-size:13px;font-weight:600;color:var(--primary-dark);margin:10px 0 6px}
+.input-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.input-row .point-label{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:#fff;flex-shrink:0}
+.point-label.a{background:#3b82f6}.point-label.b{background:#22c55e}.point-label.c{background:#a855f7}
+.input-row label{font-size:12px;color:var(--text-light);width:20px;text-align:center;flex-shrink:0}
+.input-row input{flex:1;min-width:0;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:13px;font-family:'Consolas',monospace;background:#fff;outline:none;transition:border-color .2s}
+.input-row input:focus{border-color:var(--primary)}
+.angle-inputs{display:flex;gap:10px}
+.angle-box{flex:1;display:flex;flex-direction:column;gap:3px}
+.angle-box .angle-label{font-size:13px;color:var(--text);font-weight:600;text-align:center}
+.angle-box .angle-desc{font-size:11px;color:var(--text-light);text-align:center}
+.angle-box input{padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:14px;font-weight:600;text-align:center;font-family:'Consolas',monospace;outline:none;transition:border-color .2s;background:#fff}
+.angle-box input:focus{border-color:var(--primary)}
+.btn-row{display:flex;gap:6px;margin:8px 0}
+.btn{flex:1;padding:8px 10px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.5px}
+.btn-primary{background:var(--primary);color:#fff;flex:2}.btn-primary:hover{opacity:.85}
+.btn-preset{background:var(--bg-card);color:var(--text-light);border:1px solid var(--border);flex:1;font-size:12px}.btn-preset:hover{background:var(--border)}
+.error-msg{background:rgba(231,76,60,0.1);border:1px solid #e74c3c;border-radius:5px;padding:8px;font-size:12px;color:#e74c3c;display:none;margin-bottom:6px}
+.error-msg.show{display:block}
+.result-area{background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:12px;display:none;margin-bottom:6px}
+.result-area.show{display:block}
+.result-area .coords{font-family:'Consolas',monospace;font-size:16px;color:var(--primary);font-weight:700}
+.result-p{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.p-badge{width:28px;height:28px;border-radius:50%;background:#e74c3c;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.verify-info{font-size:12px;color:var(--text-light);margin-top:6px;line-height:1.6}
+.verify-info .ok{color:#27ae60}.verify-info .warn{color:#f39c12}
+.note-text{font-size:11px;color:var(--text-light);line-height:1.5;border-top:1px solid var(--border);padding-top:8px;margin-top:4px}
+.canvas-wrap{flex:1;min-height:500px;position:relative;display:flex;align-items:center;justify-content:center}
+canvas{background:#fff;border-radius:6px;display:block}
+.legend{position:absolute;top:16px;right:20px;display:flex;gap:12px;font-size:11px;color:var(--text-light)}
+.legend-item{display:flex;align-items:center;gap:4px}
+.legend-dot{width:10px;height:10px;border-radius:50%;border:2px solid}
+.legend-dot.a{background:#3b82f6;border-color:#3b82f6}.legend-dot.b{background:#22c55e;border-color:#22c55e}.legend-dot.c{background:#a855f7;border-color:#a855f7}.legend-dot.p{background:#e74c3c;border-color:#c0392b}
+@media(max-width:800px){.app{flex-wrap:wrap}.panel{flex:1 1 100%}.canvas-wrap{min-height:350px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}.panel .card{padding:12px}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+<div class="app">
+<div class="panel">
+  <div class="card">
+    <h3>测角后方交会</h3>
+    <div class="section-title">已知点坐标</div>
+      <div class="input-row">
+        <div class="point-label a">A</div>
+        <label>X</label>
+        <input id="xa" type="number" value="1000.000" step="0.001">
+        <label>Y</label>
+        <input id="ya" type="number" value="1000.000" step="0.001">
+      </div>
+      <div class="input-row">
+        <div class="point-label b">B</div>
+        <label>X</label>
+        <input id="xb" type="number" value="2500.000" step="0.001">
+        <label>Y</label>
+        <input id="yb" type="number" value="1200.000" step="0.001">
+      </div>
+      <div class="input-row">
+        <div class="point-label c">C</div>
+        <label>X</label>
+        <input id="xc" type="number" value="1800.000" step="0.001">
+        <label>Y</label>
+        <input id="yc" type="number" value="2200.000" step="0.001">
+      </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">观测水平角（度.分秒 或 十进制度）</div>
+    <div class="angle-inputs">
+      <div class="angle-box">
+        <div class="angle-label">α = ∠APB</div>
+        <div class="angle-desc">左角 (A→B)</div>
+        <input id="alpha" type="text" value="136 23 50" placeholder="例: 35 12 45">
+      </div>
+      <div class="angle-box">
+        <div class="angle-label">β = ∠BPC</div>
+        <div class="angle-desc">左角 (B→C)</div>
+        <input id="beta" type="text" value="56 06 14" placeholder="例: 42 08 30">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-primary" id="btnCalc">▷ 计算 P 点坐标</button>
+      <button class="btn btn-preset" id="btnPreset1">预设1</button>
+      <button class="btn btn-preset" id="btnPreset2">预设2</button>
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+
+    <div class="result-area" id="resultArea">
+      <div class="result-p">
+        <div class="p-badge">P</div>
+        <div class="coords" id="resultCoord">--</div>
+      </div>
+      <div class="verify-info" id="verifyInfo"></div>
+    </div>
+
+    <div class="note-text">
+      <strong>说明：</strong>在未知点 P 架设仪器，分别观测三个已知点 A、B、C，获取水平角 α(∠APB) 和 β(∠BPC)，反算 P 点坐标。<br>
+      角度支持 <strong>度.分秒</strong>（如 35 12 45）或 <strong>十进制度</strong>（如 35.2125）两种格式。<br>
+      ⚠ 当四点共圆时出现"危险圆"，无唯一解。
+    </div>
+  </div>
+</div>
+
+  <!-- 右侧画布 -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <canvas id="canvas"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot a"></div> 已知点 A</div>
+      <div class="legend-item"><div class="legend-dot b"></div> 已知点 B</div>
+      <div class="legend-item"><div class="legend-dot c"></div> 已知点 C</div>
+      <div class="legend-item"><div class="legend-dot p"></div> 待定点 P</div>
+    </div>
+  </div>
+</div>
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+(function() {
+  // ===== DOM 元素 =====
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const wrap = document.getElementById('canvasWrap');
+
+  const elXA = document.getElementById('xa');
+  const elYA = document.getElementById('ya');
+  const elXB = document.getElementById('xb');
+  const elYB = document.getElementById('yb');
+  const elXC = document.getElementById('xc');
+  const elYC = document.getElementById('yc');
+  const elAlpha = document.getElementById('alpha');
+  const elBeta = document.getElementById('beta');
+  const elBtnCalc = document.getElementById('btnCalc');
+  const elBtnP1 = document.getElementById('btnPreset1');
+  const elBtnP2 = document.getElementById('btnPreset2');
+  const elError = document.getElementById('errorMsg');
+  const elResult = document.getElementById('resultArea');
+  const elCoord = document.getElementById('resultCoord');
+  const elVerify = document.getElementById('verifyInfo');
+
+  // ===== 状态 =====
+  let points = { ax: 1000, ay: 1000, bx: 2500, by: 1200, cx: 1800, cy: 2200 };
+  let px = null, py = null;
+  let calcResult = null;
+
+  // ===== 角度解析 =====
+  function parseAngle(str) {
+    str = str.trim();
+    if (!str) return NaN;
+
+    // 十进制度数（纯数字，可能带小数点）
+    if (/^-?\d+(\.\d+)?$/.test(str)) {
+      return parseFloat(str);
+    }
+
+    // 度分秒格式: "45°30'00\"" or "45 30 00" or "45-30-00"
+    // 移除常见分隔符
+    let cleaned = str.replace(/[°'"]/g, ' ').replace(/[;:,-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    let parts = cleaned.split(' ');
+    if (parts.length === 1) {
+      // 可能是 "45.3000" 格式（度.分秒秒，即小数点后每两位是分和秒）
+      let num = parseFloat(parts[0]);
+      if (parts[0].includes('.')) {
+        let deg = Math.floor(num);
+        let frac = Math.round((num - deg) * 10000);
+        let min = Math.floor(frac / 100);
+        let sec = frac % 100;
+        return deg + min / 60 + sec / 3600;
+      }
+      return num;
+    }
+    if (parts.length >= 3) {
+      let deg = parseFloat(parts[0]) || 0;
+      let min = parseFloat(parts[1]) || 0;
+      let sec = parseFloat(parts[2]) || 0;
+      return deg + min / 60 + sec / 3600;
+    }
+    if (parts.length === 2) {
+      let deg = parseFloat(parts[0]) || 0;
+      let min = parseFloat(parts[1]) || 0;
+      return deg + min / 60;
+    }
+    return parseFloat(str);
+  }
+
+  function formatDMS(deg) {
+    let d = Math.floor(Math.abs(deg));
+    let m = Math.floor((Math.abs(deg) - d) * 60);
+    let s = ((Math.abs(deg) - d - m / 60) * 3600).toFixed(1);
+    if (parseFloat(s) >= 60) { s = '0.0'; m += 1; }
+    if (m >= 60) { m = 0; d += 1; }
+    let sign = deg < 0 ? '-' : '';
+    return `${sign}${d}°${String(m).padStart(2,'0')}′${String(parseFloat(s).toFixed(1)).padStart(4,'0')}″`;
+  }
+
+  // ===== 几何计算 =====
+  function distance(x1, y1, x2, y2) {
+    let dx = x2 - x1, dy = y2 - y1;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  function azimuth(x1, y1, x2, y2) {
+    let dx = x2 - x1, dy = y2 - y1;
+    return Math.atan2(dx, dy); // 测量方向角: 从北顺时针, atan2(dx, dy)
+  }
+
+  // 三点夹角（在p点，看a和b的夹角）
+  function angleBetween(px, py, ax, ay, bx, by) {
+    let a1 = azimuth(px, py, ax, ay);
+    let a2 = azimuth(px, py, bx, by);
+    let da = (a2 - a1 + Math.PI * 2) % (Math.PI * 2);
+    if (da > Math.PI) da = Math.PI * 2 - da;
+    return da;
+  }
+
+  // 两圆交点
+  function circleIntersection(x1, y1, r1, x2, y2, r2) {
+    let dx = x2 - x1, dy = y2 - y1;
+    let d = Math.sqrt(dx * dx + dy * dy);
+
+    // 无交点
+    if (d > r1 + r2 + 1e-9) return [];
+    if (d < Math.abs(r1 - r2) - 1e-9) return [];
+    if (d < 1e-9 && Math.abs(r1 - r2) < 1e-9) return []; // 重合
+
+    let a = (r1 * r1 - r2 * r2 + d * d) / (2 * d);
+    let hSq = r1 * r1 - a * a;
+    if (hSq < -1e-9) return [];
+    let h = hSq < 0 ? 0 : Math.sqrt(hSq);
+
+    let xm = x1 + a * dx / d;
+    let ym = y1 + a * dy / d;
+
+    if (h < 1e-9) return [[xm, ym]];
+
+    let rx = -dy * h / d;
+    let ry = dx * h / d;
+
+    return [[xm + rx, ym + ry], [xm - rx, ym - ry]];
+  }
+
+  // ===== 后方交会核心计算 =====
+  function computeResection(ax, ay, bx, by, cx, cy, alphaDeg, betaDeg) {
+    let alpha = alphaDeg * Math.PI / 180;
+    let beta = betaDeg * Math.PI / 180;
+
+    if (alpha <= 0 || alpha >= Math.PI || beta <= 0 || beta >= Math.PI) {
+      throw new Error('观测角必须在 0°~180° 之间');
+    }
+
+    let dxAB = bx - ax, dyAB = by - ay;
+    let dAB = Math.sqrt(dxAB * dxAB + dyAB * dyAB);
+    if (dAB < 1e-9) throw new Error('A、B两点不能重合');
+    let azAB = azimuth(ax, ay, bx, by);
+
+    let dxBC = cx - bx, dyBC = cy - by;
+    let dBC = Math.sqrt(dxBC * dxBC + dyBC * dyBC);
+    if (dBC < 1e-9) throw new Error('B、C两点不能重合');
+    let azBC = azimuth(bx, by, cx, cy);
+
+    let cross = dxAB * dyBC - dyAB * dxBC;
+    if (Math.abs(cross) < 1e-9) throw new Error('A、B、C三点不能共线');
+
+    let mx1 = (ax + bx) / 2, my1 = (ay + by) / 2;
+    let mx2 = (bx + cx) / 2, my2 = (by + cy) / 2;
+
+    let R1 = dAB / (2 * Math.sin(alpha));
+    let h1 = dAB / (2 * Math.tan(alpha));
+    let R2 = dBC / (2 * Math.sin(beta));
+    let h2 = dBC / (2 * Math.tan(beta));
+
+    let perp1_1 = azAB + Math.PI / 2;
+    let perp1_2 = azAB - Math.PI / 2;
+    let perp2_1 = azBC + Math.PI / 2;
+    let perp2_2 = azBC - Math.PI / 2;
+
+    // 辅助函数：从方位角计算位移（测量坐标系：dx = r·sin(θ), dy = r·cos(θ)）
+    function dxFromAz(az, r) { return r * Math.sin(az); }
+    function dyFromAz(az, r) { return r * Math.cos(az); }
+
+    let allCandidates = [];
+
+    for (let d1 of [perp1_1, perp1_2]) {
+      let ox1 = mx1 + dxFromAz(d1, h1);
+      let oy1 = my1 + dyFromAz(d1, h1);
+
+      for (let d2 of [perp2_1, perp2_2]) {
+        let ox2 = mx2 + dxFromAz(d2, h2);
+        let oy2 = my2 + dyFromAz(d2, h2);
+
+        let inters = circleIntersection(ox1, oy1, R1, ox2, oy2, R2);
+
+        for (let pp of inters) {
+          let [ppx, ppy] = pp;
+          if (Math.abs(ppx - bx) < 0.001 && Math.abs(ppy - by) < 0.001) continue;
+
+          let ang1 = angleBetween(ppx, ppy, ax, ay, bx, by);
+          let ang2 = angleBetween(ppx, ppy, bx, by, cx, cy);
+          let err = Math.abs(ang1 - alpha) + Math.abs(ang2 - beta);
+
+          allCandidates.push({ px: ppx, py: ppy, err, ox1, oy1, ox2, oy2, R1, R2 });
+        }
+      }
+    }
+
+    if (allCandidates.length === 0) {
+      throw new Error('无有效解（可能出现"危险圆"—四点共圆，请重新选点）');
+    }
+
+    allCandidates.sort((a, b) => a.err - b.err);
+    let best = allCandidates[0];
+
+    if (best.err > 0.0001) {
+      throw new Error('计算精度不足（误差: ' + (best.err*180/Math.PI).toFixed(4) + '°），请检查输入数据');
+    }
+
+    let calcAlpha = angleBetween(best.px, best.py, ax, ay, bx, by) * 180 / Math.PI;
+    let calcBeta = angleBetween(best.px, best.py, bx, by, cx, cy) * 180 / Math.PI;
+    let dPA = distance(best.px, best.py, ax, ay);
+    let dPB = distance(best.px, best.py, bx, by);
+    let dPC = distance(best.px, best.py, cx, cy);
+
+    return {
+      px: best.px, py: best.py,
+      calcAlpha, calcBeta,
+      dPA, dPB, dPC,
+      alphaDeg, betaDeg,
+      o1x: best.ox1, o1y: best.oy1,
+      o2x: best.ox2, o2y: best.oy2,
+      R1: best.R1, R2: best.R2
+    };
+  }
+
+  // ===== Canvas 绘制 =====
+  function resizeCanvas() {
+    let rect = wrap.getBoundingClientRect();
+    let w = rect.width;
+    let h = rect.height;
+    canvas.width = w;
+    canvas.height = h;
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+  }
+
+  function worldToCanvas(wx, wy, xMin, yMin, scale, margin, ch) {
+    return {
+      x: margin + (wx - xMin) * scale,
+      y: ch - margin - (wy - yMin) * scale
+    };
+  }
+
+  function draw() {
+    resizeCanvas();
+    let cw = canvas.width;
+    let ch = canvas.height;
+    let margin = 60;
+
+    // 收集所有需要显示的点
+    let pts = [{ x: points.ax, y: points.ay }, { x: points.bx, y: points.by }, { x: points.cx, y: points.cy }];
+    if (px !== null && py !== null) pts.push({ x: px, y: py });
+
+    // 计算范围
+    let xMin = Infinity, xMax = -Infinity, yMin = Infinity, yMax = -Infinity;
+    for (let p of pts) {
+      if (p.x < xMin) xMin = p.x;
+      if (p.x > xMax) xMax = p.x;
+      if (p.y < yMin) yMin = p.y;
+      if (p.y > yMax) yMax = p.y;
+    }
+
+    // 扩展边距
+    let xRange = xMax - xMin || 1;
+    let yRange = yMax - yMin || 1;
+    let pad = Math.max(xRange, yRange) * 0.2;
+    xMin -= pad; xMax += pad;
+    yMin -= pad; yMax += pad;
+
+    let scaleX = (cw - 2 * margin) / (xMax - xMin);
+    let scaleY = (ch - 2 * margin) / (yMax - yMin);
+    let scale = Math.min(scaleX, scaleY);
+
+    // 居中
+    let drawW = (xMax - xMin) * scale;
+    let drawH = (yMax - yMin) * scale;
+    let offsetX = (cw - drawW) / 2;
+    let offsetY = (ch - drawH) / 2;
+
+    function toCanvas(wx, wy) {
+      return {
+        x: offsetX + (wx - xMin) * scale,
+        y: ch - offsetY - (wy - yMin) * scale
+      };
+    }
+
+    let pA = toCanvas(points.ax, points.ay);
+    let pB = toCanvas(points.bx, points.by);
+    let pC = toCanvas(points.cx, points.cy);
+    let pP = (px !== null) ? toCanvas(px, py) : null;
+
+    // 清屏
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, cw, ch);
+
+    // 画布边框
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, cw - 1, ch - 1);
+
+    // === 网格线 ===
+    let gridStep = Math.pow(10, Math.floor(Math.log10((xMax - xMin) / 8)));
+    let niceSteps = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000];
+    let bestStep = niceSteps[0];
+    for (let s of niceSteps) {
+      if (s * scale > 40) { bestStep = s; break; }
+    }
+
+    ctx.strokeStyle = '#e8e8e8';
+    ctx.lineWidth = 0.5;
+
+    let gxStart = Math.floor(xMin / bestStep) * bestStep;
+    for (let gx = gxStart; gx <= xMax; gx += bestStep) {
+      let cx = toCanvas(gx, yMin).x;
+      ctx.beginPath();
+      ctx.moveTo(cx, offsetY);
+      ctx.lineTo(cx, ch - offsetY);
+      ctx.stroke();
+    }
+
+    let gyStart = Math.floor(yMin / bestStep) * bestStep;
+    for (let gy = gyStart; gy <= yMax; gy += bestStep) {
+      let cy = toCanvas(xMin, gy).y;
+      ctx.beginPath();
+      ctx.moveTo(offsetX, cy);
+      ctx.lineTo(cw - offsetX, cy);
+      ctx.stroke();
+    }
+
+    // === 坐标轴标注 ===
+    ctx.fillStyle = '#999';
+    ctx.font = '11px "Segoe UI","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'center';
+    for (let gx = gxStart; gx <= xMax; gx += bestStep) {
+      let cx = toCanvas(gx, yMin).x;
+      ctx.fillText(gx.toFixed(bestStep < 1 ? 1 : 0), cx, ch - offsetY + 16);
+    }
+    ctx.textAlign = 'right';
+    for (let gy = gyStart; gy <= yMax; gy += bestStep) {
+      let cy = toCanvas(xMin, gy).y;
+      ctx.fillText(gy.toFixed(bestStep < 1 ? 1 : 0), offsetX - 6, cy + 4);
+    }
+
+    // === 绘制点和线 ===
+    let pointRadius = Math.max(5, Math.min(8, scale * 30));
+
+    // 如果P已计算，绘制辅助圆
+    if (calcResult && (px !== null)) {
+      let o1c = toCanvas(calcResult.o1x, calcResult.o1y);
+      let o2c = toCanvas(calcResult.o2x, calcResult.o2y);
+      let r1c = calcResult.R1 * scale;
+      let r2c = calcResult.R2 * scale;
+
+      ctx.setLineDash([4, 6]);
+      ctx.strokeStyle = 'rgba(59,130,246,0.25)';
+      ctx.lineWidth = 1.5;
+      if (r1c < cw * 2) {
+        ctx.beginPath();
+        ctx.arc(o1c.x, o1c.y, r1c, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.strokeStyle = 'rgba(168,85,247,0.25)';
+      if (r2c < cw * 2) {
+        ctx.beginPath();
+        ctx.arc(o2c.x, o2c.y, r2c, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+    }
+
+    // P到各点的连线
+    if (pP) {
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 1.8;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath(); ctx.moveTo(pP.x, pP.y); ctx.lineTo(pA.x, pA.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pP.x, pP.y); ctx.lineTo(pB.x, pB.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(pP.x, pP.y); ctx.lineTo(pC.x, pC.y); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // 已知点之间的连线
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(pA.x, pA.y); ctx.lineTo(pB.x, pB.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pB.x, pB.y); ctx.lineTo(pC.x, pC.y); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 角度弧
+    if (pP && calcResult) {
+      let a1 = azimuth(px, py, points.ax, points.ay);
+      let a2 = azimuth(px, py, points.bx, points.by);
+      let a3 = azimuth(px, py, points.cx, points.cy);
+
+      let arcR = pointRadius * 3.5;
+
+      function drawArc(fromAz, toAz, color, label, dLabel) {
+        // Canvas角度转换: 测量方位角 -> Canvas角 (0=3点, 顺时针)
+        let ca1 = (Math.PI / 2 - fromAz + Math.PI * 2) % (Math.PI * 2);
+        let ca2 = (Math.PI / 2 - toAz + Math.PI * 2) % (Math.PI * 2);
+
+        // 确定弧方向（取短弧）
+        let diff = (toAz - fromAz + Math.PI * 2) % (Math.PI * 2);
+        let ccw = diff > Math.PI;
+
+        ctx.beginPath();
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([]);
+        ctx.arc(pP.x, pP.y, arcR, ca1, ca2, ccw);
+        ctx.stroke();
+
+        // 弧端小箭头
+        let endAngleCanvas = ca2;
+        let arrX = pP.x + arcR * Math.cos(endAngleCanvas);
+        let arrY = pP.y + arcR * Math.sin(endAngleCanvas);
+        // 省略箭头保持简洁
+
+        // 标签
+        let midAz = (fromAz + toAz) / 2;
+        if (diff > Math.PI) midAz += Math.PI;
+        let midCanvas = (Math.PI / 2 - midAz + Math.PI * 2) % (Math.PI * 2);
+        let lx = pP.x + (arcR + 16) * Math.cos(midCanvas);
+        let ly = pP.y + (arcR + 16) * Math.sin(midCanvas);
+
+        ctx.fillStyle = color;
+        ctx.font = 'bold 12px "Segoe UI","Microsoft YaHei",sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, lx, ly);
+        if (dLabel) {
+          ctx.font = '10px "Segoe UI","Microsoft YaHei",sans-serif';
+          ctx.fillStyle = '#555';
+          ctx.fillText(dLabel, lx, ly + 14);
+        }
+      }
+
+      drawArc(a1, a2, '#3b82f6', 'α', calcResult.calcAlpha.toFixed(4) + '°');
+      drawArc(a2, a3, '#a855f7', 'β', calcResult.calcBeta.toFixed(4) + '°');
+    }
+
+    // 绘制点
+    function drawPoint(cp, color, borderColor, label) {
+      // 光晕
+      let glow = ctx.createRadialGradient(cp.x, cp.y, pointRadius*0.3, cp.x, cp.y, pointRadius*1.4);
+      glow.addColorStop(0, color + '88');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(cp.x, cp.y, pointRadius * 1.4, 0, Math.PI*2);
+      ctx.fill();
+
+      // 点
+      ctx.fillStyle = color;
+      ctx.strokeStyle = borderColor;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(cp.x, cp.y, pointRadius, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      // 白心
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(cp.x, cp.y, pointRadius * 0.35, 0, Math.PI*2);
+      ctx.fill();
+
+      // 标签
+      ctx.fillStyle = '#333';
+      ctx.font = `bold ${Math.max(11, pointRadius*1.6)}px "Segoe UI","Microsoft YaHei",sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(label, cp.x + pointRadius + 4, cp.y - pointRadius - 2);
+    }
+
+    drawPoint(pA, '#3b82f6', '#2563eb', 'A');
+    drawPoint(pB, '#22c55e', '#16a34a', 'B');
+    drawPoint(pC, '#a855f7', '#7c3aed', 'C');
+
+    if (pP) {
+      // P点更大
+      let pr = pointRadius * 1.3;
+      let glow = ctx.createRadialGradient(pP.x, pP.y, pr*0.2, pP.x, pP.y, pr*1.8);
+      glow.addColorStop(0, '#ef444488');
+      glow.addColorStop(1, 'transparent');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(pP.x, pP.y, pr * 1.8, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ef4444';
+      ctx.strokeStyle = '#b91c1c';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(pP.x, pP.y, pr, 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(pP.x, pP.y, pr * 0.35, 0, Math.PI*2);
+      ctx.fill();
+
+      ctx.fillStyle = '#b91c1c';
+      ctx.font = `bold ${Math.max(12, pr*1.5)}px "Segoe UI","Microsoft YaHei",sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('P', pP.x + pr + 5, pP.y - pr - 3);
+    }
+
+    // By Lvmyth AI 水印
+    ctx.fillStyle = 'rgba(150,150,150,0.5)';
+    ctx.font = 'italic 11px "Segoe UI","Microsoft YaHei",sans-serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('By Lvmyth AI', cw - 14, ch - 10);
+  }
+
+  // ===== 执行计算 =====
+  function doCalculate() {
+    elError.classList.remove('show');
+    elError.textContent = '';
+    elResult.classList.remove('show');
+
+    points.ax = parseFloat(elXA.value);
+    points.ay = parseFloat(elYA.value);
+    points.bx = parseFloat(elXB.value);
+    points.by = parseFloat(elYB.value);
+    points.cx = parseFloat(elXC.value);
+    points.cy = parseFloat(elYC.value);
+
+    if (isNaN(points.ax) || isNaN(points.ay) || isNaN(points.bx) ||
+        isNaN(points.by) || isNaN(points.cx) || isNaN(points.cy)) {
+      showError('请输入有效的坐标数值');
+      return;
+    }
+
+    let alphaDeg = parseAngle(elAlpha.value);
+    let betaDeg = parseAngle(elBeta.value);
+
+    if (isNaN(alphaDeg) || isNaN(betaDeg)) {
+      showError('请输入有效的角度值（支持度分秒格式或十进制度数）');
+      return;
+    }
+
+    try {
+      calcResult = computeResection(
+        points.ax, points.ay,
+        points.bx, points.by,
+        points.cx, points.cy,
+        alphaDeg, betaDeg
+      );
+
+      px = calcResult.px;
+      py = calcResult.py;
+
+      // 显示结果
+      elResult.classList.add('show');
+      elCoord.textContent =
+        `X = ${px.toFixed(3)}　Y = ${py.toFixed(3)}`;
+
+      let dA = (calcResult.calcAlpha - alphaDeg);
+      let dB = (calcResult.calcBeta - betaDeg);
+
+      elVerify.innerHTML =
+        `<span class="ok">✓ 计算成功</span><br>` +
+        `验证 ∠APB：输入 ${formatDMS(alphaDeg)}，反算 ${formatDMS(calcResult.calcAlpha)}` +
+        (Math.abs(dA) > 0.0001 ? ` <span class="warn">偏差 ${(dA*3600).toFixed(1)}″</span>` : ' <span class="ok">(吻合)</span>') + `<br>` +
+        `验证 ∠BPC：输入 ${formatDMS(betaDeg)}，反算 ${formatDMS(calcResult.calcBeta)}` +
+        (Math.abs(dB) > 0.0001 ? ` <span class="warn">偏差 ${(dB*3600).toFixed(1)}″</span>` : ' <span class="ok">(吻合)</span>') + `<br>` +
+        `距离：PA = ${calcResult.dPA.toFixed(3)}m，PB = ${calcResult.dPB.toFixed(3)}m，PC = ${calcResult.dPC.toFixed(3)}m`;
+
+      draw();
+
+    } catch (e) {
+      showError(e.message);
+      px = null; py = null; calcResult = null;
+      draw();
+    }
+  }
+
+  function showError(msg) {
+    elError.textContent = '⚠ ' + msg;
+    elError.classList.add('show');
+  }
+
+  // ===== 预设数据 =====
+  function setPreset1() {
+    // 已验证：P(1500, 800)，α=136°23'50"，β=56°06'14"
+    elXA.value = '1000.000';
+    elYA.value = '1000.000';
+    elXB.value = '2500.000';
+    elYB.value = '1200.000';
+    elXC.value = '1800.000';
+    elYC.value = '2200.000';
+    elAlpha.value = '136 23 50';
+    elBeta.value = '56 06 14';
+    px = null; py = null; calcResult = null;
+    elResult.classList.remove('show');
+    elError.classList.remove('show');
+    updatePoints();
+    draw();
+  }
+
+  function setPreset2() {
+    // 等边三角形外部点
+    elXA.value = '0.000';
+    elYA.value = '0.000';
+    elXB.value = '100.000';
+    elYB.value = '0.000';
+    elXC.value = '50.000';
+    elYC.value = '86.603';
+    elAlpha.value = '90';
+    elBeta.value = '45';
+    px = null; py = null; calcResult = null;
+    elResult.classList.remove('show');
+    elError.classList.remove('show');
+    updatePoints();
+    draw();
+  }
+
+  function updatePoints() {
+    points.ax = parseFloat(elXA.value) || 0;
+    points.ay = parseFloat(elYA.value) || 0;
+    points.bx = parseFloat(elXB.value) || 0;
+    points.by = parseFloat(elYB.value) || 0;
+    points.cx = parseFloat(elXC.value) || 0;
+    points.cy = parseFloat(elYC.value) || 0;
+  }
+
+  // ===== 事件绑定 =====
+  elBtnCalc.addEventListener('click', doCalculate);
+  elBtnP1.addEventListener('click', setPreset1);
+  elBtnP2.addEventListener('click', setPreset2);
+
+  // Enter键触发计算
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && document.activeElement && document.activeElement.tagName === 'INPUT') {
+      doCalculate();
+    }
+  });
+
+  // 窗口大小变化
+  window.addEventListener('resize', draw);
+
+  // ===== 初始化 =====
+  function init() {
+    resizeCanvas();
+    // 使用预设1的默认数据
+    updatePoints();
+    draw();
+  }
+
+  init();
+
+  console.log('测角后方交会坐标计算工具已就绪');
+  console.log('支持角度格式：');
+  console.log('  十进制度: 35.2125');
+  console.log('  度分秒: 35 12 45 或 35°12\'45"');
+
+})();
+</script>
+<script>
+// 粒子背景
+var c=document.getElementById('particleCanvas'),x=c.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+
+</body>
+</html>

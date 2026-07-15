@@ -1,0 +1,34 @@
+[
+  {
+    "id": "traverse-calculation",
+    "title": "导线计算原理与Python实现",
+    "date": "2026-05-18",
+    "tags": ["导线计算", "坐标计算", "Python"],
+    "excerpt": "详细介绍导线测量的基本原理、内业计算方法，以及如何用 Python 快速完成导线平差计算。",
+    "file": "articles/traverse-calculation.md"
+  },
+  {
+    "id": "coordinate-transformation",
+    "title": "坐标正反算：从公式到代码",
+    "date": "2026-05-15",
+    "tags": ["坐标计算", "Python", "全站仪"],
+    "excerpt": "坐标正算和坐标反算是测量中最基础的计算，本文从数学公式出发，一步步推导并给出 Python 实现。",
+    "file": "articles/coordinate-transformation.md"
+  },
+  {
+    "id": "total-station-guide",
+    "title": "全站仪操作入门：建站与测量",
+    "date": "2026-05-12",
+    "tags": ["全站仪", "测量实操"],
+    "excerpt": "全站仪是现代测量的核心设备，本文从建站、定向到数据采集，梳理一套完整的操作流程与注意事项。",
+    "file": "articles/total-station-guide.md"
+  },
+  {
+    "id": "resection-principle",
+    "title": "测角后方交会：原理与实操要点",
+    "date": "2026-06-10",
+    "tags": ["后方交会", "坐标计算", "测量实操"],
+    "excerpt": "后方交会是自由设站的核心方法，本文详解辅助圆法的几何原理，以及现场操作中如何避开"危险圆"等关键注意事项。",
+    "file": "articles/resection-principle.md"
+  }
+]

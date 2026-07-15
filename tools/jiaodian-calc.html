@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>交点法坐标计算 - 测量员在线工具箱</title>
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html,body{overflow-x:hidden}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+
+.container{max-width:1200px;margin:0 auto;padding:1rem;width:100%;box-sizing:border-box;background:var(--bg);overflow-x:hidden}
+.panel{display:flex;gap:10px;min-height:0}
+.panel .panel-left{flex:0 0 400px;min-width:350px;overflow-y:auto;padding:0 8px}
+.panel .panel-right{flex:1;min-width:0;overflow-y:auto;padding:0 8px}
+.container .card{background:var(--bg-card);border-radius:var(--radius);padding:14px;margin-bottom:12px;box-shadow:var(--shadow);width:100%}
+.container .card h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;padding-left:8px;border-left:3px solid var(--primary)}
+.card-title{font-size:14px;font-weight:700;color:var(--primary-dark);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+
+.calc-btn{display:block;margin:8px auto;padding:9px 24px;font-size:14px;font-weight:700;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;width:100%}
+.calc-btn:hover{background:var(--primary-dark)}
+.btn{padding:7px 14px;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn:hover{opacity:0.85}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-success{background:#4CAF50;color:#fff}
+.btn-warning{background:#FF9800;color:#fff}
+.btn-danger{background:#e74c3c;color:#fff}
+.btn-secondary{background:#78909C;color:#fff}
+.btn-full{width:100%}
+.btn-group{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.btn-group-stacked{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+
+.field-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.field-row:last-child{margin-bottom:0}
+.field-row label{font-size:12px;font-weight:600;color:var(--text);min-width:70px;flex-shrink:0}
+.container .field-row input{padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:Consolas,monospace;outline:none;box-sizing:border-box;flex:none}
+.field-row input:focus{border-color:var(--primary);box-shadow:0 0 0 2px rgba(44,110,73,0.15)}
+.field-row .hint{font-size:10px;color:var(--text-light)}
+
+.input-group{margin-bottom:10px}
+.input-card{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+
+.result-box{background:var(--bg-card);padding:10px 12px;border-radius:8px;border:1px solid var(--border);font-family:Consolas,monospace;font-size:12px;white-space:pre;line-height:1.6;overflow:auto}
+.result-section{margin-bottom:10px}
+.result-section:last-child{margin-bottom:0}
+
+.canvas-container{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;overflow:hidden;position:relative}
+#canvas{display:block;width:100%;height:550px}
+.zoom-bar{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:10}
+.zoom-bar button{width:28px;height:26px;font-size:13px;font-weight:700;background:rgba(255,255,255,0.9);border:1px solid var(--border);border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 4px rgba(0,0,0,0.1)}
+.zoom-bar button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+.zoom-bar .zlbl{font-weight:700;min-width:36px;text-align:center;font-size:11px;background:rgba(255,255,255,0.9);padding:2px 6px;border-radius:3px;border:1px solid var(--border);line-height:22px;color:var(--text-light)}
+.zoom-bar .zbtn{width:auto;padding:0 6px;font-size:11px}
+
+.info-tip{background:#f1f8e9;border-left:4px solid var(--primary-light);padding:10px 14px;border-radius:6px;font-size:12px;color:#2e7d32;margin-bottom:10px}
+.info-tip strong{display:block;margin-bottom:4px}
+
+.stake-header{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:6px 12px;background:#f0f0f0;border-radius:6px;margin-bottom:6px;user-select:none}
+.stake-header:hover{background:#e4e4e4}
+.stake-table-wrap{overflow-x:auto}
+.stake-table-wrap table{width:100%;border-collapse:collapse;font-size:11px}
+.stake-table-wrap td{border:1px solid var(--border);padding:2px 4px;text-align:center;font-size:10px;cursor:pointer}
+.stake-table-wrap tr.selected td{background:#c8e6c9!important}
+.stake-table-wrap th{border:1px solid var(--border);padding:1px 3px;text-align:center;font-size:9px;background:var(--primary-dark);color:#fff;font-weight:700;position:sticky;top:0}
+
+@media(max-width:768px){.panel{flex-direction:column}.panel .panel-left,.panel .panel-right{flex:1 1 100%;min-width:0;padding:0 4px}#canvas{height:350px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.4rem}#canvas{height:280px}.zoom-bar button{width:24px;height:24px;font-size:12px}}
+</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+<div class="panel">
+
+  <div class="panel-left">
+    <div class="card">
+      <h3>📋 参数输入</h3>
+
+    <div class="info-tip">
+      <strong>💡 使用说明：</strong>
+      输入交点参数、控制点坐标后点击「计算要素」计算曲线主点里程；<br>
+      再点击「逐桩坐标」生成坐标表。<br>
+      <strong>转角支持度分秒：32 15 30  = 32°15'30"</strong>
+    </div>
+
+    <!-- 交点参数 -->
+    <div class="input-group">
+      <div class="section-title">📌 交点参数</div>
+      <div class="input-card">
+        <div class="field-row">
+          <label>JD 里程</label>
+          <input id="jdKm" type="number" value="1" style="width:64px" step="0.001">
+          <span style="font-size:12px">km +</span>
+          <input id="jdM" type="number" value="200" style="width:80px" step="0.001">
+          <span style="font-size:12px">m</span>
+        </div>
+        <div class="field-row">
+          <label>转角 α</label>
+          <input id="alpha" type="text" value="32" style="width:80px" placeholder="32 15 30">
+          <span class="hint">° (右正左负，空格=度分秒)</span>
+        </div>
+        <div class="field-row">
+          <label>半径 R</label>
+          <input id="radius" type="number" value="400" style="width:80px" step="0.01">
+          <span style="font-size:12px">m</span>
+        </div>
+        <div class="field-row">
+          <label>缓和长 Ls</label>
+          <input id="lsEntry" type="number" value="80" style="width:80px" step="0.01">
+          <span style="font-size:12px">m</span>
+        </div>
+        <div class="field-row">
+          <label>路面宽</label>
+          <input id="roadW" type="number" value="12" style="width:80px" step="0.1">
+          <span style="font-size:12px">m</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 控制点坐标 -->
+    <div class="input-group">
+      <div class="section-title">📍 控制点坐标</div>
+      <div class="input-card">
+        <div class="field-row"><label>ZH X</label><input id="zhX" type="number" value="500000.000" style="width:130px" step="0.001"></div>
+        <div class="field-row"><label>ZH Y</label><input id="zhY" type="number" value="3000000.000" style="width:130px" step="0.001"></div>
+        <div class="field-row"><label>起始方位角</label><input id="startAz" type="text" value="45" style="width:80px" placeholder="45 30 20"><span class="hint">° (空格=度分秒)</span></div>
+      </div>
+    </div>
+
+    <!-- 逐桩参数 -->
+    <div class="input-group">
+      <div class="section-title">📏 逐桩参数</div>
+      <div class="input-card">
+        <div class="field-row">
+          <label>起止桩号</label>
+          <input id="pkFrom" type="number" style="width:100px" step="0.001" placeholder="起点">
+          <span style="font-size:12px">~</span>
+          <input id="pkTo" type="number" style="width:100px" step="0.001" placeholder="终点">
+        </div>
+        <div class="field-row">
+          <label>间距</label>
+          <input id="interval" type="number" value="20" style="width:80px" step="0.1">
+          <span style="font-size:12px">m</span>
+        </div>
+        <div class="field-row">
+          <label>偏距</label>
+          <input id="offsetVal" type="number" value="0" style="width:60px" step="0.1">
+          <span class="hint">m (正=左 面向大里程)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 按钮 -->
+    <div class="btn-group-stacked">
+      <button class="btn btn-primary btn-full" onclick="doCalc()">🧮 计算要素</button>
+      <button class="btn btn-success btn-full" onclick="doStakes()">📊 逐桩坐标表</button>
+      <div class="btn-group" style="margin:0">
+        <button class="btn btn-warning" onclick="exportCsv()" style="flex:1">📤 导出CSV</button>
+        <button class="btn btn-secondary" onclick="exportScr()" style="flex:1">📐 CAD脚本</button>
+        <button class="btn btn-secondary" onclick="redraw()" style="flex:1">🔄 重绘</button>
+      </div>
+    </div>
+    </div>
+
+    <div class="card">
+      <h3>📊 计算结果</h3>
+
+    <!-- 曲线要素 -->
+    <div class="result-section" id="summaryBox">
+      <div class="result-title">📐 曲线要素</div>
+      <div class="result-box" id="summaryText" style="text-align:center;color:#9E9E9E;">
+       输入左侧参数后点击「计算要素」
+      </div>
+    </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 右侧结果面板 ===== -->
+  <div class="panel-right">
+    <div class="card">
+      <h3>📊 图形显示</h3>
+      <div class="canvas-container" style="margin-top:0">
+        <div class="zoom-bar">
+          <button onclick="zoom(0.8)">−</button>
+          <span class="zlbl" id="zoomLabel">100%</span>
+          <button onclick="zoom(1.25)">+</button>
+          <button class="zbtn" onclick="zoomReset()">↺</button>
+        </div>
+        <canvas id="canvas"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+    <!-- 逐桩坐标表 -->
+    <div class="result-section" id="stakeBox" style="display:none">
+      <div class="stake-header" onclick="toggleStakes()">
+        <span style="font-weight:bold;font-size:13px;color:var(--primary-dark)">📊 逐桩坐标表</span>
+        <span id="stakeToggle" style="font-size:11px;color:#999">▼</span>
+      </div>
+      <div id="stakeContent">
+        <div class="stake-table-wrap">
+          <table><thead><tr id="stakeHeader"></tr></thead><tbody id="stakeBody"></tbody></table>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+</div>
+<div style="text-align:center;padding:1.2rem 0 1.5rem;border-top:1px solid var(--border);margin-top:0.8rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════
+//  1. 核心计算引擎
+// ══════════════════════════════════════════════════
+
+const D2R = a => a * Math.PI / 180;
+const R2D = a => a * 180 / Math.PI;
+
+function fmtSta(pk) {
+  const km = Math.floor(pk / 1000);
+  const m = pk % 1000;
+  return `K${km}+${m.toFixed(3).padStart(7,'0')}`;
+}
+
+function parseSta(s) {
+  s = (s||'').replace(/[Kk]/g,'').trim();
+  const p = s.split('+');
+  if (p.length===2) return parseFloat(p[0]||0)*1000 + parseFloat(p[1]||0);
+  return parseFloat(s)||0;
+}
+
+/** 度分秒 → 十进制度 */
+function parseDMS(text) {
+  if (!text) return 0;
+  text = text.trim().replace(/°/g,' ').replace(/'/g,' ').replace(/"/g,' ');
+  const parts = text.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    let d = parseFloat(parts[0]);
+    const sign = d < 0 ? -1 : 1;
+    d = Math.abs(d);
+    const m = parseFloat(parts[1]) || 0;
+    const s = parseFloat(parts[2]) || 0;
+    return sign * (d + m/60 + s/3600);
+  }
+  return parseFloat(text) || 0;
+}
+
+class JiaoDianCalc {
+  constructor(jd, alphaDeg, R, Ls, rw) {
+    this.jd = jd;
+    this.alphaDeg = Math.abs(alphaDeg);
+    this.turn = alphaDeg > 0 ? '右' : '左';
+    this.R = R; this.Ls = Ls; this.roadWidth = rw;
+    this.sign = alphaDeg > 0 ? 1 : -1;
+    this.alpha = D2R(this.alphaDeg);
+    this._calc();
+  }
+
+  _calc() {
+    const R=this.R, Ls=this.Ls, a=this.alpha;
+    this.beta0 = Ls/(2*R);
+    this.beta0Deg = R2D(this.beta0);
+    this.q = Ls/2 - Ls**3/(240*R**2);
+    this.p = Ls**2/(24*R) - Ls**4/(2688*R**3);
+    this.Th = (R+this.p)*Math.tan(a/2) + this.q;
+    let Ly = R*(a-2*this.beta0);
+    if (Ly < -1e-9) { alert(`圆曲线长度为负 (${Ly.toFixed(2)}m)！请增大R或减小Ls/α`); throw Error(); }
+    this.Ly = Math.max(Ly, 0);
+    this.Lh = this.Ly + 2*Ls;
+    this.Eh = (R+this.p)/Math.cos(a/2) - R;
+    this.Dh = 2*this.Th - this.Lh;
+    this.ZH = this.jd - this.Th;
+    this.HY = this.ZH + Ls;
+    this.QZ = this.HY + this.Ly/2;
+    this.YH = this.QZ + this.Ly/2;
+    this.HZ = this.YH + Ls;
+  }
+
+  getFunc(ZHx, ZHy, azDeg) {
+    const az0 = D2R(azDeg), s=this.sign, R=this.R, Ls=this.Ls, a=this.alpha, zh=this.ZH;
+    const LsLy = Ls + this.Ly;
+    const xHy = Ls - Ls**3/(40*R**2) + Ls**5/(3456*R**4);
+    const yHy = s*(Ls**2/(6*R) - Ls**4/(336*R**3) + Ls**6/(42240*R**5));
+    const phiYh = this.Ly / R;
+    const xYh = xHy + R*Math.sin(phiYh);
+    const yYh = yHy + s*R*(1-Math.cos(phiYh));
+    const yhTang = s*(this.beta0 + phiYh);
+    const xHz = xYh + (xHy*Math.cos(yhTang) - yHy*Math.sin(yhTang));
+    const yHz = yYh + (xHy*Math.sin(yhTang) + yHy*Math.cos(yhTang));
+
+    return function(mileage, offset=0) {
+      const l = mileage - zh;
+      let xl, yl, taz, ptype;
+      if (l < 0) {
+        xl=l; yl=0; taz=az0; ptype='直线段';
+      } else if (Ls>0 && l<=Ls) {
+        xl = l - l**5/(40*R**2*Ls**2) + l**9/(3456*R**4*Ls**4);
+        yl = s*(l**3/(6*R*Ls) - l**7/(336*R**3*Ls**3) + l**11/(42240*R**5*Ls**5));
+        taz = az0 + s*l**2/(2*R*Ls);
+        ptype='缓和曲线';
+      } else if (l<=LsLy) {
+        const lc=l-Ls, phi=lc/R;
+        xl = xHy + R*Math.sin(phi);
+        yl = yHy + s*R*(1-Math.cos(phi));
+        taz = az0 + s*(this.beta0+phi);
+        ptype='圆曲线';
+      } else if (l<=this.Lh) {
+        const lc2=l-LsLy;
+        const xc2 = lc2 - lc2**5/(40*R**2*Ls**2) + lc2**9/(3456*R**4*Ls**4);
+        const yc2 = s*(lc2**3/(6*R*Ls) - lc2**7/(336*R**3*Ls**3) + lc2**11/(42240*R**5*Ls**5));
+        xl = xYh + (xc2*Math.cos(yhTang) - yc2*Math.sin(yhTang));
+        yl = yYh + (xc2*Math.sin(yhTang) + yc2*Math.cos(yhTang));
+        taz = az0 + yhTang + s*lc2**2/(2*R*Ls);
+        ptype='缓和曲线';
+      } else {
+        const sa=l-this.Lh;
+        xl = xHz + sa*Math.cos(a);
+        yl = yHz + s*sa*Math.sin(a);
+        taz = az0 + s*a;
+        ptype='直线段';
+      }
+      const x = ZHx + xl*Math.cos(az0) - yl*Math.sin(az0);
+      const y = ZHy + xl*Math.sin(az0) + yl*Math.cos(az0);
+      if (offset!==0) {
+        const na = taz + Math.PI/2;
+        return [x+offset*Math.cos(na), y+offset*Math.sin(na), ptype, R2D(taz)%360];
+      }
+      return [x, y, ptype, R2D(taz)%360];
+    }.bind(this);
+  }
+}
+
+// ══════════════════════════════════════════════════
+//  2. 全局状态
+// ══════════════════════════════════════════════════
+
+let calc = null, calcFunc = null, stakeData = [], zoomLevel = 1, showStakes = true, _cachedVer = 0;
+const COLORS = ['#E53935','#1565C0','#4CAF50','#FF9800','#9C27B0'];
+
+// ══════════════════════════════════════════════════
+//  3. 输入读取
+// ══════════════════════════════════════════════════
+
+function getVals() {
+  const jd = (parseFloat($('jdKm')||0)*1000) + (parseFloat($('jdM')||0));
+  return {
+    jd, alpha: parseDMS($('alpha')), R: parseFloat($('radius')||0),
+    Ls: parseFloat($('lsEntry')||0), rw: parseFloat($('roadW')||12),
+    zhX: parseFloat($('zhX')||500000), zhY: parseFloat($('zhY')||3000000),
+    az: parseDMS($('startAz')),
+    pkFrom: $('pkFrom'), pkTo: $('pkTo'), interval: parseFloat($('interval')||20),
+    offset: parseFloat($('offsetVal')||0),
+  };
+}
+
+// ══════════════════════════════════════════════════
+//  4. 计算要素
+// ══════════════════════════════════════════════════
+
+function doCalc() {
+  const v = getVals();
+  if (v.jd<=0) { alert('交点里程必须大于0'); return; }
+  if (v.R<=0||v.Ls<=0) { alert('半径和缓和曲线长必须大于0'); return; }
+  if (v.alpha===0) { alert('转角不能为0'); return; }
+  try {
+    calc = new JiaoDianCalc(v.jd, v.alpha, v.R, v.Ls, v.rw);
+    calcFunc = calc.getFunc(v.zhX, v.zhY, v.az);
+    document.getElementById('summaryBox').style.display='';
+    const txt = [
+      `交点里程 JD: ${fmtSta(calc.jd)}`,
+      `转角 α: ${calc.alphaDeg.toFixed(4)}° (${calc.turn}转)`,
+      `半径 R: ${calc.R.toFixed(2)} m`,
+      `缓和曲线长 Ls: ${calc.Ls.toFixed(2)} m`,
+      `路面宽度: ${calc.roadWidth.toFixed(2)} m`,
+      ``,
+      `缓和曲线角 β₀: ${calc.beta0Deg.toFixed(4)}°`,
+      `切线增值 q: ${calc.q.toFixed(4)} m`,
+      `内移值 p: ${calc.p.toFixed(4)} m`,
+      `切线长 Th: ${calc.Th.toFixed(4)} m`,
+      `圆曲线长 Ly: ${calc.Ly.toFixed(4)} m`,
+      `曲线总长 Lh: ${calc.Lh.toFixed(4)} m`,
+      `外矢距 Eh: ${calc.Eh.toFixed(4)} m`,
+      `切曲差 Dh: ${calc.Dh.toFixed(4)} m`,
+      ``,
+      `ZH: ${fmtSta(calc.ZH)}`,
+      `HY: ${fmtSta(calc.HY)}`,
+      `QZ: ${fmtSta(calc.QZ)}`,
+      `YH: ${fmtSta(calc.YH)}`,
+      `HZ: ${fmtSta(calc.HZ)}`,
+    ].join('\n');
+    document.getElementById('summaryText').textContent = txt;
+    document.getElementById('summaryText').style.textAlign = 'left';
+    document.getElementById('summaryText').style.color = '#333';
+    $('pkFrom', calc.ZH.toFixed(3));
+    $('pkTo', calc.HZ.toFixed(3));
+    _cachedVer++;
+    redraw();
+  } catch(e) { if (e.message) alert(e.message); }
+}
+
+function $(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return '';
+  if (val!==undefined) el.value = val;
+  return el.value;
+}
+
+// ══════════════════════════════════════════════════
+//  5. 逐桩坐标
+// ══════════════════════════════════════════════════
+
+function selectRow(tr) {
+  const body = document.getElementById('stakeBody');
+  const selected = body.querySelector('.selected');
+  if (selected && selected !== tr) selected.classList.remove('selected');
+  tr.classList.toggle('selected');
+}
+
+function doStakes() {
+  if (!calc||!calcFunc) { alert('请先点击「计算要素」'); return; }
+  const v = getVals();
+  const from = parseSta(v.pkFrom)||calc.ZH;
+  const to = parseSta(v.pkTo)||calc.HZ;
+  const interval = v.interval||20;
+  const offset = v.offset||0;
+
+  const stSet = new Set();
+  for (const mp of [calc.ZH, calc.HY, calc.QZ, calc.YH, calc.HZ]) {
+    if (from<=mp && mp<=to) stSet.add(Math.round(mp*1000)/1000);
+  }
+  let start = Math.ceil(from/interval)*interval;
+  let end = Math.floor(to/interval)*interval;
+  for (let s=start; s<=end; s+=interval) stSet.add(s);
+  const stList = [...stSet].sort((a,b)=>a-b);
+
+  stakeData = [];
+  for (const s of stList) {
+    const [x,y,pt,az] = calcFunc(s, offset);
+    stakeData.push([fmtSta(s), s, x, y, az, pt]);
+  }
+
+  const header = document.getElementById('stakeHeader');
+  const body = document.getElementById('stakeBody');
+  header.innerHTML = '<th>桩号</th><th>里程(m)</th><th>X</th><th>Y</th><th>方位角°</th><th>类型</th>';
+  body.innerHTML = stakeData.map((r,i) =>
+    `<tr onclick="selectRow(this)" data-idx="${i}"><td>${r[0]}</td><td>${r[1].toFixed(3)}</td><td>${r[2].toFixed(3)}</td><td>${r[3].toFixed(3)}</td><td>${r[4].toFixed(4)}</td><td>${r[5]}</td></tr>`
+  ).join('');
+  document.getElementById('stakeBox').style.display='';
+  redraw();
+}
+
+function toggleStakes() {
+  showStakes = !showStakes;
+  document.getElementById('stakeContent').style.display = showStakes ? '' : 'none';
+  document.getElementById('stakeToggle').textContent = showStakes ? '▼' : '▶';
+}
+
+// ══════════════════════════════════════════════════
+//  6. Canvas 绘图
+// ══════════════════════════════════════════════════
+
+function resizeCanvas() {
+  const canvas = document.getElementById('canvas');
+  const w = canvas.clientWidth, h = 550;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas._w = w;
+  canvas._h = h;
+  return { canvas, ctx: canvas.getContext('2d'), dpr };
+}
+
+let _cachedPts = null;
+let _cachedStakes = null;
+
+function redraw() {
+  if (!calc||!calcFunc) {
+    const { canvas:cv, ctx:cx } = resizeCanvas();
+    cx.clearRect(0,0,cv._w,cv._h);
+    cx.fillStyle='#9E9E9E'; cx.font='14px Microsoft YaHei,sans-serif';
+    cx.textAlign='center'; cx.textBaseline='middle';
+    cx.fillText('请先点击「计算要素」', cv._w/2, cv._h/2);
+    return;
+  }
+
+  const { ctx:cx, dpr } = resizeCanvas();
+  const W=_cachedPts?._canvasW||document.getElementById('canvas')._w;
+  const H=550;
+  const canvas = document.getElementById('canvas');
+  const w = canvas._w, h = canvas._h;
+  cx.clearRect(0,0,w,h);
+
+  // ---- 生成曲线点 ----
+  if (!_cachedPts || _cachedVer !== _cachedPts._ver) {
+    const num = 500;
+    _cachedStakes = [];
+    _cachedPts = [];
+    _cachedPts._ver = _cachedVer;
+    for (let i=0; i<=num; i++) {
+      const s = calc.ZH + (calc.HZ-calc.ZH)*i/num;
+      _cachedStakes.push(s);
+      try {
+        const [x,y] = calcFunc(s, 0);
+        _cachedPts.push([x,y]);
+      } catch(e) { _cachedPts.push([0,0]); }
+    }
+    _cachedPts._canvasW = w;
+  }
+  const pts = _cachedPts;
+
+  // ---- 坐标范围 ----
+  let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity;
+  for (const p of pts) { if (p[0]<minX) minX=p[0]; if (p[0]>maxX) maxX=p[0]; if (p[1]<minY) minY=p[1]; if (p[1]>maxY) maxY=p[1]; }
+  const span = Math.max(maxX-minX, maxY-minY, 5)*1.2;
+  const cxPt = (minX+maxX)/2, cyPt = (minY+maxY)/2;
+  const margin = 50;
+  const scale = Math.min((w-margin*2)/span, (h-margin*2)/span, 40)*zoomLevel;
+  const toX = x => (x-cxPt)*scale + w/2;
+  const toY = y => (cyPt-y)*scale + h/2;
+
+  // ---- 网格 ----
+  cx.strokeStyle='#f0f0f0'; cx.lineWidth=0.5;
+  for (let i=-20; i<=20; i++) {
+    const gx = toX(cxPt+i*span/10);
+    cx.beginPath(); cx.moveTo(gx,0); cx.lineTo(gx,h); cx.stroke();
+    const gy = toY(cyPt+i*span/10);
+    cx.beginPath(); cx.moveTo(0,gy); cx.lineTo(w,gy); cx.stroke();
+  }
+
+  // ---- 分段绘制 ----
+  const segs = [
+    [calc.ZH, calc.HY, 0],
+    [calc.HY, calc.YH, 1],
+    [calc.YH, calc.HZ, 2],
+  ];
+  for (const [sta,end,ci] of segs) {
+    const segPts = [];
+    for (let i=0; i<pts.length; i++) {
+      if (_cachedStakes[i]>=sta && _cachedStakes[i]<=end) segPts.push(pts[i]);
+    }
+    if (!segPts.length) continue;
+    cx.strokeStyle=COLORS[ci%COLORS.length]; cx.lineWidth=2.5;
+    cx.beginPath();
+    for (let i=0; i<segPts.length; i++) {
+      const sx=toX(segPts[i][0]), sy=toY(segPts[i][1]);
+      if (i===0) cx.moveTo(sx,sy); else cx.lineTo(sx,sy);
+    }
+    cx.stroke();
+  }
+
+  // ---- 主点标记 ----
+  const mainPts = [
+    [calc.ZH,'ZH','#9C27B0'],
+    [calc.HY,'HY','#FF9800'],
+    [calc.QZ,'QZ','#E53935'],
+    [calc.YH,'YH','#FF9800'],
+    [calc.HZ,'HZ','#9C27B0'],
+  ];
+  for (const [pk,label,color] of mainPts) {
+    try {
+      const [x,y] = calcFunc(pk, 0);
+      const sx=toX(x), sy=toY(y);
+      cx.beginPath(); cx.arc(sx,sy,4,0,2*Math.PI);
+      cx.fillStyle=color; cx.fill();
+      cx.strokeStyle='#fff'; cx.lineWidth=1.5; cx.stroke();
+      cx.fillStyle=color; cx.font='bold 10px Consolas,monospace';
+      cx.textAlign='left'; cx.textBaseline='bottom';
+      cx.fillText(`${label} ${fmtSta(pk)}`, sx+8, sy-2);
+    } catch(e) {}
+  }
+
+  // ---- 逐桩标注 ----
+  if (stakeData.length) {
+    const skip = Math.max(1, Math.floor(stakeData.length/30));
+    for (let i=0; i<stakeData.length; i+=skip) {
+      try {
+        const r=stakeData[i];
+        const sx=toX(r[2]), sy=toY(r[3]);
+        cx.beginPath(); cx.arc(sx,sy,2,0,2*Math.PI);
+        cx.fillStyle='#333'; cx.fill();
+        cx.fillStyle='#333'; cx.font='9px Consolas,monospace';
+        cx.textAlign='left'; cx.textBaseline='bottom';
+        cx.fillText(r[0], sx+4, sy-6);
+      } catch(e) {}
+    }
+  }
+
+  // ---- 图例 ----
+  const legItems = [
+    ['缓和曲线 (ZH~HY)','#E53935'],
+    ['圆曲线 (HY~YH)','#1565C0'],
+    ['缓和曲线 (YH~HZ)','#2e7d32'],
+    ['主点','#9C27B0'],
+  ];
+  const legW=150, legH=legItems.length*16+8;
+  const lx=10, ly=8;
+  cx.fillStyle='rgba(255,255,255,0.85)'; cx.strokeStyle='#ddd'; cx.lineWidth=1;
+  cx.beginPath(); cx.roundRect(lx,ly,legW,legH,4); cx.fill(); cx.stroke();
+  for (let i=0; i<legItems.length; i++) {
+    const iy = ly+8 + i*16;
+    cx.strokeStyle=legItems[i][1]; cx.lineWidth=2.5;
+    cx.beginPath(); cx.moveTo(lx+8,iy); cx.lineTo(lx+28,iy); cx.stroke();
+    cx.fillStyle='#333'; cx.font='10px Microsoft YaHei,sans-serif';
+    cx.textAlign='left'; cx.textBaseline='middle';
+    cx.fillText(legItems[i][0], lx+32, iy);
+  }
+
+  // ---- 水印 ----
+  cx.fillStyle='#ccc'; cx.font='9px Microsoft YaHei,sans-serif';
+  cx.textAlign='right'; cx.textBaseline='bottom';
+  cx.fillText('By Lvmyth AI', w-6, h-4);
+}
+
+// ══════════════════════════════════════════════════
+//  7. 缩放控制
+// ══════════════════════════════════════════════════
+
+function zoom(f) {
+  zoomLevel = Math.max(0.1, Math.min(zoomLevel*f, 10));
+  document.getElementById('zoomLabel').textContent = `${Math.round(zoomLevel*100)}%`;
+  redraw();
+}
+function zoomReset() { zoomLevel=1; document.getElementById('zoomLabel').textContent='100%'; redraw(); }
+
+document.getElementById('canvas').addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom(e.deltaY < 0 ? 1.15 : 0.87);
+}, { passive: false });
+
+// ══════════════════════════════════════════════════
+//  8. 导出CSV（线元格式）
+// ══════════════════════════════════════════════════
+
+function exportCsv() {
+  if (!calc) { alert('请先点击「计算要素」'); return; }
+  const rows = [];
+  const R = Math.abs(calc.R), Ls = calc.Ls;
+  const A = Ls>0 ? Math.sqrt(R*Ls) : 0;
+  const turn = calc.turn==='右'?'R':'L';
+  const func = calcFunc;
+
+  const [zhX,zhY,_t1,zhAz] = func(calc.ZH,0);
+  const [hyX,hyY,_t2,hyAz] = func(calc.HY,0);
+  const [yhX,yhY,_t3,yhAz] = func(calc.YH,0);
+  const [hzX,hzY,_t4,hzAz] = func(calc.HZ,0);
+
+  if (Ls>0) {
+    rows.push([fmtSta(calc.ZH), fmtSta(calc.HY), zhX.toFixed(3), zhY.toFixed(3), zhAz.toFixed(6),
+      'SPIROIR', String(R), turn, String(Ls), A.toFixed(4)]);
+  }
+  rows.push([fmtSta(calc.HY), fmtSta(calc.YH), hyX.toFixed(3), hyY.toFixed(3), hyAz.toFixed(6),
+    'CIRCLE', String(R), turn, '0', '0']);
+  if (Ls>0) {
+    rows.push([fmtSta(calc.YH), fmtSta(calc.HZ), yhX.toFixed(3), yhY.toFixed(3), yhAz.toFixed(6),
+      'SPIROIR', String(R), turn, String(Ls), A.toFixed(4)]);
+  }
+  rows.push([fmtSta(calc.HZ), fmtSta(calc.HZ+100), hzX.toFixed(3), hzY.toFixed(3), hzAz.toFixed(6),
+    'LINE', '0', turn, '0', '0']);
+
+  let csv = '\uFEFF序号,起点桩号,终点桩号,起点X,起点Y,方位角°,类型,半径,转向,缓和长,回旋参数A\n';
+  rows.forEach((r,i) => { csv += `${i+1},${r.join(',')}\n`; });
+  download(csv, `交点法_R${R}_Ls${Ls}.csv`, 'text/csv');
+}
+
+// ══════════════════════════════════════════════════
+//  9. 导出CAD脚本
+// ══════════════════════════════════════════════════
+
+function exportScr() {
+  if (!calc) { alert('请先点击「计算要素」'); return; }
+  const num = 500;
+  const stakes = [];
+  for (let i=0; i<=num; i++) stakes.push(calc.ZH + (calc.HZ-calc.ZH)*i/num);
+
+  let scr = `; AutoCAD SCRIPT file\n`;
+  scr += `; Road curve exported by JiaoDianCalculator\n`;
+  scr += `; R=${calc.R.toFixed(1)}m Ls=${calc.Ls.toFixed(1)}m alpha=${calc.alphaDeg.toFixed(1)}deg\n`;
+
+  // 1. 道路中心线 PLINE
+  scr += `_PLINE\n`;
+  for (const s of stakes) {
+    const [x,y] = calcFunc(s, 0);
+    scr += `${x.toFixed(3)},${y.toFixed(3)}\n`;
+  }
+  scr += `\n`;
+
+  // 2. 主点标记（圆）
+  for (const [name,pk] of [['ZH',calc.ZH],['HY',calc.HY],['QZ',calc.QZ],['YH',calc.YH],['HZ',calc.HZ]]) {
+    const [x,y] = calcFunc(pk,0);
+    scr += `_CIRCLE\n${x.toFixed(3)},${y.toFixed(3)}\n1\n`;
+  }
+
+  // 3. 主点标注
+  for (const [name,pk] of [['ZH',calc.ZH],['HY',calc.HY],['QZ',calc.QZ],['YH',calc.YH],['HZ',calc.HZ]]) {
+    const [x,y] = calcFunc(pk,6);
+    scr += `_TEXT\n${x.toFixed(3)},${y.toFixed(3)}\n1.5\n0\n${name} ${fmtSta(pk)}\n`;
+  }
+
+  // 4. 曲线要素标注
+  const [x0,y0] = calcFunc(calc.ZH, -20);
+  scr += `_TEXT\n${x0.toFixed(3)},${y0.toFixed(3)}\n2\n0\n=== CURVE ELEMENTS ===\n`;
+  const items = [
+    `Alpha = ${calc.alphaDeg.toFixed(2)} deg`,
+    `R = ${calc.R.toFixed(1)} m`,
+    `Ls = ${calc.Ls.toFixed(1)} m`,
+    `Ly = ${calc.Ly.toFixed(2)} m`,
+    `Th = ${calc.Th.toFixed(2)} m`,
+    `Lh = ${calc.Lh.toFixed(2)} m`,
+    `Eh = ${calc.Eh.toFixed(2)} m`,
+    `Dh = ${calc.Dh.toFixed(2)} m`,
+  ];
+  items.forEach((txt, i) => {
+    const yPos = y0 - (i+1)*3;
+    scr += `_TEXT\n${x0.toFixed(3)},${yPos.toFixed(3)}\n1.5\n0\n${txt}\n`;
+  });
+
+  // 5. 视图
+  scr += `_ZOOM\nE\n`;
+
+  download(scr, `jiaodian_R${Math.round(calc.R)}_Ls${Math.round(calc.Ls)}.scr`, 'application/octet-stream');
+}
+
+function download(content, filename, mime) {
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+// ══════════════════════════════════════════════════
+//  10. 初始化
+// ══════════════════════════════════════════════════
+
+window.addEventListener('load', () => {
+  resizeCanvas();
+  doCalc();
+  window.addEventListener('resize', redraw);
+});
+</script>
+<script>
+var c_p=document.getElementById('particleCanvas'),x=c_p.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c_p.width=innerWidth;H=c_p.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

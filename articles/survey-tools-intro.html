@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>测量员的工具箱 — 测量工程小程序推荐</title>
+<link rel="stylesheet" href="../css/style.css">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?5ed2ed81fe80ba2a23f724d8bbf06e62";
+  var s = document.getElementsByTagName("script")[0]; 
+  s.parentNode.insertBefore(hm, s);
+})();
+</script><style>
+.page-main{position:relative;z-index:1}
+.navbar{background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.navbar-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+.navbar .logo{font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
+.navbar .logo img{height:32px}
+.navbar .nav-links{display:flex;gap:4px;list-style:none}
+.navbar .nav-links a{color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem;transition:all 0.2s;cursor:pointer}
+.navbar .nav-links a:hover,.navbar .nav-links a.active{background:rgba(255,255,255,0.12);color:#fff}
+.site-footer{position:relative;z-index:1}
+.page-main{position:relative;z-index:1}
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+body{padding-top:0}
+.section-title{font-size:1.3rem;font-weight:bold;color:var(--primary-dark);margin:30px 0 15px;padding-left:12px;border-left:4px solid var(--primary)}
+.intro{font-size:1rem;line-height:1.8;color:var(--text);margin:10px 0 20px}
+.screens{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin:16px 0}
+.screens img{width:100%;border-radius:8px;box-shadow:var(--shadow)}
+.screens .caption{text-align:center;font-size:.8rem;color:var(--text-light);margin-top:4px}
+.highlight-box{background:var(--tag-bg);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin:20px 0}
+.highlight-box p{margin:0;color:var(--primary-dark)}
+.btn{display:inline-block;background:var(--primary);color:#fff;padding:10px 24px;border-radius:var(--radius);text-decoration:none;font-weight:600;transition:opacity .2s}
+.btn:hover{opacity:.85}
+@media(max-width:768px){
+.navbar .nav-links{display:flex !important;position:static !important;flex-direction:row !important;background:none !important;box-shadow:none !important}
+.navbar .nav-links a{padding:6px 10px !important;border-radius:6px !important}
+.navbar-inner{height:54px}.navbar .logo{font-size:1rem;gap:4px}.navbar .logo img{height:24px}
+.navbar .nav-links{flex-shrink:0}.navbar .nav-links a{padding:6px 10px;font-size:0.82rem}
+.navbar{padding:0 0.8rem}.navbar .logo{white-space:nowrap}
+.page-main .container{padding-top:1rem!important}
+.page-main h1{font-size:1.4rem!important}
+.screens{grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.section-title{font-size:1.1rem;margin:20px 0 10px}
+.intro{font-size:0.92rem;line-height:1.7}
+.footer{padding:1.2rem;margin-top:2rem;font-size:0.82rem}
+}
+@media(max-width:480px){
+.navbar .nav-links{display:flex !important;position:static !important;flex-direction:row !important}
+.navbar-inner{height:48px}.navbar .logo{font-size:0.88rem;white-space:nowrap}
+.navbar .logo img{height:20px}
+.navbar .nav-links{flex-shrink:0}.navbar .nav-links a{padding:4px 8px;font-size:0.78rem}
+.page-main h1{font-size:1.2rem!important}
+.page-main .container{padding:0.6rem!important;padding-top:1rem!important}
+.screens{grid-template-columns:1fr}
+.section-title{font-size:1rem}
+.intro{font-size:0.88rem}
+}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+
+<nav class="navbar"><div class="navbar-inner">
+<a class="logo" href="../index.html" style="cursor:pointer"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links">
+<li><a href="../index.html">📋 文章</a></li>
+<li><a href="../tools/index.html">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about">👤 关于</a></li>
+</ul>
+</div></nav>
+
+<main class="page-main">
+  <div class="container" style="padding-top:2rem">
+
+    <div style="text-align:center;margin-bottom:1.5rem">
+      <img src="../images/logo.jpg" alt="Lvmyth AI" style="height:72px;width:72px;border-radius:12px;cursor:pointer" onclick="showGreeting()">
+      <h1 style="font-size:1.8rem;color:var(--primary-dark);margin:0.5rem 0 0.3rem">测量员的工具箱</h1>
+      <p style="color:var(--text-light);font-size:1rem">测量工程小程序，手机里的专业计算器</p>
+    </div>
+
+    <p class="intro">
+    作为一名在土木工程一线摸爬滚打多年的测量员，我深知在工地上随时可能遇到各种计算需求——坐标放样、导线平差、曲线要素计算、超欠挖判定……没有电脑在身边时，一个手机小程序就能解决大问题。今天就把我亲手开发的「测量员的工具箱」完整介绍给大家，它目前集成了多款专业工具，涵盖测量、工程计算、单位换算、材料计算等方方面面。
+    </p>
+
+    <div class="highlight-box">
+      <p><strong>一句话总结：</strong>一个微信小程序，装下你工作需要的所有测量计算工具，随时随地掏出手机就能算。</p>
+    </div>
+
+    <div class="section-title">首页一览</div>
+    <p class="intro">打开小程序，首页就是清爽的工具网格，每个工具都有专属图标和简介。</p>
+    <div class="screens">
+      <div><img src="images/s15_home1.jpg" alt="首页上"><div class="caption">首页工具列表（第1页）</div></div>
+      <div><img src="images/s16_home2.jpg" alt="首页下"><div class="caption">首页工具列表（第2页）</div></div>
+    </div>
+
+    <div class="section-title">一、坐标计算类</div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">1. 坐标正反算</h3>
+    <p class="intro">测量员最基础也最常用的计算。正算：已知起点、距离、方位角求终点坐标；反算：已知两点坐标求距离和方位角。支持度分秒输入，结果包含 ΔX/ΔY，自动显示在 Canvas 绘图上。</p>
+    <div class="screens"><div><img src="images/s1_coord.jpg" alt="坐标正反算"><div class="caption">坐标正反算 + 计算记录</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">2. 垂足公式</h3>
+    <p class="intro">计算测点到轴线的垂足坐标和垂距，自动判断测点偏左还是偏右。支持可视化绘图，红线代表垂线，绿点标注垂足位置。</p>
+    <div class="screens"><div><img src="images/s2_perp.jpg" alt="垂足公式"><div class="caption">垂足公式 + 偏左/偏右判断</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">3. 前方距离交会</h3>
+    <p class="intro">已知两个已知点坐标和到待测点的距离，交会计算待测点坐标。通常有两个解（交会在 AB 两侧），小程序会同时给出两个坐标结果。</p>
+    <div class="screens"><div><img src="images/s3_inter.jpg" alt="前方距离交会"><div class="caption">前方距离交会（两解）</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">4. 多边形面积</h3>
+    <p class="intro">用「鞋带公式」自动计算多边形面积和周长。支持任意数量的顶点，可随时添加或删除点，结果同步显示在 Canvas 图形上。</p>
+    <div class="screens"><div><img src="images/s4_polygon.jpg" alt="多边形面积"><div class="caption">多边形面积 + 周长 + 计算记录</div></div></div>
+
+    <div class="section-title">二、曲线与圆弧类</div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">5. 弧上点定位</h3>
+    <p class="intro">检核测点是否在设计圆弧上，计算测点到圆心的距离，自动判断「在弧上」「在弧内」「在弧外」并给出偏距。</p>
+    <div class="screens"><div><img src="images/s5_arcpoint.jpg" alt="弧上点定位"><div class="caption">弧上点定位 + 偏距计算</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">6. 弦长支距</h3>
+    <p class="intro">已知圆弧半径和弦长，计算任意弦上位置的拱高。自动给出中点拱高、圆心角、弧长，Canvas 可视化绘制圆弧。</p>
+    <div class="screens"><div><img src="images/s6_chord.jpg" alt="弦长支距"><div class="caption">弦长支距 + 拱高可视化</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">7. 弧上三点求圆</h3>
+    <p class="intro">输入弧上任意三点坐标，反算圆半径和圆心坐标。自动检测三点是否共线，Canvas 显示圆弧和圆心。</p>
+    <div class="screens"><div><img src="images/s7_three.jpg" alt="弧上三点求圆"><div class="caption">三点求圆 + 圆心标注</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">8. 弦长拱高求半径</h3>
+    <p class="intro">已知弦长和拱高，反算圆弧半径、圆心角和弧长。还会给出矩高比（B/D），方便判断曲线是否合理。</p>
+    <div class="screens"><div><img src="images/s8_radius.jpg" alt="弦长拱高求半径"><div class="caption">弦长拱高反算半径 + 曲线可视化</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">9. 圆弧放样坐标</h3>
+    <p class="intro">已知圆弧起点、终点和半径，先确认基线（计算弧长、圆心、切线方位），然后输入任意里程 L 和偏距 K，计算该位置的放样坐标 N/E。支持左转/右转切换。</p>
+    <div class="screens"><div><img src="images/s9_alignment.jpg" alt="圆弧放样坐标"><div class="caption">圆弧放样坐标 + 里程放样</div></div></div>
+
+    <div class="section-title">三、道路与隧道类</div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">10. 导线平差</h3>
+    <p class="intro">闭合/附合导线平差计算，支持左角/右角选择。输入各测站角度和距离，自动计算方位角闭合差、坐标增量、改正后坐标，输出平差结果表格。还有演示数据，一键填入测试。</p>
+    <div class="screens"><div><img src="images/s10_traverse.jpg" alt="导线平差"><div class="caption">闭合导线平差 + 坐标表格</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">11. 测角后方交会</h3>
+    <p class="intro">已知三个控制点坐标和两个水平观测角，反算待测点 P 的坐标。提供两个预设案例，方便快速验证。Canvas 绘制三个圆和交会点。</p>
+    <div class="screens"><div><img src="images/s11_resection.jpg" alt="测角后方交会"><div class="caption">测角后方交会 + 三圆交会图</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">12. 万能线元法</h3>
+    <p class="intro">支持直线、圆曲线、缓和曲线的正算/反算/偏距。用表格管理线元数据，可导入导出 CSV，Canvas 可视化整条线路。适合高速公路、铁路等长距离线形计算。</p>
+    <div class="screens"><div><img src="images/s12_lineelement.jpg" alt="万能线元法"><div class="caption">万能线元法 + 线形可视化</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">13. 交点法坐标计算</h3>
+    <p class="intro">交点法道路曲线要素计算，输入交点里程、转角、半径、缓和曲线长，自动计算曲线总长、切线长、外矢距等全部要素，输出逐桩坐标表。Canvas 显示曲线全貌。</p>
+    <div class="screens"><div><img src="images/s13_jiaodian.jpg" alt="交点法坐标计算"><div class="caption">交点法曲线要素 + 逐桩坐标</div></div></div>
+
+    <h3 style="color:var(--primary-dark);margin:16px 0 8px">14. 隧道超欠挖计算</h3>
+    <p class="intro">支持标准马蹄形、圆形、蛋形、矩形四种断面，可配置直线/曲线中线。输入实测点坐标，自动判定每个点的超挖/欠挖状态，给出径向差和净空差。Canvas 断面图一目了然。</p>
+    <div class="screens"><div><img src="images/s14_tunnel.jpg" alt="隧道超欠挖"><div class="caption">隧道超欠挖 + 断面判定表</div></div></div>
+
+    <div class="section-title">四、辅助工具类</div>
+
+    <p class="intro">
+    除了上述 14 个测量核心工具，还有 7 个实用辅助工具：
+    </p>
+    <ul style="line-height:1.8;margin:10px 0 20px;padding-left:20px;color:var(--text)">
+      <li><strong>罗盘定向</strong>：二十四山立向分析，正向/兼向/空亡判定</li>
+      <li><strong>角度换算</strong>：度分秒 ↔ 十进制度，一键复制</li>
+      <li><strong>单位换算</strong>：长度/面积/体积/重量/时间/温度，6 大类 + 换算记录</li>
+      <li><strong>工程材算</strong>：混凝土/钢筋/钢板/型钢/通用材料，56 种材料重量计算</li>
+      <li><strong>施工日志</strong>：每日施工日志记录，模板/搜索/复制，本地化存储</li>
+      <li><strong>坐标转换</strong>：四参数/高斯正反算/换带计算，多种椭球</li>
+    </ul>
+    <p class="intro">后面会陆续增加实用工具。</p>
+
+    <div class="section-title">使用体验</div>
+    <p class="intro">
+    每个工具都保持了一致的设计语言：绿色/蓝色主按钮、白色卡片、圆角输入框、Canvas 可视化。结果区域清晰展示计算结果，底部带时间戳的计算记录方便回溯。
+    </p>
+
+    <div style="text-align:center;margin:20px 0">
+      <img src="images/qr-code.jpg" alt="测量员的工具箱小程序码" style="max-width:200px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,.15)">
+      <p style="font-size:.85rem;color:#666;margin-top:8px">微信扫码，即刻体验</p>
+    </div>
+
+    <div class="highlight-box">
+      <p><strong>开发背景：</strong>这个工具箱最初是我在 2025 年做的一个纯 HTML 网页工具集，后来为了在微信上更方便使用，移植成了微信小程序。所有工具的计算逻辑经过大量实测数据验证，力求专业准确。如果你在使用过程中发现任何问题，欢迎随时反馈。</p>
+    </div>
+
+    <div class="section-title">相关工具</div>
+    <p class="intro" style="margin-bottom:30px">
+    除了微信小程序，这些工具也打包成了 <a href="../tools/index.html">网页版</a>，在电脑上打开浏览器就能用，数据互通。
+    </p>
+
+    <div style="text-align:center;margin:40px 0">
+      <a class="btn" href="../tools/index.html" style="padding:12px 32px;font-size:1.1rem">→ 立即使用网页版工具集</a>
+    </div>
+
+  </div>
+</main>
+
+<footer class="site-footer" style="text-align:center;padding:2rem;background:var(--bg-nav);color:rgba(255,255,255,0.6);margin-top:2rem;font-size:0.88rem">
+  <p style="margin:0;color:rgba(255,255,255,0.8)">📐 测量工程笔记 · 专注测量工程与施工技术</p>
+  <p style="margin-top:6px;font-size:12px;opacity:0.7">
+  👁️访问量 <span id="busuanzi_value_site_pv">--</span> 次 ·
+  👤访客数 <span id="busuanzi_value_site_uv">--</span> 人
+  </p>
+</footer>
+
+<script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+<script>
+function showGreeting(){
+  var overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center';
+  overlay.onclick=function(){document.body.removeChild(overlay)};
+
+  var box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:16px;padding:40px 36px;text-align:center;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.25)';
+
+  box.innerHTML='<img src=\"../images/logo.jpg\" style=\"height:60px;width:60px;border-radius:12px;margin-bottom:16px\">'
+    +'<p style=\"font-size:1.1rem;color:#333;margin:0 0 20px;line-height:1.6\">By Lvmyth AI</p>'
+    +'<a href=\"mailto:lvmyth@qq.com\" style=\"display:inline-block;padding:10px 28px;background:#2a7d3b;color:#fff;border-radius:8px;text-decoration:none;font-size:.95rem\">📧 联系邮箱</a>'
+    +'<p style=\"font-size:.75rem;color:#999;margin:14px 0 0\">点击任意位置关闭</p>';
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+
+// 固定导航栏
+document.addEventListener('DOMContentLoaded',function(){
+  var navBar=document.querySelector('.navbar'),navTop=navBar?navBar.offsetTop:0;
+  window.addEventListener('scroll',function(){
+    if(navBar){
+      if(window.scrollY>navTop){
+        if(navBar.style.position!=='fixed'){
+          navBar.style.position='fixed';navBar.style.top='0';navBar.style.left='0';navBar.style.right='0';navBar.style.zIndex='100';
+          document.body.style.paddingTop=navBar.offsetHeight+'px';
+        }
+      }else{
+        if(navBar.style.position==='fixed'){
+          navBar.style.position='';navBar.style.top='';navBar.style.left='';navBar.style.right='';
+          document.body.style.paddingTop='';
+        }
+      }
+    }
+  });
+  // 粒子背景
+  var c=document.getElementById('particleCanvas'),x=c.getContext('2d');
+  var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+  function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+  class P{
+    constructor(){this.rr()}
+    rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}
+    up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}
+    dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}
+  }
+  function ln(){
+    var dS=CF.cDist*CF.cDist;
+    for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}
+    if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}
+  }
+  function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+  rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+  addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+  addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+  addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+  addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+  addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+  an();
+});
+</script>
+</html>

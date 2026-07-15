@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>垂足公式 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)}
+.field-row input{max-width:100px}
+.field-row .unit{font-size:11px;color:var(--text-light);margin-left:2px}
+.result-big{font-size:26px;font-weight:700;font-family:'Consolas',monospace;text-align:center;padding:8px 0}
+.result-detail table{width:100%}
+.result-detail td:first-child{color:var(--text-light);width:75px;font-size:12px}
+.result-detail td:last-child{font-weight:600;font-size:13px}
+.side-badge{display:inline-block;padding:2px 10px;border-radius:4px;font-size:12px;font-weight:700}
+.history-box{margin-top:18px}
+.history-box h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.history-box h3 button{font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--text-light)}
+.history-box h3 button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+.hist-item{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-family:'Consolas',monospace;border-bottom:1px solid var(--border);overflow:hidden}
+.hist-item:last-child{border:none}
+.hist-item .tag{display:inline-block;background:var(--primary-light);color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;margin-right:4px;white-space:nowrap;flex-shrink:0}
+.hist-item .del{color:#ccc;cursor:pointer;margin-left:auto;padding:0 4px;flex-shrink:0}
+.hist-item .del:hover{color:#e74c3c}
+.hist-item .coord{flex:1;min-width:0}
+.panel-left{flex:0 0 380px}
+@media(max-width:768px){.panel{flex-direction:column}.panel-left{flex:1 1 100%;min-width:0}.panel-right{min-width:0;min-height:300px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+
+<div class="panel">
+  <div class="panel-left">
+      <!-- Axis Parameters -->
+      <div class="card">
+        <h3>轴线参数（已知点 + 方位角）</h3>
+        <div class="field-row">
+          <label>已知点 A：</label>
+          <input id="field-A" type="number" step="any" value="0.0">
+        </div>
+        <div class="field-row">
+          <label>已知点 B：</label>
+          <input id="field-B" type="number" step="any" value="0.0">
+        </div>
+        <div class="field-row">
+          <label>方位角 V：</label>
+          <input id="field-V" type="text" value="45.0" style="max-width:100px;padding:5px 8px;font-size:14px;border:1px solid var(--border);border-radius:4px">
+          <span class="unit">°</span>
+          <span style="font-size:10px;color:var(--text-light);margin-left:4px">（度分秒=空格）</span>
+        </div>
+      </div>
+
+      <!-- Measurement Point -->
+      <div class="card">
+        <h3>测点坐标</h3>
+        <div class="field-row">
+          <label>测点 X：</label>
+          <input id="field-X" type="number" step="any" value="">
+        </div>
+        <div class="field-row">
+          <label>测点 Y：</label>
+          <input id="field-Y" type="number" step="any" value="">
+        </div>
+        <div class="btn-group">
+          <button class="btn" onclick="calculate()">计算垂距</button>
+          <button class="btn btn-warn" onclick="randomPoint()">随机测点</button>
+          <button class="btn btn-outline" onclick="document.getElementById('field-X').value='';document.getElementById('field-Y').value=''">清空输入</button>
+        </div>
+      </div>
+
+      <!-- Result -->
+      <div class="card">
+        <h3>计算结果</h3>
+        <div id="result-big" class="result-big" style="color:#999;">H = —</div>
+        <div id="result-side" style="text-align:center;margin-bottom:6px;"></div>
+        <div class="result-detail">
+          <table>
+            <tr><td>点线距 L：</td><td id="detail-L">—</td></tr>
+            <tr><td>方位角差 S：</td><td id="detail-S">—</td></tr>
+            <tr><td>垂足 Xf：</td><td id="detail-fx">—</td></tr>
+            <tr><td>垂足 Yf：</td><td id="detail-fy">—</td></tr>
+            <tr><td>垂距 H：</td><td id="detail-H">—</td></tr>
+            <tr><td>偏侧：</td><td id="detail-side">—</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- History -->
+      <div class="card history-box">
+        <h3>📋 计算记录 <button onclick="clearHistory()">清空记录</button></h3>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div class="canvas-wrap">
+        <canvas id="canvas"></canvas>
+      </div>
+    </div>
+  </div>
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+// ─── State ───
+let calcData = null;
+let zoom = 1;
+
+// ─── 历史记录 ───
+var historyKey='perpendicular_foot_history';
+function getHist(){try{return JSON.parse(localStorage.getItem(historyKey))||[]}catch(e){return[]}}
+function saveHist(arr){try{localStorage.setItem(historyKey,JSON.stringify(arr.slice(0,50)))}catch(e){}}
+function addHist(X,Y,H){
+  var arr=getHist();
+  arr.unshift({X:X,Y:Y,H:H,time:new Date().toLocaleString()});
+  saveHist(arr);renderHist();
+}
+function renderHist(){
+  var arr=getHist(),el=document.getElementById('historyList');
+  if(!el)return;
+  if(arr.length===0){el.innerHTML='<div style="color:var(--text-light);font-size:12px;padding:8px;text-align:center">暂无记录</div>';return}
+  el.innerHTML=arr.map(function(r,i){
+    return'<div class="hist-item"><span class="tag">H='+r.H.toFixed(3)+'</span><span class="coord">X='+r.X.toFixed(2)+' Y='+r.Y.toFixed(2)+'</span><span style="color:var(--text-light);font-size:10px;margin-left:auto;flex-shrink:0">'+r.time+'</span><span class="del" onclick="delHist('+i+')">✕</span></div>'
+  }).join('');
+}
+function delHist(i){var arr=getHist();arr.splice(i,1);saveHist(arr);renderHist()}
+function clearHistory(){saveHist([]);renderHist()}
+
+// ─── 角度解析 (支持度分秒空格格式) ───
+function parseAngle(str){
+  str=str.trim();
+  if(!str)return NaN;
+  if(/^-?\d+(\.\d+)?$/.test(str))return parseFloat(str);
+  var p=str.replace(/[°′″'"]/g,' ').trim().split(/\s+/).map(Number);
+  if(p.length>=3)return p[0]+p[1]/60+p[2]/3600;
+  if(p.length===2)return p[0]+p[1]/60;
+  return parseFloat(str);
+}
+
+// ─── Calculation ───
+function calculate() {
+  const A = parseFloat(document.getElementById('field-A').value);
+  const B = parseFloat(document.getElementById('field-B').value);
+  const V = parseAngle(document.getElementById('field-V').value);
+  const X = parseFloat(document.getElementById('field-X').value);
+  const Y = parseFloat(document.getElementById('field-Y').value);
+
+  if (isNaN(A) || isNaN(B) || isNaN(V) || isNaN(X) || isNaN(Y)) {
+    document.getElementById('result-big').textContent = 'H = —';
+    document.getElementById('result-big').style.color = '#999';
+    document.getElementById('result-side').innerHTML = '<span class="red">所有字段必须为数字</span>';
+    return;
+  }
+
+  const V_rad = V * Math.PI / 180;
+  const dX = X - A;
+  const dY = Y - B;
+  const L = Math.hypot(dX, dY);
+  let J = Math.atan2(dY, dX);
+  if (J < 0) J += 2 * Math.PI;
+
+  const S = J - V_rad;
+  const H = L * Math.sin(S);
+  const proj = L * Math.cos(S);
+  const Fx = A + proj * Math.cos(V_rad);
+  const Fy = B + proj * Math.sin(V_rad);
+
+  // Side determination
+  let sideText, sideColor;
+  if (Math.abs(H) < 0.001) {
+    sideText = '点在轴线上';
+    sideColor = '#4CAF50';
+  } else if (S > 0) {
+    sideText = '轴线左侧 (H>0)';
+    sideColor = '#E53935';
+  } else {
+    sideText = '轴线右侧 (H<0)';
+    sideColor = '#1E88E5';
+  }
+
+  // Display results
+  const bigEl = document.getElementById('result-big');
+  bigEl.textContent = 'H = ' + (H >= 0 ? '+' : '') + H.toFixed(6) + ' m';
+  bigEl.style.color = sideColor;
+
+  document.getElementById('result-side').innerHTML =
+    '<span class="side-badge" style="background:' + sideColor + ';color:#fff;">' + sideText + '</span>';
+
+  document.getElementById('detail-L').textContent   = L.toFixed(6) + ' m';
+  document.getElementById('detail-S').textContent   = (S * 180 / Math.PI >= 0 ? '+' : '') + (S * 180 / Math.PI).toFixed(4) + '°';
+  document.getElementById('detail-fx').textContent  = Fx.toFixed(6);
+  document.getElementById('detail-fy').textContent  = Fy.toFixed(6);
+  document.getElementById('detail-H').textContent   = (H >= 0 ? '+' : '') + H.toFixed(6) + ' m';
+  document.getElementById('detail-H').style.color    = sideColor;
+  document.getElementById('detail-side').textContent = sideText;
+  document.getElementById('detail-side').style.color = sideColor;
+
+  calcData = { A, B, V_rad, V, X, Y, Fx, Fy, H, L };
+  drawChart();
+
+  // Add to history
+  addHist(X,Y,H);
+}
+
+// ─── Random Point ───
+function randomPoint() {
+  let A = parseFloat(document.getElementById('field-A').value);
+  let B = parseFloat(document.getElementById('field-B').value);
+  let V = parseAngle(document.getElementById('field-V').value);
+  if (isNaN(A) || isNaN(B) || isNaN(V)) { A = 0; B = 0; V = 45; }
+  const V_rad = V * Math.PI / 180;
+  const dist = 2 + Math.random() * 18;
+  const offset = (Math.random() - 0.5) * 16;
+  const perp = Math.PI / 2;
+  const randX = A + dist * Math.cos(V_rad) + offset * Math.cos(V_rad + perp);
+  const randY = B + dist * Math.sin(V_rad) + offset * Math.sin(V_rad + perp);
+  document.getElementById('field-X').value = randX.toFixed(2);
+  document.getElementById('field-Y').value = randY.toFixed(2);
+  calculate();
+}
+
+// ─── Canvas ───
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width  = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  drawChart();
+}
+
+let drawWidth = 0, drawHeight = 0;
+
+function drawChart() {
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  drawWidth  = rect.width;
+  drawHeight = rect.height;
+  ctx.clearRect(0, 0, drawWidth, drawHeight);
+  if (drawWidth < 60 || drawHeight < 60) return;
+
+  let A, B, V_rad, V, X, Y, Fx, Fy, H, L;
+  if (calcData) {
+    A = calcData.A; B = calcData.B; V_rad = calcData.V_rad; V = calcData.V;
+    X = calcData.X; Y = calcData.Y; Fx = calcData.Fx; Fy = calcData.Fy;
+    H = calcData.H; L = calcData.L;
+  } else {
+    A = 0; B = 0; V_rad = Math.PI / 4; V = 45; X = 5; Y = 8; Fx = 3; Fy = 3; H = 5; L = 8;
+  }
+
+  const margin = 40;
+  const w = drawWidth, h = drawHeight;
+
+  const ptsX = [A, X, Fx], ptsY = [B, Y, Fy];
+  const minX = Math.min(...ptsX), maxX = Math.max(...ptsX);
+  const minY = Math.min(...ptsY), maxY = Math.max(...ptsY);
+  let span = Math.max(maxX - minX, maxY - minY, 5) * 1.3;
+  if (span < 1) span = 10;
+  const scale = Math.min((w - margin * 2) / span, (h - margin * 2) / span, 30) * zoom;
+  const cx = w / 2, cy = h / 2;
+  const cxW = (minX + maxX) / 2, cyW = (minY + maxY) / 2;
+
+  function tx(vx, vy) { return cx + (vx - cxW) * scale; }
+  function ty(vx, vy) { return cy - (vy - cyW) * scale; }
+
+  // ── Grid ──
+  const gridStep = Math.max(1, Math.pow(10, Math.floor(Math.log10(span / 5))));
+  ctx.strokeStyle = '#f5f5f5';
+  ctx.lineWidth = 1;
+  for (let gx = Math.floor((cxW - span / 2) / gridStep) * gridStep; gx < cxW + span / 2; gx += gridStep) {
+    const px = tx(gx, 0);
+    if (px >= 0 && px <= w) { ctx.beginPath(); ctx.moveTo(px, margin); ctx.lineTo(px, h - margin); ctx.stroke(); }
+  }
+  for (let gy = Math.floor((cyW - span / 2) / gridStep) * gridStep; gy < cyW + span / 2; gy += gridStep) {
+    const py = ty(0, gy);
+    if (py >= margin && py <= h - margin) { ctx.beginPath(); ctx.moveTo(margin, py); ctx.lineTo(w - margin, py); ctx.stroke(); }
+  }
+
+  // ── Axis line (orange, wide) ──
+  const axisLen = span * 0.8;
+  const ax1 = tx(A - axisLen * Math.cos(V_rad), B - axisLen * Math.sin(V_rad));
+  const ay1 = ty(A - axisLen * Math.cos(V_rad), B - axisLen * Math.sin(V_rad));
+  const ax2 = tx(A + axisLen * Math.cos(V_rad), B + axisLen * Math.sin(V_rad));
+  const ay2 = ty(A + axisLen * Math.cos(V_rad), B + axisLen * Math.sin(V_rad));
+  ctx.strokeStyle = '#FF9800';
+  ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.moveTo(ax1, ay1); ctx.lineTo(ax2, ay2); ctx.stroke();
+
+  // Axis label
+  const midAx = tx(A + axisLen * 0.7 * Math.cos(V_rad), B + axisLen * 0.7 * Math.sin(V_rad));
+  const midAy = ty(A + axisLen * 0.7 * Math.cos(V_rad), B + axisLen * 0.7 * Math.sin(V_rad));
+  ctx.font = 'bold 10px sans-serif';
+  ctx.fillStyle = '#FF9800';
+  ctx.textAlign = 'center';
+  ctx.fillText('轴线', midAx, midAy - 12);
+
+  // ── Known point K ──
+  const akx = tx(A, B), aky = ty(A, B);
+  ctx.beginPath(); ctx.arc(akx, aky, 5, 0, 2 * Math.PI);
+  ctx.fillStyle = '#333'; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.font = '10px Consolas,sans-serif';
+  ctx.fillStyle = '#333';
+  ctx.textAlign = 'right';
+  ctx.fillText('K(' + A.toFixed(1) + ',' + B.toFixed(1) + ')', akx - 10, aky + 14);
+
+  // ── Foot point F (green) ──
+  const fpx = tx(Fx, Fy), fpy = ty(Fx, Fy);
+  ctx.beginPath(); ctx.arc(fpx, fpy, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = '#4CAF50'; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.font = 'bold 10px Consolas,sans-serif';
+  ctx.fillStyle = '#4CAF50';
+  ctx.textAlign = 'center';
+  ctx.fillText('F(' + Fx.toFixed(2) + ',' + Fy.toFixed(2) + ')', fpx, fpy - 14);
+
+  // ── Perpendicular dashed line (red) from P to F ──
+  const px2 = tx(X, Y), py2 = ty(X, Y);
+  ctx.strokeStyle = '#E53935';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(fpx, fpy); ctx.lineTo(px2, py2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── Measurement point P ──
+  let ptColor;
+  if (Math.abs(H) < 0.001) ptColor = '#4CAF50';
+  else if (H > 0) ptColor = '#E53935';
+  else ptColor = '#1E88E5';
+
+  ctx.beginPath(); ctx.arc(px2, py2, 7, 0, 2 * Math.PI);
+  ctx.fillStyle = ptColor; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.font = 'bold 10px Consolas,sans-serif';
+  ctx.fillStyle = ptColor;
+  ctx.textAlign = 'left';
+  ctx.fillText('P(' + X.toFixed(2) + ',' + Y.toFixed(2) + ')', px2 + 12, py2 - 8);
+
+  // ── Known point to measurement point dashed line ──
+  ctx.strokeStyle = '#90A4AE';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(akx, aky); ctx.lineTo(px2, py2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── H label ──
+  if (Math.abs(H) > 0.01) {
+    const midHx = tx((X + Fx) / 2, (Y + Fy) / 2);
+    const midHy = ty((X + Fx) / 2, (Y + Fy) / 2);
+    const hColor = H > 0 ? '#E53935' : '#1E88E5';
+    ctx.font = 'bold 10px Consolas,sans-serif';
+    ctx.fillStyle = hColor;
+    ctx.textAlign = 'left';
+    ctx.fillText('H=' + Math.abs(H).toFixed(3) + 'm', midHx + 8, midHy - 6);
+    ctx.font = '8px sans-serif';
+    const sideLabel = H > 0 ? '(轴线左侧)' : '(轴线右侧)';
+    ctx.fillText(sideLabel, midHx + 8, midHy + 8);
+  }
+
+  // ── Azimuth label ──
+  const aEnd = Math.atan2(Y - B, X - A);
+  const midAngle = (V_rad + (aEnd >= 0 ? aEnd : aEnd + 2 * Math.PI)) / 2;
+  const arcR2 = 18;
+  ctx.font = '8px Consolas,sans-serif';
+  ctx.fillStyle = '#FF9800';
+  ctx.textAlign = 'center';
+  ctx.fillText('V=' + (V_rad * 180 / Math.PI).toFixed(1) + '°',
+    akx + arcR2 * 1.6 * Math.cos(midAngle),
+    aky - arcR2 * 1.6 * Math.sin(midAngle) + 3);
+
+  // ── Legend ──
+  const legX = margin + 8, legY = margin + 8;
+  // Axis
+  ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(legX, legY); ctx.lineTo(legX + 18, legY); ctx.stroke();
+  ctx.fillStyle = '#FF9800';
+  ctx.font = '9px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('轴线', legX + 22, legY + 3);
+
+  // Perpendicular
+  ctx.strokeStyle = '#E53935'; ctx.lineWidth = 2; ctx.setLineDash([5, 3]);
+  ctx.beginPath(); ctx.moveTo(legX, legY + 14); ctx.lineTo(legX + 18, legY + 14); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#E53935';
+  ctx.fillText('垂距 H', legX + 22, legY + 17);
+
+  // Foot
+  ctx.beginPath(); ctx.arc(legX + 4, legY + 28, 4, 0, 2 * Math.PI);
+  ctx.fillStyle = '#4CAF50'; ctx.fill();
+  ctx.fillStyle = '#4CAF50';
+  ctx.fillText('垂足', legX + 12, legY + 31);
+
+  // Author
+  ctx.fillStyle = 'rgba(150,150,150,0.6)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('By Lvmyth AI', w - 10, h - 10);
+
+  // ── Zoom controls (右上角) ──
+  var zx=w-150,zy=4,zw=142,zh=30;
+  ctx.fillStyle='rgba(255,255,255,0.9)';ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=1;ctx.roundRect(zx,zy,zw,zh,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#555';ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';var btnY=zy+15;
+  ctx.fillText('+',zx+16,btnY);ctx.fillText('−',zx+108,btnY);ctx.fillText('↺',zx+130,btnY);
+  ctx.font='10px sans-serif';ctx.fillStyle='#444';ctx.textAlign='center';ctx.fillText((zoom*100).toFixed(0)+'%',zx+64,btnY);
+}
+
+window.onresize = resizeCanvas;
+window.addEventListener('load', function() {
+  resizeCanvas();
+  renderHist();
+});
+
+// ─── 画布缩放 (滚轮 + 点击 +/-/↺) ───
+(function(){
+  var cvs=canvas;
+  cvs.addEventListener('wheel',function(e){
+    e.preventDefault();
+    zoom*=e.deltaY<0?1.15:0.87;
+    if(zoom<0.1)zoom=0.1;if(zoom>20)zoom=20;
+    drawChart();
+  },{passive:false});
+  cvs.addEventListener('click',function(e){
+    var rect=cvs.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+    var w=rect.width;
+    var zx=w-150,zy=4,zw=142,zh=30;
+    if(x>zx&&x<zx+zw&&y>zy&&y<zy+zh){
+      var bx=x-zx;
+      if(bx<32){zoom*=1.3;if(zoom>20)zoom=20;drawChart()}
+      else if(bx>98&&bx<122){zoom/=1.3;if(zoom<0.1)zoom=0.1;drawChart()}
+      else if(bx>122){zoom=1;drawChart()}
+    }
+  });
+})();
+</script>
+<script>
+// 粒子背景
+var c=document.getElementById('particleCanvas'),x=c.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

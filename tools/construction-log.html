@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>施工日志 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:800px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:transparent}
+.nav{display:flex;align-items:center;gap:6px;background:#fff;padding:8px 12px;border-radius:8px;margin-bottom:10px;border:1px solid #e0e0e0;flex-wrap:wrap}
+.nav-btn{font-size:14px;color:var(--primary);padding:4px 8px;cursor:pointer;font-weight:bold;-webkit-user-select:none;user-select:none}
+.nav-btn:hover{background:#e3f2fd;border-radius:4px}
+.nav-date{flex:1;font-size:16px;font-weight:bold;color:var(--primary-dark);text-align:center}
+.nav-today{font-size:12px;color:var(--primary);padding:4px 10px;border:1px solid var(--primary);border-radius:4px;cursor:pointer}
+.nav-today:hover{background:var(--primary);color:#fff}
+.nav-status{font-size:11px;padding:2px 8px;border-radius:4px}
+.nav-status.saved{color:#2e7d32}
+.nav-status.warn{color:#e65100}
+.field{display:flex;align-items:center;gap:4px;margin-bottom:8px}
+.field .lbl{font-size:13px;color:#555;white-space:nowrap;min-width:60px}
+.field select{flex:0 0 100px;padding:6px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:Consolas,monospace}
+.field input{flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:#fff}
+.field input.sm{flex:0 0 60px}
+.field .unit{font-size:11px;color:#999}
+.section{font-size:14px;font-weight:bold;color:var(--primary-dark);margin:12px 0 6px;padding-left:8px;border-left:3px solid var(--primary)}
+.ta{width:100%;min-height:70px;padding:8px;border:1px solid var(--border);border-radius:5px;font-size:13px;background:#fff;box-sizing:border-box;margin-bottom:6px;font-family:'Helvetica Neue',sans-serif;resize:vertical}
+.tmpl-bar{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
+.tmpl-btn{padding:4px 12px;background:#e3f2fd;color:var(--primary);border:1px solid #bbdefb;border-radius:4px;font-size:12px;cursor:pointer}
+.tmpl-btn:hover{background:#bbdefb}
+.btn-bar{display:flex;gap:8px;padding:10px 0 30px;position:sticky;bottom:0;background:#f5f7fa;border-top:1px solid #e0e0e0;margin-top:8px}
+.btn-bar .btn{flex:1;padding:8px 0;font-size:13px;justify-content:center}
+.log-list{background:#fff;border:1px solid #e0e0e0;border-radius:6px;max-height:200px;overflow-y:auto;margin:6px 0}
+.log-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-bottom:1px solid #f0f0f0;font-size:12px;cursor:pointer}
+.log-item:last-child{border-bottom:none}
+.log-item:hover{background:#f5f5f5}
+.log-date{color:var(--primary);width:80px;flex:none}
+.log-proj{flex:1;color:#333}
+.search-box{display:flex;gap:6px;margin-bottom:8px}
+.search-box input{flex:1;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:13px}
+.btn{font-size:12px;padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:5px;cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+.btn:hover{opacity:0.85}
+.btn.green{background:#2e7d32}
+.btn.orange{background:#e65100}
+.btn.primary{background:var(--primary)}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:10px;padding:20px;max-width:500px;width:90%;max-height:70vh;overflow-y:auto;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.modal-box h3{margin:0 0 10px;font-size:15px;color:var(--primary-dark)}
+.modal-box .close{float:right;font-size:20px;cursor:pointer;color:#999}
+.modal-box .close:hover{color:#333}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}.tab-btn{padding:6px 10px;font-size:12px}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<div class="container">
+
+<!-- 日期导航 -->
+<div class="nav">
+  <span class="nav-btn" onclick="chgDate(-7)">◀◀</span>
+  <span class="nav-btn" onclick="chgDate(-1)">◀</span>
+  <span class="nav-date" id="navDate" onclick="goToday()"></span>
+  <span class="nav-btn" onclick="chgDate(1)">▶</span>
+  <span class="nav-btn" onclick="chgDate(7)">▶▶</span>
+  <span class="nav-today" onclick="goToday()">今天</span>
+  <span class="nav-status" id="navStatus">📝 新建</span>
+</div>
+
+<!-- 搜索 -->
+<div class="search-box">
+  <input id="searchInput" placeholder="搜索工程名称/关键词..." onkeydown="if(event.key==='Enter')doSearch()"/>
+  <button class="btn" onclick="doSearch()" style="padding:6px 14px;font-size:12px">🔍 搜索</button>
+  <button class="btn green" onclick="showLogList()" style="padding:6px 14px;font-size:12px">📋 列表</button>
+</div>
+
+<!-- 表单 -->
+<div id="formArea">
+<div class="field">
+  <span class="lbl">🏗️ 工程</span>
+  <input id="f_project" placeholder="工程名称" oninput="markDirty()"/>
+</div>
+<div class="field">
+  <span class="lbl">🌤️ 天气</span>
+  <select id="f_weather" onchange="markDirty()" style="min-width:80px;flex:0 0 90px"></select>
+  <span class="lbl" style="margin-left:6px">最高</span><input class="sm" id="f_tempMax" oninput="markDirty()" style="flex:1;max-width:70px"><span class="unit">℃</span>
+  <span class="lbl" style="margin-left:6px">最低</span><input class="sm" id="f_tempMin" oninput="markDirty()" style="flex:1;max-width:70px"><span class="unit">℃</span>
+</div>
+<div class="field"><span class="lbl">👷 人员</span><input id="f_workers" oninput="markDirty()"/></div>
+<div class="field"><span class="lbl">🔧 设备</span><input id="f_equipment" oninput="markDirty()"/></div>
+<div class="field"><span class="lbl">📦 材料</span><input id="f_materials" oninput="markDirty()"/></div>
+<div class="field"><span class="lbl">👔 监理</span><input id="f_supervisor" oninput="markDirty()"/></div>
+
+<div class="section">📝 今日施工内容</div>
+<textarea class="ta" id="f_workContent" oninput="markDirty()"></textarea>
+<div class="section">✅ 质量安全检查</div>
+<textarea class="ta" id="f_qualitySafety" oninput="markDirty()"></textarea>
+<div class="section">⚠️ 存在问题及处理</div>
+<textarea class="ta" id="f_issues" oninput="markDirty()"></textarea>
+<div class="section">📋 明日计划</div>
+<textarea class="ta" id="f_planTomorrow" oninput="markDirty()"></textarea>
+<div class="section">📌 备注</div>
+<textarea class="ta" id="f_note" oninput="markDirty()"></textarea>
+
+<div class="section">📋 快速模板</div>
+<div class="tmpl-bar" id="tmplBar"></div>
+</div>
+
+<!-- 日志列表弹窗 -->
+<div class="modal-overlay" id="listModal">
+  <div class="modal-box">
+    <span class="close" onclick="closeModal('listModal')">&times;</span>
+    <h3 id="listTitle">📋 日志列表</h3>
+    <div id="logListBox"></div>
+    <p id="listEmpty" style="text-align:center;color:#999;display:none">暂无日志</p>
+  </div>
+</div>
+
+<!-- 导出弹窗 -->
+<!-- 底部按钮 -->
+<div class="btn-bar">
+  <button class="btn primary" onclick="saveLog()">💾 保存</button>
+  <button class="btn orange" onclick="deleteLog()">🗑️ 删除</button>
+  <button class="btn green" onclick="exportSingle()">📤 导出</button>
+  <button class="btn" onclick="exportAll()">📦 批量</button>
+</div>
+
+<div style="padding:10px 0;text-align:center;color:var(--text-light);font-size:11px;line-height:1.6">
+📌 数据存储在浏览器本地 localStorage<br>
+⚠️ 清除浏览器缓存、无痕模式关闭、换设备会导致数据丢失<br>
+📤 建议定期「批量」导出备份
+</div>
+<div style="text-align:center;padding:1rem 0 2rem;border-top:1px solid var(--border);color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+</div>
+
+<script>
+var STORAGE_KEY = 'blog_construction_logs';
+var WEATHERS = ['晴☀️','多云⛅','阴☁️','小雨🌦️','中雨🌧️','大雨🌧️','阵雨🌦️','雷阵雨⛈️','雪❄️','雾🌫️','大风💨'];
+var TEMPLATES = {
+  '日常施工': {workContent:'今日正常施工，无异常情况。',qualitySafety:'质量安全检查合格。',issues:'无。',planTomorrow:'继续按计划施工。'},
+  '雨天停工': {workContent:'因天气原因停工。',qualitySafety:'现场已做好防护措施。',issues:'无。',planTomorrow:'视天气情况决定是否复工。'},
+  '安全检查': {workContent:'今日进行安全专项检查。',qualitySafety:'检查发现以下问题：\n1. \n2. \n整改措施：\n1. \n2. ',issues:'已记录并安排整改。',planTomorrow:'复查整改情况。'},
+  '材料进场': {workContent:'今日有材料进场。',qualitySafety:'材料质量合格，已验收。',issues:'无。',planTomorrow:'按计划继续施工。'},
+  '设备检修': {workContent:'今日进行设备检修维护。',qualitySafety:'设备检修完成，运行正常。',issues:'无。',planTomorrow:'正常施工。'},
+};
+var _date = new Date();
+var _dirty = false;
+var _currentLog = {};
+
+function fmtDate(d){var y=d.getFullYear(),m=('0'+(d.getMonth()+1)).slice(-2),dd=('0'+d.getDate()).slice(-2);return y+'-'+m+'-'+dd;}
+function dateStr(){return fmtDate(_date);}
+function todayStr(){return fmtDate(new Date());}
+
+// 初始化
+(function init(){
+  // 天气下拉
+  var sel=document.getElementById('f_weather');
+  WEATHERS.forEach(function(w){var o=document.createElement('option');o.textContent=w;sel.appendChild(o);});
+  // 模板按钮
+  var bar=document.getElementById('tmplBar');
+  Object.keys(TEMPLATES).forEach(function(n){var b=document.createElement('span');b.className='tmpl-btn';b.textContent=n;b.onclick=function(){applyTmpl(n);};bar.appendChild(b);});
+  document.getElementById('navDate').textContent=dateStr();
+  loadLog();
+})();
+
+function chgDate(delta){
+  _date.setDate(_date.getDate()+delta);
+  document.getElementById('navDate').textContent=dateStr();
+  loadLog();
+}
+
+function goToday(){
+  _date=new Date();
+  document.getElementById('navDate').textContent=dateStr();
+  loadLog();
+}
+
+function getId(id){return document.getElementById(id);}
+
+function collectForm(){
+  return {
+    project: getId('f_project').value,
+    weather: getId('f_weather').value,
+    tempMax: getId('f_tempMax').value,
+    tempMin: getId('f_tempMin').value,
+    workers: getId('f_workers').value,
+    equipment: getId('f_equipment').value,
+    materials: getId('f_materials').value,
+    supervisor: getId('f_supervisor').value,
+    workContent: getId('f_workContent').value,
+    qualitySafety: getId('f_qualitySafety').value,
+    issues: getId('f_issues').value,
+    planTomorrow: getId('f_planTomorrow').value,
+    note: getId('f_note').value,
+  };
+}
+
+function populateForm(log){
+  getId('f_project').value=log.project||'';
+  getId('f_weather').value=log.weather||'晴☀️';
+  getId('f_tempMax').value=log.tempMax||'';
+  getId('f_tempMin').value=log.tempMin||'';
+  getId('f_workers').value=log.workers||'';
+  getId('f_equipment').value=log.equipment||'';
+  getId('f_materials').value=log.materials||'';
+  getId('f_supervisor').value=log.supervisor||'';
+  getId('f_workContent').value=log.workContent||'';
+  getId('f_qualitySafety').value=log.qualitySafety||'';
+  getId('f_issues').value=log.issues||'';
+  getId('f_planTomorrow').value=log.planTomorrow||'';
+  getId('f_note').value=log.note||'';
+}
+
+function loadLog(){
+  var date=dateStr();
+  var all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  if(all[date]){
+    _currentLog=all[date];
+    populateForm(_currentLog);
+    _dirty=false;
+    setStatus('✅ 已保存','saved');
+  } else {
+    _currentLog={};
+    populateForm({weather:'晴☀️'});
+    _dirty=false;
+    setStatus('📝 新建','');
+  }
+}
+
+function saveLog(){
+  var log=collectForm();
+  if(!log.project.trim()){alert('请填写工程名称');getId('f_project').focus();return;}
+  var all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  all[dateStr()]=JSON.parse(JSON.stringify(log));
+  try{
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(all));
+    _dirty=false;
+    setStatus('✅ 已保存','saved');
+  }catch(e){alert('保存失败，存储空间不足');}
+}
+
+function deleteLog(){
+  if(!confirm('确定删除 '+dateStr()+' 的日志吗？'))return;
+  var all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  delete all[dateStr()];
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(all));
+  loadLog();
+}
+
+function markDirty(){if(!_dirty){_dirty=true;setStatus('✏️ 未保存','warn');}}
+
+function setStatus(text,cls){
+  var s=getId('navStatus');
+  s.textContent=text;s.className='nav-status'+(cls?' '+cls:'');
+}
+
+function applyTmpl(name){
+  var tmpl=TEMPLATES[name];
+  if(!tmpl)return;
+  getId('f_workContent').value=tmpl.workContent||'';
+  getId('f_qualitySafety').value=tmpl.qualitySafety||'';
+  getId('f_issues').value=tmpl.issues||'';
+  getId('f_planTomorrow').value=tmpl.planTomorrow||'';
+  markDirty();
+}
+
+// 搜索
+function doSearch(){
+  var kw=getId('searchInput').value.trim().toLowerCase();
+  if(!kw){showLogList();return;}
+  var all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  var matched=[];
+  Object.keys(all).sort().reverse().forEach(function(date){
+    var log=all[date];
+    for(var k in log){
+      if(typeof log[k]==='string' && log[k].toLowerCase().indexOf(kw)>=0){
+        matched.push({date:date,project:log.project||''});break;
+      }
+    }
+  });
+  if(!matched.length){alert('未找到匹配日志');return;}
+  showMatched(matched);
+}
+
+function showMatched(matched){
+  var box=getId('logListBox'),empty=getId('listEmpty');
+  box.innerHTML='';empty.style.display='none';
+  matched.forEach(function(m){
+    var div=document.createElement('div');
+    div.className='log-item';
+    div.innerHTML='<span class="log-date">'+m.date+'</span><span class="log-proj">'+m.project+'</span>';
+    div.onclick=function(){_date=new Date(m.date);document.getElementById('navDate').textContent=dateStr();closeModal('listModal');loadLog();};
+    box.appendChild(div);
+  });
+  getId('listTitle').textContent='🔍 搜索结果 ('+matched.length+'条)';
+  showModal('listModal');
+}
+
+function showLogList(){
+  var all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  var dates=Object.keys(all).sort().reverse();
+  var box=getId('logListBox'),empty=getId('listEmpty');
+  box.innerHTML='';empty.style.display='none';
+  if(!dates.length){empty.style.display='';getId('listTitle').textContent='📋 日志列表';showModal('listModal');return;}
+  dates.forEach(function(date){
+    var div=document.createElement('div');
+    div.className='log-item';
+    var delBtn=document.createElement('span');
+    delBtn.textContent='❌';
+    delBtn.style.cssText='cursor:pointer;color:#e53935;font-size:12px;margin-left:auto';
+    delBtn.onclick=function(e){e.stopPropagation();delLogFromList(date);};
+    div.innerHTML='<span class="log-date">'+date+'</span><span class="log-proj">'+(all[date].project||'')+'</span>';
+    div.appendChild(delBtn);
+    div.onclick=function(){_date=new Date(date);document.getElementById('navDate').textContent=dateStr();closeModal('listModal');loadLog();};
+    box.appendChild(div);
+  });
+  getId('listTitle').textContent='📋 日志列表 ('+dates.length+'篇)';
+  showModal('listModal');
+}
+
+function delLogFromList(date){
+  if(!confirm('确定删除 '+date+' 的日志吗？'))return;
+  var all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  delete all[date];
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(all));
+  showLogList();
+  if(date===dateStr())loadLog();
+}
+
+function showModal(id){document.getElementById(id).classList.add('show');}
+function closeModal(id){document.getElementById(id).classList.remove('show');}
+
+// 格式化导出
+function fmtLog(date,log){
+  var lines=[];
+  lines.push('='.repeat(42));lines.push('          施 工 日 志');
+  lines.push('  日期: '+date);lines.push('  工程: '+(log.project||''));lines.push('='.repeat(42));
+  var temp='';if(log.tempMax||log.tempMin)temp=(log.tempMax||'?')+'℃/'+(log.tempMin||'?')+'℃';
+  lines.push('  🌤️ 天气: '+(log.weather||'')+'  🌡️ 温度: '+temp);
+  lines.push('  👷 人员: '+(log.workers||''));lines.push('  🔧 设备: '+(log.equipment||''));
+  lines.push('  📦 材料: '+(log.materials||''));lines.push('  👔 监理: '+(log.supervisor||''));
+  lines.push('-'.repeat(42));
+  var secs=[['workContent','📝 今日施工内容'],['qualitySafety','✅ 质量安全检查'],['issues','⚠️ 问题及处理'],['planTomorrow','📋 明日计划'],['note','📌 备注']];
+  secs.forEach(function(s){var v=log[s[0]];if(v&&v.trim()){lines.push('\n '+s[1]+':');v.split('\n').forEach(function(l){if(l.trim())lines.push('    '+l);});}});
+  lines.push('='.repeat(42));lines.push('  © Lvmyth AI | 导出: '+todayStr());
+  return lines.join('\n');
+}
+
+function downloadTxt(filename,text){
+  var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=filename;
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);URL.revokeObjectURL(a.href);
+}
+
+function exportSingle(){
+  var date=dateStr();
+  var all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  var log=all[date]||collectForm();
+  var text=fmtLog(date,log);
+  downloadTxt('施工日志_'+date+'.txt',text);
+}
+
+function exportAll(){
+  var all=JSON.parse(localStorage.getItem(STORAGE_KEY)||'{}');
+  var dates=Object.keys(all).sort();
+  if(!dates.length){alert('暂无日志');return;}
+  var zip=new JSZip();
+  dates.forEach(function(d){zip.file('施工日志_'+d+'.txt',fmtLog(d,all[d]));});
+  zip.generateAsync({type:'blob'}).then(function(blob){
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download='施工日志_全部_'+todayStr()+'.zip';
+    document.body.appendChild(a);a.click();
+    document.body.removeChild(a);URL.revokeObjectURL(a.href);
+  });
+}
+
+// 关闭弹窗 - 点击遮罩
+document.querySelectorAll('.modal-overlay').forEach(function(el){
+  el.addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
+});
+</script>
+<script>
+// 粒子背景
+var c=document.getElementById('particleCanvas'),x=c.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

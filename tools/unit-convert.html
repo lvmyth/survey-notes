@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>单位换算 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:600px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)}
+.group{margin-bottom:14px}
+.group h3{font-size:14px;color:var(--primary-dark);margin-bottom:8px;padding-left:8px;border-left:3px solid var(--primary)}
+.row{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.row label{font-size:13px;color:#555;white-space:nowrap}
+.row input{flex:1;min-width:50px;padding:6px 8px;border:1px solid var(--border);border-radius:5px;font-size:14px;font-family:Consolas,monospace;text-align:center}
+.row input.sm{flex:0 0 80px;min-width:40px}
+.row select{flex:1;min-width:50px;padding:6px 4px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:Consolas,monospace}
+.select-w{flex:0 0 120px;min-width:60px;padding:6px 4px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:Consolas,monospace}
+.btn{padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:5px;font-size:13px;cursor:pointer}
+.btn:hover{opacity:0.85}
+.btn.green{background:#2e7d32}
+.btn.orange{background:#e65100}
+.res{background:#f1f8e9;border-radius:6px;padding:10px 12px;margin-top:6px;display:flex;align-items:center;gap:8px}
+.res .val{font-size:18px;font-weight:bold;color:var(--primary);font-family:Consolas,monospace;flex:1;text-align:center}
+.cpy{font-size:16px;background:#e8f5e9;border:none;border-radius:4px;padding:4px 10px;cursor:pointer}
+.shortcuts{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}
+.shortcuts button{font-size:12px;padding:3px 8px;background:#e3f2fd;color:#1565c0;border:none;border-radius:4px;cursor:pointer}
+.shortcuts button:active{background:#bbdefb}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}.row input{font-size:12px;padding:4px 5px}.row select{font-size:11px;padding:4px 2px}.res .val{font-size:15px}.select-w{flex:0 0 90px}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+
+<div class="card">
+<div class="group"><h3>单位换算</h3>
+<div class="row">
+<label>类别</label>
+<select id="cat" class="select-w" onchange="switchCat()">
+<option value="length">长度</option>
+<option value="area">面积</option>
+<option value="volume">体积</option>
+<option value="weight">重量</option>
+<option value="time">时间</option>
+<option value="temp">温度</option>
+</select>
+</div>
+<div class="row">
+<input id="val" type="number" value="100" step="any">
+<select id="fromUnit" class="select-w"></select>
+<button class="btn orange" onclick="swapUnits()" title="交换单位" style="padding:6px 10px;font-size:16px;line-height:1">⇄</button>
+<select id="toUnit" class="select-w"></select>
+<button class="btn" onclick="convert()">换算</button>
+</div>
+<div class="res"><span class="val" id="result">—</span><button class="cpy" onclick="cpyRes()">📋</button></div>
+</div>
+</div>
+
+<!-- 快捷按钮 -->
+<div class="card">
+<div class="group"><h3>常用换算</h3>
+<div class="shortcuts" id="shortcuts"></div>
+</div>
+</div>
+
+<!-- 换算记录 -->
+<div class="card">
+<div class="group"><h3>换算记录 <span style="font-weight:normal;font-size:12px;color:#999" id="logCount"></span></h3>
+<div id="logList" style="max-height:300px;overflow-y:auto;font-size:13px;font-family:Consolas,monospace;color:#333"></div>
+<div style="text-align:right;margin-top:4px"><button onclick="clearLog()" style="font-size:11px;background:none;border:none;color:#999;cursor:pointer">清空记录</button></div>
+</div>
+</div>
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+// 单位库
+var DATA = {
+  length: {base:'m', keys:['km','m','dm','cm','mm','里','丈','尺','寸','mile(英里)','yard(码)','foot(英尺)','inch(英寸)','海里'],
+           vals:[1000,1,0.1,0.01,0.001,500,10/3,1/3,1/30,1609.344,0.9144,0.3048,0.0254,1852]},
+  area:   {base:'m²',keys:['km²','公顷','亩','公亩','m²','dm²','cm²','mm²','mile²(平方英里)','acre(英亩)','yard²(平方码)','foot²(平方英尺)','inch²(平方英寸)','分','厘'],
+           vals:[1e6,10000,2000/3,100,1,0.01,1e-4,1e-6,2589988.11,4046.856,0.836127,0.092903,0.00064516,2000/30,2000/300]},
+  volume: {base:'m³',keys:['m³','dm³','cm³','mm³','L','mL','yard³(立方码)','foot³(立方英尺)','inch³(立方英寸)','gal(US)','gal(UK)','bbl(桶)'],
+           vals:[1,0.001,1e-6,1e-9,0.001,1e-6,0.764555,0.0283168,1.63871e-5,0.00378541,0.00454609,0.158987]},
+  weight: {base:'kg',keys:['t(吨)','kg','g','mg','斤','两','钱','担','ton(美吨)','uk_ton(英吨)','lb(磅)','oz(盎司)'],
+           vals:[1000,1,0.001,1e-6,0.5,0.05,0.005,50,907.185,1016.05,0.453592,0.0283495]},
+  time:   {base:'秒',keys:['年','月(30天)','天','时','分','秒','毫秒','周'],
+           vals:[31536000,2592000,86400,3600,60,1,0.001,604800]},
+  temp:   {base:'°C',keys:['°C(摄氏度)','°F(华氏度)','K(开尔文)','°Ré(列氏度)'],isTemp:true}
+};
+
+var shortcutsMap = {
+  length:[['m→km','m','km'],['km→mile','km','mile(英里)'],['m→尺','m','尺'],['里→km','里','km'],['m→foot','m','foot(英尺)'],['海里→m','海里','m']],
+  area:  [['m²→亩','m²','亩'],['亩→m²','亩','m²'],['公顷→亩','公顷','亩'],['km²→亩','km²','亩'],['m²→acre','m²','acre(英亩)'],['亩→公顷','亩','公顷']],
+  volume:[['m³→L','m³','L'],['L→m³','L','m³'],['m³→bbl','m³','bbl(桶)'],['L→gal(US)','L','gal(US)'],['L→mL','L','mL']],
+  weight:[['kg→斤','kg','斤'],['斤→kg','斤','kg'],['kg→lb','kg','lb(磅)'],['t→kg','t(吨)','kg'],['t→斤','t(吨)','斤']],
+  time:  [['天→时','天','时'],['时→分','时','分'],['分→秒','分','秒'],['天→分','天','分'],['年→天','年','天']],
+  temp:  [['°C→°F','°C(摄氏度)','°F(华氏度)'],['°F→°C','°F(华氏度)','°C(摄氏度)'],['°C→K','°C(摄氏度)','K(开尔文)'],['K→°C','K(开尔文)','°C(摄氏度)']]
+};
+
+var _initDone=false;
+
+function switchCat(){
+  var cat=document.getElementById('cat').value,data=DATA[cat];
+  var fromS=document.getElementById('fromUnit'),toS=document.getElementById('toUnit');
+  fromS.innerHTML='';toS.innerHTML='';
+  for(var i=0;i<data.keys.length;i++){
+    fromS.innerHTML+='<option value="'+i+'">'+data.keys[i]+'</option>';
+    toS.innerHTML+='<option value="'+i+'">'+data.keys[i]+'</option>';
+  }
+  toS.selectedIndex=Math.min(1,data.keys.length-1);
+  buildShortcuts(cat);
+}
+
+function buildShortcuts(cat){
+  var list=shortcutsMap[cat]||[],el=document.getElementById('shortcuts');
+  el.innerHTML='';
+  for(var i=0;i<list.length;i++){
+    var btn=document.createElement('button');
+    btn.textContent=list[i][0];
+    btn.onclick=function(f,t){return function(){
+      var cat=document.getElementById('cat').value,data=DATA[cat];
+      var fi=data.keys.indexOf(f),ti=data.keys.indexOf(t);
+      if(fi>=0)document.getElementById('fromUnit').value=fi;
+      if(ti>=0)document.getElementById('toUnit').value=ti;
+      convert();
+    }}(list[i][1],list[i][2]);
+    el.appendChild(btn);
+  }
+}
+
+function swapUnits(){
+  var a=document.getElementById('fromUnit'),b=document.getElementById('toUnit');
+  var tmp=a.value;a.value=b.value;b.value=tmp;
+  convert();
+}
+
+function convert(){
+  var cat=document.getElementById('cat').value,data=DATA[cat];
+  var val=parseFloat(document.getElementById('val').value)||0;
+  var fi=parseInt(document.getElementById('fromUnit').value);
+  var ti=parseInt(document.getElementById('toUnit').value);
+  var fromKey=data.keys[fi],toKey=data.keys[ti],result;
+
+  if(data.isTemp){
+    // 温度公式转换
+    var celsius;
+    if(fromKey==='°C(摄氏度)') celsius=val;
+    else if(fromKey==='°F(华氏度)') celsius=(val-32)*5/9;
+    else if(fromKey==='K(开尔文)') celsius=val-273.15;
+    else if(fromKey==='°Ré(列氏度)') celsius=val*5/4;
+    if(toKey==='°C(摄氏度)') result=celsius;
+    else if(toKey==='°F(华氏度)') result=celsius*9/5+32;
+    else if(toKey==='K(开尔文)') result=celsius+273.15;
+    else if(toKey==='°Ré(列氏度)') result=celsius*4/5;
+  } else {
+    result=val*data.vals[fi]/data.vals[ti];
+  }
+  document.getElementById('result').textContent=val+' '+fromKey+' = '+result.toFixed(6)+' '+toKey;
+  addLog(val,fromKey,result,toKey);
+}
+
+function addLog(v,f,r,t){
+  var el=document.getElementById('logList'),cnt=document.getElementById('logCount');
+  var now=new Date(),ts=now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0')+'-'+now.getDate().toString().padStart(2,'0')+' '+now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0');
+  var div=document.createElement('div');
+  div.style.cssText='padding:3px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:center';
+  div.innerHTML='<span style="flex:1">'+v+' '+f+' = <b>'+r.toFixed(6)+'</b> '+t+'</span><span style="color:#bbb;font-size:11px;width:120px;flex-shrink:0;text-align:right">'+ts+'</span>';
+  el.insertBefore(div,el.firstChild);
+  cnt.textContent='('+el.children.length+'条)';
+  // 持久化
+  var logs=JSON.parse(localStorage.getItem('ucLogs')||'[]');
+  logs.unshift({v,f,r:r.toFixed(6),t,_t:ts});
+  if(logs.length>200)logs=logs.slice(0,200);
+  localStorage.setItem('ucLogs',JSON.stringify(logs));
+}
+function clearLog(){
+  document.getElementById('logList').innerHTML='';
+  document.getElementById('logCount').textContent='';
+  localStorage.removeItem('ucLogs');
+}
+function restoreLogs(){
+  var el=document.getElementById('logList'),cnt=document.getElementById('logCount');
+  var logs=JSON.parse(localStorage.getItem('ucLogs')||'[]');
+  for(var i=0;i<logs.length;i++){
+    var d=logs[i];
+    var div=document.createElement('div');
+    div.style.cssText='padding:3px 0;border-bottom:1px solid #f0f0f0;display:flex;align-items:center';
+    div.innerHTML='<span style="flex:1">'+d.v+' '+d.f+' = <b>'+d.r+'</b> '+d.t+'</span><span style="color:#bbb;font-size:11px;width:120px;flex-shrink:0;text-align:right">'+d._t+'</span>';
+    el.appendChild(div);
+  }
+  cnt.textContent=logs.length?'('+logs.length+'条)':'';
+}
+
+function cpyRes(){navigator.clipboard.writeText(document.getElementById('result').textContent)}
+
+// 初始化
+switchCat();
+restoreLogs();
+</script>
+<script>
+// 粒子背景
+var c=document.getElementById('particleCanvas'),x=c.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

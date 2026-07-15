@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>弧上点定位 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;font-size:12px;font-family:'Consolas',monospace}
+.detail-grid .label{color:var(--text-light);font-weight:600}
+.detail-grid .value{text-align:right}
+canvas{cursor:default}
+.num-input{width:90px!important}
+.panel-left{flex:0 0 360px}
+.history-box{margin-top:18px}
+.history-box h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.history-box h3 button{font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--text-light)}
+.history-box h3 button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+.hist-item{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-family:'Consolas',monospace;border-bottom:1px solid var(--border);overflow:hidden}
+.hist-item:last-child{border:none}
+.hist-item .tag{display:inline-block;background:var(--primary-light);color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;margin-right:4px;white-space:nowrap}
+.hist-item .del{color:#ccc;cursor:pointer;margin-left:auto;padding:0 4px;flex-shrink:0}
+.hist-item .del:hover{color:#e74c3c}
+@media(max-width:768px){.panel{flex-direction:column}.panel-left{flex:1 1 100%;min-width:0}.panel-right{min-width:0;min-height:300px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+
+<div class="panel">
+  <div class="panel-left">
+      <!-- 圆弧参数 -->
+      <div class="card">
+        <h3>圆弧参数</h3>
+        <div class="field-row">
+          <label>圆心 X&#8320;：</label>
+          <input class="num-input" type="number" id="paramO" step="any" value="0.0">
+        </div>
+        <div class="field-row">
+          <label>圆心 Y&#8320;：</label>
+          <input class="num-input" type="number" id="paramP" step="any" value="0.0">
+        </div>
+        <div class="field-row">
+          <label>半径 R：</label>
+          <input class="num-input" type="number" id="paramR" step="any" value="10.0">
+        </div>
+      </div>
+
+      <!-- 测点坐标 -->
+      <div class="card">
+        <h3>测点坐标（全站仪实测）</h3>
+        <div class="field-row">
+          <label>测点 X：</label>
+          <input class="num-input" type="number" id="pointX" step="any" value="">
+        </div>
+        <div class="field-row">
+          <label>测点 Y：</label>
+          <input class="num-input" type="number" id="pointY" step="any" value="">
+        </div>
+        <div class="btn-group">
+          <button class="btn" onclick="calculate()">计算偏距</button>
+          <button class="btn btn-warn" onclick="randomPoint()">模拟测点</button>
+          <button class="btn btn-outline" onclick="clearInput()">清空填入</button>
+        </div>
+      </div>
+
+      <!-- 计算结果 -->
+      <div class="card">
+        <h3>计算结果</h3>
+        <div class="result-box" style="min-height:100px;">
+          <div id="resultLine" style="text-align:center;font-size:22px;font-weight:700;padding:10px;font-family:'Consolas',monospace">H = &mdash;</div>
+          <div style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px" class="detail-grid">
+            <span class="label">圆心距离 I：</span><span class="value" id="detailI">&mdash;</span>
+            <span class="label">半径 R：</span><span class="value" id="detailR">&mdash;</span>
+            <span class="label">偏距 H：</span><span class="value" id="detailH">&mdash;</span>
+            <span class="label">方向：</span><span class="value" id="detailDir">&mdash;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 历史记录 -->
+      <div class="card history-box">
+        <h3>📋 计算记录 <button onclick="clearHistory()">清空记录</button></h3>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div class="canvas-wrap">
+        <canvas id="canvas"></canvas>
+      </div>
+    </div>
+  </div>
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+// ─── 状态 ───
+let currentData = null;
+
+// ─── 历史记录 ───
+var historyKey='arc_point_history';
+function getHist(){try{return JSON.parse(localStorage.getItem(historyKey))||[]}catch(e){return[]}}
+function saveHist(arr){try{localStorage.setItem(historyKey,JSON.stringify(arr.slice(0,50)))}catch(e){}}
+function addHist(X,Y,H,dirLabel){
+  var arr=getHist();
+  arr.unshift({X:X,Y:Y,H:H,dir:dirLabel,time:new Date().toLocaleString()});
+  saveHist(arr);renderHist();
+}
+function renderHist(){
+  var arr=getHist(),el=document.getElementById('historyList');
+  if(!el)return;
+  if(arr.length===0){el.innerHTML='<div style="color:var(--text-light);font-size:12px;padding:8px;text-align:center">暂无记录</div>';return}
+  el.innerHTML=arr.map(function(r,i){
+    return'<div class="hist-item"><span class="tag">H='+r.H.toFixed(3)+'</span><span>X='+r.X.toFixed(2)+' Y='+r.Y.toFixed(2)+'</span><span style="color:var(--text-light);font-size:10px;margin-left:auto">'+r.time+'</span><span class="del" onclick="delHist('+i+')">✕</span></div>'
+  }).join('');
+}
+function delHist(i){var arr=getHist();arr.splice(i,1);saveHist(arr);renderHist()}
+function clearHistory(){saveHist([]);renderHist()}
+function clearInput(){document.getElementById('pointX').value='';document.getElementById('pointY').value=''}
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let zoom = 1;
+
+// ─── Canvas 尺寸 ───
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.scale(dpr, dpr);
+  drawChart();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ─── 画布缩放 (滚轮 + 点击 +/-/↺) ───
+(function(){
+  var cvs=canvas;
+  cvs.addEventListener('wheel',function(e){
+    e.preventDefault();
+    zoom*=e.deltaY<0?1.15:0.87;
+    if(zoom<0.1)zoom=0.1;if(zoom>20)zoom=20;
+    drawChart();
+  },{passive:false});
+  cvs.addEventListener('click',function(e){
+    var rect=cvs.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+    var w=rect.width;
+    var zx=w-150,zy=4,zw=142,zh=30;
+    if(x>zx&&x<zx+zw&&y>zy&&y<zy+zh){
+      var bx=x-zx;
+      if(bx<32){zoom*=1.3;if(zoom>20)zoom=20;drawChart()}
+      else if(bx>98&&bx<122){zoom/=1.3;if(zoom<0.1)zoom=0.1;drawChart()}
+      else if(bx>122){zoom=1;drawChart()}
+    }
+  });
+})();
+
+// ─── 计算 ───
+function calculate() {
+  const O = parseFloat(document.getElementById('paramO').value);
+  const P = parseFloat(document.getElementById('paramP').value);
+  const R = parseFloat(document.getElementById('paramR').value);
+  const X = parseFloat(document.getElementById('pointX').value);
+  const Y = parseFloat(document.getElementById('pointY').value);
+
+  if (isNaN(O) || isNaN(P) || isNaN(R) || isNaN(X) || isNaN(Y)) {
+    alert('所有字段必须为有效数字');
+    return;
+  }
+  if (R <= 0) { alert('半径 R 必须大于 0'); return; }
+
+  const dx = X - O, dy = Y - P;
+  const I = Math.sqrt(dx * dx + dy * dy);
+  const H = R - I;
+
+  // 显示结果
+  const absH = Math.abs(H);
+  let dirText, dirColor;
+  if (absH < 0.001) {
+    dirText = '\u2705 \u6d4b\u70b9\u5728\u5706\u5f27\u4e0a';
+    dirColor = '#4CAF50';
+  } else if (H > 0) {
+    dirText = '\u504f\u5185 ' + absH.toFixed(4) + 'm\uff08\u5411\u5f27\u5916\u79fb\uff09';
+    dirColor = '#e74c3c';
+  } else {
+    dirText = '\u504f\u5916 ' + absH.toFixed(4) + 'm\uff08\u5411\u5706\u5fc3\u79fb\uff09';
+    dirColor = '#2980b9';
+  }
+
+  document.getElementById('resultLine').textContent = 'H = ' + (H >= 0 ? '+' : '') + H.toFixed(6) + ' m    ' + dirText;
+  document.getElementById('resultLine').style.color = dirColor;
+  document.getElementById('detailI').textContent = I.toFixed(6) + ' m';
+  document.getElementById('detailR').textContent = R.toFixed(6) + ' m';
+  document.getElementById('detailH').textContent = (H >= 0 ? '+' : '') + H.toFixed(6) + ' m';
+  document.getElementById('detailH').style.color = dirColor;
+  document.getElementById('detailDir').textContent = dirText;
+  document.getElementById('detailDir').style.color = dirColor;
+
+  // 保存绘图数据
+  currentData = { O, P, R, X, Y, I, H };
+  drawChart();
+
+  // 历史记录
+  var shortDir = absH < 0.001 ? '\u5f27\u4e0a' : (H > 0 ? '\u504f\u5185' : '\u504f\u5916');
+  addHist(X,Y,H,shortDir);
+}
+
+// ─── 随机点 ───
+function randomPoint() {
+  let O = parseFloat(document.getElementById('paramO').value);
+  let P = parseFloat(document.getElementById('paramP').value);
+  let R = parseFloat(document.getElementById('paramR').value);
+  if (isNaN(O) || isNaN(P) || isNaN(R)) { O = 0; P = 0; R = 10; }
+
+  const angle = Math.random() * 2 * Math.PI;
+  const offset = (Math.random() - 0.5) * R * 0.6;
+  const dist = R + offset;
+  const X = O + dist * Math.cos(angle);
+  const Y = P + dist * Math.sin(angle);
+
+  document.getElementById('pointX').value = X.toFixed(2);
+  document.getElementById('pointY').value = Y.toFixed(2);
+
+  calculate();
+}
+
+// ─── 绘图 ───
+function drawChart() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+  ctx.clearRect(0, 0, w, h);
+
+  const margin = 35;
+  const drawW = w - margin * 2;
+  const drawH = h - margin * 2;
+
+  let O, P, R, X, Y, I, H;
+  if (currentData) {
+    O = currentData.O; P = currentData.P; R = currentData.R;
+    X = currentData.X; Y = currentData.Y; I = currentData.I; H = currentData.H;
+  } else {
+    O = 0; P = 0; R = 10; X = 12; Y = 0; I = 12; H = -2;
+  }
+
+  // 绘图范围
+  const maxR = R + Math.max(Math.abs(X - O), Math.abs(Y - P), R) + R * 0.2;
+  const scale = Math.min(drawW / (Math.max(maxR, 1) * 2), drawH / (Math.max(maxR, 1) * 2), 25) * zoom;
+  const cx = w / 2, cy = h / 2;
+
+  function tx(vx, vy) { return cx + (vx - O) * scale; }
+  function ty(vx, vy) { return cy - (vy - P) * scale; }
+
+  // ── 网格 ──
+  let gridSize = R / 2;
+  if (gridSize < 1) gridSize = 1;
+  const gridMax = maxR * 1.2;
+  ctx.strokeStyle = '#f0f0f0';
+  ctx.lineWidth = 1;
+  for (let g = gridSize; g < gridMax; g += gridSize) {
+    const x1 = tx(O + g, 0);
+    if (x1 > 0 && x1 < w) { ctx.beginPath(); ctx.moveTo(x1, margin); ctx.lineTo(x1, h - margin); ctx.stroke(); }
+    const x2 = tx(O - g, 0);
+    if (x2 > 0 && x2 < w) { ctx.beginPath(); ctx.moveTo(x2, margin); ctx.lineTo(x2, h - margin); ctx.stroke(); }
+    const y3 = ty(0, P + g);
+    if (y3 > margin && y3 < h - margin) { ctx.beginPath(); ctx.moveTo(margin, y3); ctx.lineTo(w - margin, y3); ctx.stroke(); }
+    const y4 = ty(0, P - g);
+    if (y4 > margin && y4 < h - margin) { ctx.beginPath(); ctx.moveTo(margin, y4); ctx.lineTo(w - margin, y4); ctx.stroke(); }
+  }
+
+  // ── 设计圆弧 ──
+  ctx.beginPath();
+  for (let i = 0; i <= 80; i++) {
+    const a = 2 * Math.PI * i / 80;
+    const ax = O + R * Math.cos(a), ay = P + R * Math.sin(a);
+    const px = tx(ax, ay), py = ty(ax, ay);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.strokeStyle = '#2c6e49';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 圆弧标注 R
+  const labelAngle = Math.PI / 4;
+  const lx = tx(O + R * Math.cos(labelAngle), P + R * Math.sin(labelAngle));
+  const ly = ty(O + R * Math.cos(labelAngle), P + R * Math.sin(labelAngle));
+  ctx.fillStyle = '#2c6e49';
+  ctx.font = 'bold 11px Consolas, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('R=' + R.toFixed(2), lx, ly - 12);
+
+  // ── 圆心 ──
+  const cx0 = tx(O, P), cy0 = ty(O, P);
+  ctx.beginPath();
+  ctx.arc(cx0, cy0, 6, 0, 2 * Math.PI);
+  ctx.fillStyle = '#333';
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = '#333';
+  ctx.font = 'bold 11px Consolas, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('O(' + O.toFixed(1) + ',' + P.toFixed(1) + ')', cx0 + 6, cy0 + 4);
+
+  // ── 测点 ──
+  if (currentData) {
+    const px = tx(X, Y), py = ty(X, Y);
+    const isOnArc = Math.abs(H) < 0.05;
+
+    // 测点到圆心的连线
+    ctx.beginPath();
+    ctx.moveTo(cx0, cy0);
+    ctx.lineTo(px, py);
+    ctx.strokeStyle = '#d68c45';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 3]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 标注 I
+    const imx = (cx0 + px) / 2, imy = (cy0 + py) / 2;
+    ctx.fillStyle = '#d68c45';
+    ctx.font = '9px Consolas, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('I=' + I.toFixed(2), imx, imy - 6);
+
+    // 测点标记
+    let ptColor;
+    if (isOnArc) ptColor = '#1b5e20';
+    else if (H > 0) ptColor = '#b71c1c';
+    else ptColor = '#0d47a1';
+
+    const ptLabel = isOnArc ? '\u2705 \u5f27\u4e0a' : (H > 0 ? '\u504f\u5185' : '\u504f\u5916');
+    const rPt = 5;
+
+    ctx.beginPath();
+    ctx.arc(px, py, rPt, 0, 2 * Math.PI);
+    ctx.fillStyle = ptColor;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.fillStyle = ptColor;
+    ctx.font = 'bold 11px Consolas, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('P(' + X.toFixed(2) + ',' + Y.toFixed(2) + ')', px + 14, py - 8);
+    ctx.font = '10px Consolas, monospace';
+    ctx.fillText(ptLabel, px + 12, py + 8);
+
+    // ── 偏距标注 H ──
+    if (Math.abs(H) > 0.01) {
+      const angle = Math.atan2(Y - P, X - O);
+      const hx = tx(O + (R + H / 2) * Math.cos(angle), P + (R + H / 2) * Math.sin(angle));
+      const hy = ty(O + (R + H / 2) * Math.cos(angle), P + (R + H / 2) * Math.sin(angle));
+      const hColor = H > 0 ? '#e74c3c' : '#2980b9';
+
+      ctx.fillStyle = hColor;
+      ctx.font = 'bold 10px Consolas, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('H=' + (H >= 0 ? '+' : '') + H.toFixed(3), hx, hy - 8);
+
+      ctx.font = '9px Consolas, monospace';
+      ctx.fillText(H > 0 ? '\u2197 \u504f\u5185' : '\u2199 \u504f\u5916', hx, hy + 8);
+    }
+  }
+
+  // ── 图例 ──
+  const legX = margin + 5, legY = margin + 5;
+  ctx.textAlign = 'left';
+
+  ctx.fillStyle = '#2c6e49';
+  ctx.font = '10px Consolas, monospace';
+  ctx.fillText('\u2500\u2500 \u8bbe\u8ba1\u5706\u5f27', legX, legY);
+
+  ctx.fillStyle = '#d68c45';
+  ctx.fillText('- - \u6d4b\u70b9\u8fde\u7ebf', legX, legY + 14);
+
+  ctx.fillStyle = '#4CAF50';
+  ctx.fillText('\u25cf \u5f27\u4e0a\u70b9', legX, legY + 28);
+
+  ctx.fillStyle = '#e74c3c';
+  ctx.fillText('\u25cf \u504f\u5185\u70b9', legX, legY + 42);
+
+  ctx.fillStyle = '#2980b9';
+  ctx.fillText('\u25cf \u504f\u5916\u70b9', legX, legY + 56);
+
+  // By Lvmyth AI
+  ctx.fillStyle = 'rgba(150,150,150,0.6)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('By Lvmyth AI', w - 10, h - 10);
+
+  // ── Zoom controls (右上角) ──
+  var zx=w-150,zy=4,zw=142,zh=30;
+  ctx.fillStyle='rgba(255,255,255,0.9)';ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=1;ctx.roundRect(zx,zy,zw,zh,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#555';ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';var btnY=zy+15;
+  ctx.fillText('+',zx+16,btnY);ctx.fillText('−',zx+108,btnY);ctx.fillText('↺',zx+130,btnY);
+  ctx.font='10px sans-serif';ctx.fillStyle='#444';ctx.textAlign='center';ctx.fillText((zoom*100).toFixed(0)+'%',zx+64,btnY);
+}
+
+// ─── 初始化 ───
+resizeCanvas();
+renderHist();
+// 初始加载时使用默认数据计算
+document.getElementById('pointX').value = '12';
+document.getElementById('pointY').value = '0';
+calculate();
+</script>
+<script>
+// 粒子背景
+var c=document.getElementById('particleCanvas'),x=c.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

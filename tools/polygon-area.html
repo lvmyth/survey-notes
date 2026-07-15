@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>多边形面积计算 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)}
+#vertexTable{width:100%;border-collapse:collapse;font-size:12px}
+#vertexTable th,#vertexTable td{padding:4px 6px;text-align:center;border:1px solid var(--border)}
+#vertexTable th{background:var(--primary-dark);color:#fff;font-weight:600}
+#vertexTable tr:nth-child(even){background:#f8faf5}
+#vertexTable tr.selected{background:#d4edda}
+#vertexTable td.del{cursor:pointer;color:#e74c3c;font-weight:bold}
+#vertexTable td.del:hover{background:#fce4ec}
+.input-coord{display:flex;gap:4px;align-items:center}
+.input-coord input{width:70px;padding:4px 6px;font-size:12px}
+.history-box{margin-top:18px}
+.history-box h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.history-box h3 button{font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--text-light)}
+.history-box h3 button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+.hist-item{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-family:'Consolas',monospace;border-bottom:1px solid var(--border);overflow:hidden}
+.hist-item:last-child{border:none}
+.hist-item .tag{display:inline-block;background:var(--primary-light);color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;margin-right:4px;white-space:nowrap}
+.hist-item .del{color:#ccc;cursor:pointer;margin-left:auto;padding:0 4px;flex-shrink:0}
+.hist-item .del:hover{color:#e74c3c}
+@media(max-width:768px){.panel{flex-direction:column}.panel-left{flex:1 1 100%;min-width:0}.panel-right{max-width:none;min-height:300px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+
+<div class="panel">
+  <div class="panel-left">
+      <!-- 操作 -->
+      <div class="card">
+        <h3>操作</h3>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-danger" onclick="clearAll()">🗑 清空</button>
+          <button class="btn btn-sm btn-warn" onclick="loadExample()">📐 示例（五边形）</button>
+        </div>
+      </div>
+
+      <!-- 坐标输入 -->
+      <div class="card">
+        <h3>手动输入顶点</h3>
+        <div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:12px;font-weight:600;flex-shrink:0">X：</span>
+          <input type="number" id="inputX" step="any" value="" style="width:100px;padding:5px 8px;font-size:14px;border:1px solid var(--border);border-radius:4px">
+          <span style="font-size:12px;font-weight:600;flex-shrink:0">Y：</span>
+          <input type="number" id="inputY" step="any" value="" style="width:100px;padding:5px 8px;font-size:14px;border:1px solid var(--border);border-radius:4px">
+          <button class="btn btn-sm" onclick="addCoord()">添加</button>
+        </div>
+      </div>
+
+      <!-- 顶点列表 -->
+      <div class="card">
+        <h3>顶点坐标列表</h3>
+        <div style="max-height:200px;overflow-y:auto">
+          <table id="vertexTable">
+            <thead><tr><th>#</th><th>X</th><th>Y</th><th></th></tr></thead>
+            <tbody id="vertexBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 计算结果 -->
+      <div class="card">
+        <h3>计算结果</h3>
+        <div class="result-box">
+          <div class="big green" id="areaResult">S = 0.000 m<sup>2</sup></div>
+          <div id="perimResult">周长 = 0.000 m</div>
+          <div id="vertCount">顶点数：0</div>
+        </div>
+        <div class="btn-group" style="margin-top:8px">
+          <button class="btn" onclick="calculate()">计算</button>
+          <button class="btn btn-sm" onclick="updateAll()">刷新</button>
+        </div>
+      </div>
+      <div class="card history-box">
+        <h3>📋 计算记录 <button onclick="clearHistory()">清空记录</button></h3>
+        <div id="historyList"></div>
+      </div>
+    </div>
+
+    <div class="panel-right">
+      <div class="canvas-wrap">
+        <canvas id="canvas"></canvas>
+      </div>
+    </div>
+  </div>
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+// ─── 状态 ───
+const points = [];
+let zoom = 1;
+
+// ─── 历史记录 ───
+var historyKey='polygon_area_history';
+function getHist(){try{return JSON.parse(localStorage.getItem(historyKey))||[]}catch(e){return[]}}
+function saveHist(arr){try{localStorage.setItem(historyKey,JSON.stringify(arr.slice(0,50)))}catch(e){}}
+function addHist(n,area,perim){
+  var arr=getHist();
+  arr.unshift({n:n,area:area,perim:perim,time:new Date().toLocaleString()});
+  saveHist(arr);renderHist();
+}
+function renderHist(){
+  var arr=getHist(),el=document.getElementById('historyList');
+  if(!el)return;
+  if(arr.length===0){el.innerHTML='<div style="color:var(--text-light);font-size:12px;padding:8px;text-align:center">暂无记录</div>';return}
+  el.innerHTML=arr.map(function(r,i){
+    return'<div class="hist-item"><span class="tag">'+r.n+'边</span><span>S='+r.area.toFixed(2)+'m²</span><span style="color:var(--text-light);font-size:10px;margin-left:auto">'+r.time+'</span><span class="del" onclick="delHist('+i+')">✕</span></div>'
+  }).join('');
+}
+function delHist(i){var arr=getHist();arr.splice(i,1);saveHist(arr);renderHist()}
+function clearHistory(){saveHist([]);renderHist()}
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// ─── Canvas 尺寸管理 ───
+function resizeCanvas() {
+  const wrap = canvas.parentElement;
+  const rect = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  ctx.scale(dpr, dpr);
+  draw();
+}
+window.addEventListener('resize', resizeCanvas);
+
+// ─── 坐标转换 ───
+function worldToCanvas(wx, wy) {
+  const w = canvas.width / (window.devicePixelRatio || 1);
+  const h = canvas.height / (window.devicePixelRatio || 1);
+
+  if (points.length === 0) {
+    return [w / 2 + wx * 2, h / 2 - wy * 2];
+  }
+
+  const xs = points.map(p => p[0]), ys = points.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const span = Math.max(maxX - minX, maxY - minY, 10) * 1.3;
+  const cxw = (minX + maxX) / 2, cyw = (minY + maxY) / 2;
+  const scale = Math.min((w - 80) / span, (h - 80) / span, 50) * zoom;
+
+  const px = (wx - cxw) * scale + w / 2;
+  const py = -(wy - cyw) * scale + h / 2;
+  return [px, py];
+}
+
+// ─── 画布缩放 (滚轮 + 点击 +/-/↺ 按钮) ───
+(function(){
+  var cvs=canvas;
+  cvs.addEventListener('wheel',function(e){
+    e.preventDefault();
+    zoom*=e.deltaY<0?1.15:0.87;
+    if(zoom<0.1)zoom=0.1;if(zoom>20)zoom=20;
+    draw();
+  },{passive:false});
+  cvs.addEventListener('click',function(e){
+    var rect=cvs.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+    var w=rect.width;
+    var zx=w-150,zy=4,zw=142,zh=30;
+    if(x>zx&&x<zx+zw&&y>zy&&y<zy+zh){
+      var bx=x-zx;
+      if(bx<32){zoom*=1.3;if(zoom>20)zoom=20;updateAll()}
+      else if(bx>98&&bx<122){zoom/=1.3;if(zoom<0.1)zoom=0.1;updateAll()}
+      else if(bx>122){zoom=1;updateAll()}
+    }
+  });
+})();
+
+// ─── 更新 ───
+function updateAll() {
+  updateTable();
+  calculate();
+  draw();
+}
+
+// ─── 表格 ───
+function updateTable() {
+  const tbody = document.getElementById('vertexBody');
+  tbody.innerHTML = '';
+  for (let i = 0; i < points.length; i++) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + (i + 1) + '</td>' +
+      '<td>' + points[i][0].toFixed(2) + '</td>' +
+      '<td>' + points[i][1].toFixed(2) + '</td>' +
+      '<td class="del" data-idx="' + i + '">×</td>';
+    tbody.appendChild(tr);
+  }
+  // 删除按钮
+  tbody.querySelectorAll('.del').forEach(function(td) {
+    td.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const idx = parseInt(this.dataset.idx);
+      points.splice(idx, 1);
+      updateAll();
+    });
+  });
+}
+
+// ─── 计算（鞋带公式）───
+function calculate() {
+  const n = points.length;
+  const areaEl = document.getElementById('areaResult');
+  const perimEl = document.getElementById('perimResult');
+  const vertEl = document.getElementById('vertCount');
+
+  if (n < 3) {
+    areaEl.innerHTML = 'S = 0.000 m<sup>2</sup>';
+    perimEl.textContent = '\u5468\u957f = 0.000 m';
+    vertEl.textContent = '\u9876\u70b9\u6570\uff1a' + n;
+    return;
+  }
+
+  let area = 0, perim = 0;
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = points[i];
+    const [x2, y2] = points[(i + 1) % n];
+    area += x1 * y2 - x2 * y1;
+    perim += Math.hypot(x2 - x1, y2 - y1);
+  }
+  area = Math.abs(area) / 2;
+  const mu = area / 666.667;
+
+  areaEl.innerHTML = 'S = ' + area.toFixed(3) + ' m<sup>2</sup>' +
+    (mu >= 0.01 ? ' &nbsp;= ' + mu.toFixed(3) + ' \u4ea9' : '');
+  perimEl.textContent = '\u5468\u957f = ' + perim.toFixed(3) + ' m';
+  vertEl.textContent = '\u9876\u70b9\u6570\uff1a' + n;
+  if(n>=3)addHist(n,area,perim);
+}
+
+// ─── 绘图 ───
+function draw() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.width / dpr;
+  const h = canvas.height / dpr;
+  ctx.clearRect(0, 0, w, h);
+
+  if (points.length === 0) {
+    ctx.fillStyle = '#BDBDBD';
+    ctx.font = '14px "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('\u5de6\u4fa7\u8f93\u5165\u5750\u6807\u6dfb\u52a0\u9876\u70b9', w / 2, h / 2);
+    return;
+  }
+
+  // 计算画布坐标
+  const pts = points.map(p => worldToCanvas(p[0], p[1]));
+  const n = points.length;
+
+  // 画填充
+  if (n >= 3) {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (let i = 1; i < n; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(44, 110, 73, 0.12)';
+    ctx.fill();
+    ctx.strokeStyle = '#2c6e49';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  // 画边和边长标注
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = pts[i];
+    const [x2, y2] = pts[(i + 1) % n];
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.strokeStyle = '#2c6e49';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // 边长
+    if (n >= 3) {
+      const dist = Math.hypot(points[(i + 1) % n][0] - points[i][0], points[(i + 1) % n][1] - points[i][1]);
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+      ctx.fillStyle = '#2c6e49';
+      ctx.font = '9px Consolas, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(dist.toFixed(1), mx, my - 8);
+    }
+  }
+
+  // 画顶点
+  for (let i = 0; i < n; i++) {
+    const [px, py] = pts[i];
+    // 外圈
+    ctx.beginPath();
+    ctx.arc(px, py, 6, 0, 2 * Math.PI);
+    ctx.fillStyle = '#e74c3c';
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 标签
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 9px Consolas, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('P' + (i + 1) + '(' + points[i][0].toFixed(1) + ',' + points[i][1].toFixed(1) + ')', px + 9, py - 8);
+  }
+
+  // 面积标注在中心
+  if (n >= 3) {
+    let area = 0;
+    for (let i = 0; i < n; i++) {
+      const [x1, y1] = points[i];
+      const [x2, y2] = points[(i + 1) % n];
+      area += x1 * y2 - x2 * y1;
+    }
+    area = Math.abs(area) / 2;
+    const mu = area / 666.667;
+
+    const cxw = points.reduce((s, p) => s + p[0], 0) / n;
+    const cyw = points.reduce((s, p) => s + p[1], 0) / n;
+    const [cx, cy] = worldToCanvas(cxw, cyw);
+
+    let label = 'S=' + area.toFixed(2) + 'm\u00b2';
+    if (mu >= 0.01) label += '\n=' + mu.toFixed(3) + '\u4ea9';
+
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillRect(cx - 65, cy - 18, 130, 36);
+
+    ctx.fillStyle = '#1b4d2e';
+    ctx.font = 'bold 13px Consolas, monospace';
+    ctx.textAlign = 'center';
+    const lines = label.split('\n');
+    lines.forEach(function(line, idx) {
+      ctx.fillText(line, cx, cy + idx * 16);
+    });
+  }
+
+  // 图例
+  ctx.fillStyle = '#636e72';
+  ctx.font = '10px Consolas, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText('\u9876\u70b9 ' + n + ' \u4e2a', 5, 12);
+
+  // By Lvmyth AI
+  ctx.fillStyle = 'rgba(150,150,150,0.6)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('By Lvmyth AI', w - 10, h - 10);
+
+  // ── Zoom controls (右上角) ──
+  var zx=w-150,zy=4,zw=142,zh=30;
+  ctx.fillStyle='rgba(255,255,255,0.9)';ctx.strokeStyle='rgba(0,0,0,0.12)';ctx.lineWidth=1;ctx.roundRect(zx,zy,zw,zh,5);ctx.fill();ctx.stroke();
+  ctx.fillStyle='#555';ctx.font='bold 16px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';var btnY=zy+15;
+  ctx.fillText('+',zx+16,btnY);ctx.fillText('−',zx+108,btnY);ctx.fillText('↺',zx+130,btnY);
+  ctx.font='10px sans-serif';ctx.fillStyle='#444';ctx.textAlign='center';ctx.fillText((zoom*100).toFixed(0)+'%',zx+64,btnY);
+}
+
+// ─── 操作函数 ───
+function addCoord() {
+  const x = parseFloat(document.getElementById('inputX').value);
+  const y = parseFloat(document.getElementById('inputY').value);
+  if (isNaN(x) || isNaN(y)) { alert('\u8bf7\u8f93\u5165\u6709\u6548\u6570\u5b57'); return; }
+  points.push([x, y]);
+  document.getElementById('inputX').value = '';
+  document.getElementById('inputY').value = '';
+  updateAll();
+}
+
+function clearAll() {
+  if (points.length === 0) return;
+  if (!confirm('\u786e\u8ba4\u6e05\u7a7a\u6240\u6709\u9876\u70b9\uff1f')) return;
+  points.length = 0;
+  updateAll();
+}
+
+function loadExample() {
+  points.length = 0;
+  points.push([50, 50], [150, 20], [230, 80], [200, 170], [80, 150]);
+  updateAll();
+}
+
+// ─── 初始化 ───
+resizeCanvas();
+renderHist();
+</script>
+<script>
+// 粒子背景
+var c=document.getElementById('particleCanvas'),x=c.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

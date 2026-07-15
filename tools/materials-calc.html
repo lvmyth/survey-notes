@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>工程材算 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)}
+.tabs{display:flex;gap:0;margin-bottom:0;overflow-x:auto}
+.tab{padding:8px 16px;font-size:13px;cursor:pointer;background:#e8eaf6;color:#5c6bc0;border:none;border-radius:6px 6px 0 0;white-space:nowrap}
+.tab.active{background:var(--primary-dark);color:#fff;font-weight:bold}
+.tab:hover:not(.active){background:#c5cae9}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.mat-select{flex:0 0 110px;padding:5px 4px;border:1px solid var(--border);border-radius:4px;font-size:11px;font-family:Consolas,monospace}
+.row{display:flex;align-items:center;gap:5px;margin-bottom:6px;flex-wrap:wrap}
+.row label{font-size:12px;color:#555;white-space:nowrap}
+.row input{flex:1;min-width:30px;padding:5px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:Consolas,monospace;text-align:center}
+.row input.sm{flex:0 0 65px}
+.row select{flex:1;min-width:40px;padding:5px 3px;border:1px solid var(--border);border-radius:4px;font-size:11px;font-family:Consolas,monospace}
+.btn{font-size:12px;padding:6px 14px;background:var(--primary);color:#fff;border:none;border-radius:5px;cursor:pointer;margin:4px 0}
+.btn:hover{opacity:0.85}
+.btn.green{background:#2e7d32}
+.btn.orange{background:#e65100}
+.note{font-size:11px;color:#aaa;margin:2px 0}
+.res-box{background:#f1f8e9;border-radius:6px;padding:10px;font-size:13px;font-family:Consolas,monospace;color:var(--primary-dark);white-space:pre-wrap;line-height:1.5;min-height:50px;border:1px solid #c8e6c9;margin:8px 0}
+.log-box{background:#fff;border-radius:6px;border:1px solid #e0e0e0;max-height:150px;overflow-y:auto;font-size:12px;font-family:Consolas,monospace}
+.log-box .item{display:flex;align-items:center;gap:6px;padding:3px 6px;border-bottom:1px solid #f0f0f0;color:#333}
+.log-box .item:last-child{border-bottom:none}
+.log-box .ts{color:#bbb;font-size:10px;width:120px;flex:none;text-align:right}
+.log-clr{font-size:11px;color:#999;background:none;border:none;cursor:pointer;text-align:right;width:100%;padding:2px 6px}
+.rebar-scroll{overflow-x:auto}
+.rebar-table{width:100%;border-collapse:collapse;font-size:12px}
+.rebar-table th{background:#e3f2fd;color:#1565c0;padding:4px 6px;border:1px solid #ddd;text-align:center}
+.rebar-table td{padding:3px 6px;border:1px solid #ddd;text-align:center;cursor:pointer}
+.rebar-table td:hover{background:#e8f5e9}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}.tab{padding:6px 10px;font-size:12px}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+
+<!-- 标签栏 -->
+<div class="tabs">
+<button class="tab active" onclick="switchTab(0)">混凝土/砌体</button>
+<button class="tab" onclick="switchTab(1)">钢筋</button>
+<button class="tab" onclick="switchTab(2)">钢板/型钢</button>
+<button class="tab" onclick="switchTab(3)">通用材料</button>
+<button class="tab" onclick="switchTab(4)">钢筋重量表</button>
+</div>
+
+<!-- ====== 混凝土 ====== -->
+<div class="card tab-content active" id="tab0">
+<div class="row"><label style="min-width:40px">材料</label>
+<select class="mat-select" id="c_mat" onchange="cMatChange()"></select>
+<label>容重</label><input class="sm" id="c_den" value="2400"><label>kg/m³</label>
+</div>
+<div class="row">
+<label>长</label><input class="sm" id="c_l" value="5.0"><label>m</label>
+<label>宽</label><input class="sm" id="c_w" value="3.0"><label>m</label>
+<label>高</label><input class="sm" id="c_h" value="0.2"><label>m</label>
+</div>
+<button class="btn" onclick="calcConcrete()">计算混凝土重量</button>
+</div>
+
+<!-- ====== 钢筋 ====== -->
+<div class="card tab-content" id="tab1">
+<div class="row">
+<label>直径</label><select style="flex:0 0 60px" id="r_d">
+<option>6</option><option>8</option><option>10</option><option selected>12</option><option>14</option><option>16</option><option>18</option>
+<option>20</option><option>22</option><option>25</option><option>28</option><option>32</option><option>36</option><option>40</option><option>50</option></select><label>mm</label>
+<label>总长</label><input class="sm" id="r_l" value="100"><label>m</label>
+<label>根数</label><input class="sm" id="r_n" value="1">
+</div>
+<div class="note">每米重 = 0.00617 × d²</div>
+<button class="btn" onclick="calcRebar()">计算钢筋重量</button>
+</div>
+
+<!-- ====== 钢板/型钢 ====== -->
+<div class="card tab-content" id="tab2">
+<div class="row"><label>类型</label>
+<select class="mat-select" id="s_type" onchange="sTypeChange()">
+<option>钢板(按面积)</option><option>扁钢(按长度)</option><option>方钢</option><option>钢管</option></select>
+</div>
+<!-- 行1: 厚度/壁厚 -->
+<div class="row" id="s_row1"><label id="s_lbl1">厚度 δ</label><input class="sm" id="s_t" value="10"><label id="s_unit1">mm</label></div>
+<!-- 行2: 面积 (仅钢板) -->
+<div class="row" id="s_row2"><label id="s_lbl2">面积 S</label><input class="sm" id="s_area" value="5.0"><label>m²</label></div>
+<!-- 行3: 长度 (扁钢/方钢/钢管) -->
+<div class="row" id="s_row3" style="display:none"><label>长度 L</label><input class="sm" id="s_l" value="6.0"><label>m</label></div>
+<!-- 行4: 宽度/边长/外径 (扁钢/方钢/钢管) -->
+<div class="row" id="s_row4" style="display:none"><label id="s_lbl4">宽度 B</label><input class="sm" id="s_b" value="100"><label id="s_unit4">mm</label></div>
+<button class="btn" onclick="calcSteel()">计算型钢重量</button>
+</div>
+
+<!-- ====== 通用材料 ====== -->
+<div class="card tab-content" id="tab3">
+<div class="row"><label style="min-width:40px">材料</label>
+<select class="mat-select" id="m_mat" onchange="mMatChange()"></select>
+<label>容重</label><input class="sm" id="m_den" value="1500"><label>kg/m³</label>
+</div>
+<div class="row">
+<label>体积</label><input class="sm" id="m_vol" value="1.0"><label>m³</label>
+<button class="btn green" onclick="calcVolToWt()" style="padding:4px 10px;font-size:11px">→重量</button>
+<label>重量</label><input class="sm" id="m_wt" value="1000"><label>kg</label>
+<button class="btn orange" onclick="calcWtToVol()" style="padding:4px 10px;font-size:11px">→体积</button>
+</div>
+</div>
+
+<!-- ====== 钢筋重量表 ====== -->
+<div class="card tab-content" id="tab4">
+<div class="note">点击行自动填入钢筋标签页</div>
+<div class="rebar-scroll">
+<table class="rebar-table" id="rebarTable"><tr><th>直径</th><th>每米重(kg)</th><th>截面积(mm²)</th></tr></table>
+</div>
+</div>
+
+<!-- 结果 + 记录 -->
+<div class="card">
+<div style="font-size:13px;font-weight:bold;color:var(--primary-dark);margin-bottom:6px;padding-left:8px;border-left:3px solid var(--primary)">计算结果</div>
+<div class="res-box" id="result">点击上方按钮查看结果</div>
+<div style="font-size:13px;font-weight:bold;color:var(--primary-dark);margin:10px 0 6px;padding-left:8px;border-left:3px solid var(--primary)">计算记录 <span id="logCount" style="font-weight:normal;font-size:11px;color:#999"></span></div>
+<div class="log-box" id="logBox"></div>
+<button class="log-clr" onclick="clearLog()">清空记录</button>
+</div>
+
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+var DENSITY={'素混凝土':2300,'钢筋混凝土':2500,'C20混凝土':2380,'C25混凝土':2390,'C30混凝土':2400,'C35混凝土':2420,'C40混凝土':2440,'C45混凝土':2460,'C50混凝土':2480,'轻骨料混凝土':1600,'沥青混凝土':2000,'水泥砂浆':2000,'混合砂浆':1900,'石膏砂浆':1200,'防水砂浆':2100,'钢材/钢筋':7850,'HPB300钢筋':7850,'HRB400钢筋':7850,'钢板':7850,'铸铁':7250,'铝合金':2700,'铜':8900,'铅':11340,'水泥(散装)':1450,'水泥(袋装)':1600,'石灰':1200,'石膏':1300,'粉煤灰':800,'矿渣':1200,'干砂':1500,'湿砂':1700,'碎石':1500,'级配砂石(压实)':2100,'毛石':1700,'花岗岩':2700,'石灰岩':2600,'普通粘土砖':1800,'多孔砖':1300,'加气混凝土砌块':600,'空心砌块':1000,'水':1000,'木材(松木)':500,'木材(硬木)':800,'玻璃':2500,'沥青':1000,'保温板(EPS)':20,'保温板(XPS)':30,'岩棉板':120,'防水卷材':1200,'土(天然)':1800,'土(压实)':2000,'灰土':1750};
+
+function initMatSelects(){
+  var names=Object.keys(DENSITY),c=document.getElementById('c_mat'),m=document.getElementById('m_mat');
+  var opts=names.map(function(k){return '<option'+(k==='C30混凝土'?' selected':'')+'>'+k+'</option>';}).join('');
+  c.innerHTML=opts;
+  m.innerHTML=names.map(function(k){return '<option'+(k==='干砂'?' selected':'')+'>'+k+'</option>';}).join('');
+  c.value='C30混凝土';
+  m.value='干砂';
+}
+function cMatChange(){var v=document.getElementById('c_mat').value;if(DENSITY[v])document.getElementById('c_den').value=DENSITY[v];}
+function mMatChange(){var v=document.getElementById('m_mat').value;if(DENSITY[v])document.getElementById('m_den').value=DENSITY[v];}
+
+function sTypeChange(){
+  var i=document.getElementById('s_type').selectedIndex;
+  var r1=document.getElementById('s_row1'),r2=document.getElementById('s_row2');
+  var r3=document.getElementById('s_row3'),r4=document.getElementById('s_row4');
+  var l1=document.getElementById('s_lbl1'),l2=document.getElementById('s_lbl2');
+  var l4=document.getElementById('s_lbl4'),u1=document.getElementById('s_unit1'),u4=document.getElementById('s_unit4');
+  
+  // 全部隐藏
+  r1.style.display='none';r2.style.display='none';r3.style.display='none';r4.style.display='none';
+  
+  if(i===0){ // 钢板(按面积)
+    r1.style.display='';r2.style.display='';
+    l1.textContent='厚度 δ';u1.textContent='mm';
+    l2.textContent='面积 S';
+    document.getElementById('s_t').value='10';
+    document.getElementById('s_area').value='5.0';
+  }
+  else if(i===1){ // 扁钢(按长度)
+    r1.style.display='';r3.style.display='';r4.style.display='';
+    l1.textContent='厚度 δ';u1.textContent='mm';
+    l4.textContent='宽度 B';u4.textContent='mm';
+    document.getElementById('s_t').value='10';
+    document.getElementById('s_b').value='100';
+    document.getElementById('s_l').value='6.0';
+  }
+  else if(i===2){ // 方钢
+    r3.style.display='';r4.style.display='';
+    l4.textContent='边长 a';u4.textContent='mm';
+    document.getElementById('s_b').value='100';
+    document.getElementById('s_l').value='6.0';
+  }
+  else{ // 钢管
+    r1.style.display='';r3.style.display='';r4.style.display='';
+    l1.textContent='壁厚 δ';u1.textContent='mm';
+    l4.textContent='外径 D';u4.textContent='mm';
+    document.getElementById('s_t').value='5';
+    document.getElementById('s_b').value='100';
+    document.getElementById('s_l').value='6.0';
+  }
+}
+sTypeChange();
+
+(function(){
+  var ds=[6,8,10,12,14,16,18,20,22,25,28,32,36,40,50],html='';
+  for(var i=0;i<ds.length;i++){var d=ds[i],w=(0.00617*d*d).toFixed(3),a=(Math.PI*d*d/4).toFixed(1);html+='<tr onclick="pickRebar('+d+')"><td>Φ'+d+'</td><td>'+w+'</td><td>'+a+'</td></tr>';}
+  document.getElementById('rebarTable').innerHTML+='<tbody>'+html+'</tbody>';
+})();
+
+function pickRebar(d){var sel=document.getElementById('r_d');for(var i=0;i<sel.options.length;i++){if(sel.options[i].value==d){sel.selectedIndex=i;break;}}switchTab(1);}
+function switchTab(i){var tabs=document.querySelectorAll('.tab'),contents=document.querySelectorAll('.tab-content');for(var j=0;j<tabs.length;j++){tabs[j].classList.toggle('active',j===i);contents[j].classList.toggle('active',j===i);}}
+
+function fmt(v){
+  if(v==null)return'错误';
+  if(Math.abs(v)<1e-6&&v!==0)return v.toExponential(4);
+  // 修复浮点数比较问题
+  if(Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+  var s=v.toFixed(4);
+  s=s.replace(/\.?0+$/,'');
+  return s;
+}
+
+var _logs=[];restoreLogs();
+function addLog(t){var n=new Date(),ts=n.getFullYear()+'-'+('0'+(n.getMonth()+1)).slice(-2)+'-'+('0'+n.getDate()).slice(-2)+' '+('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2)+':'+('0'+n.getSeconds()).slice(-2);_logs.unshift({t:ts,text:t});renderLog();saveLogs();}
+function clearLog(){_logs=[];renderLog();localStorage.removeItem('mcLogs');}
+function renderLog(){var box=document.getElementById('logBox'),cnt=document.getElementById('logCount');box.innerHTML='';for(var i=0;i<_logs.length;i++){var d=document.createElement('div');d.className='item';d.innerHTML='<span>'+_logs[i].text+'</span><span class="ts">'+_logs[i].t+'</span>';box.appendChild(d);}cnt.textContent=_logs.length?'('+_logs.length+'条)':'';}
+function saveLogs(){localStorage.setItem('mcLogs',JSON.stringify(_logs));}
+function restoreLogs(){try{var d=JSON.parse(localStorage.getItem('mcLogs')||'[]');if(d.length){_logs=d;renderLog();}}catch(e){}}
+function showRes(t){document.getElementById('result').textContent=t;}
+
+function calcConcrete(){
+  var d=parseFloat(document.getElementById('c_den').value),L=parseFloat(document.getElementById('c_l').value),W=parseFloat(document.getElementById('c_w').value),H=parseFloat(document.getElementById('c_h').value);
+  if(isNaN(d+L+W+H)){showRes('❌ 输入错误');return}
+  var vol=L*W*H,wt=vol*d;
+  showRes('✅ 混凝土重量计算:\n尺寸: '+L+'×'+W+'×'+H+' m\n体积: '+fmt(vol)+' m³\n容重: '+fmt(d)+' kg/m³\n重量: '+fmt(wt)+' kg = '+fmt(wt/1000)+' t');
+  addLog('混凝土 '+L+'×'+W+'×'+H+'m = '+fmt(wt)+'kg');
+}
+
+function calcRebar(){
+  var d=parseFloat(document.getElementById('r_d').value),L=parseFloat(document.getElementById('r_l').value),n=parseInt(document.getElementById('r_n').value)||1;
+  if(isNaN(d+L+n)){showRes('❌ 输入错误');return}
+  var uw=0.00617*d*d,totalL=L*n,totalW=uw*totalL;
+  showRes('✅ 钢筋重量计算:\n规格: Φ'+d+'mm\n每米重: '+uw.toFixed(3)+' kg/m\n总长度: '+fmt(totalL)+' m ('+L+'m×'+n+'根)\n总重量: '+fmt(totalW)+' kg = '+fmt(totalW/1000)+' t');
+  addLog('钢筋 Φ'+d+'mm ×'+totalL+'m = '+fmt(totalW)+'kg');
+}
+
+function calcSteel(){
+  var i=document.getElementById('s_type').selectedIndex;
+  try{
+    if(i===0){ // 钢板(按面积)
+      var d=parseFloat(document.getElementById('s_t').value);
+      var area=parseFloat(document.getElementById('s_area').value);
+      var per=7.85*d;
+      var wt=per*area;
+      showRes('✅ 钢板重量计算:\n厚度: '+d+' mm\n面积: '+fmt(area)+' m²\n面密度: '+per.toFixed(2)+' kg/m²\n重量: '+fmt(wt)+' kg = '+fmt(wt/1000)+' t');
+      addLog('钢板 δ='+d+'mm S='+fmt(area)+'m² = '+fmt(wt)+'kg');
+    }
+    else if(i===1){ // 扁钢(按长度)
+      var b=parseFloat(document.getElementById('s_b').value),d=parseFloat(document.getElementById('s_t').value),L=parseFloat(document.getElementById('s_l').value);
+      var per=0.00785*b*d,wt=per*L;
+      showRes('✅ 扁钢重量计算:\n规格: '+b+'×'+d+' mm\n每米重: '+per.toFixed(3)+' kg/m\n长度: '+L+' m\n重量: '+fmt(wt)+' kg = '+fmt(wt/1000)+' t');
+      addLog('扁钢 '+b+'×'+d+'mm L='+L+'m = '+fmt(wt)+'kg');
+    }
+    else if(i===2){ // 方钢
+      var a=parseFloat(document.getElementById('s_b').value),L=parseFloat(document.getElementById('s_l').value);
+      var per=0.00785*a*a,wt=per*L;
+      showRes('✅ 方钢重量计算:\n边长: '+a+' mm\n每米重: '+per.toFixed(3)+' kg/m\n长度: '+L+' m\n重量: '+fmt(wt)+' kg = '+fmt(wt/1000)+' t');
+      addLog('方钢 a='+a+'mm L='+L+'m = '+fmt(wt)+'kg');
+    }
+    else{ // 钢管
+      var D=parseFloat(document.getElementById('s_b').value),d=parseFloat(document.getElementById('s_t').value),L=parseFloat(document.getElementById('s_l').value);
+      var per=0.02466*d*(D-d),wt=per*L;
+      showRes('✅ 钢管重量计算:\n规格: Φ'+D+'×'+d+' mm\n每米重: '+per.toFixed(3)+' kg/m\n长度: '+L+' m\n重量: '+fmt(wt)+' kg = '+fmt(wt/1000)+' t');
+      addLog('钢管 Φ'+D+'×'+d+'mm L='+L+'m = '+fmt(wt)+'kg');
+    }
+  }catch(e){showRes('❌ 输入错误: '+e.message);}
+}
+
+function calcVolToWt(){
+  var d=parseFloat(document.getElementById('m_den').value),vol=parseFloat(document.getElementById('m_vol').value);
+  if(isNaN(d+vol)){showRes('❌ 输入错误');return}
+  var wt=vol*d;
+  showRes('✅ 体积→重量:\n体积: '+fmt(vol)+' m³\n容重: '+fmt(d)+' kg/m³\n重量: '+fmt(wt)+' kg = '+fmt(wt/1000)+' t');
+  addLog('体积→重量 '+fmt(vol)+'m³ = '+fmt(wt)+'kg');
+}
+
+function calcWtToVol(){
+  var d=parseFloat(document.getElementById('m_den').value),wt=parseFloat(document.getElementById('m_wt').value);
+  if(isNaN(d+wt)){showRes('❌ 输入错误');return}
+  var vol=wt/d;
+  showRes('✅ 重量→体积:\n重量: '+fmt(wt)+' kg = '+fmt(wt/1000)+' t\n容重: '+fmt(d)+' kg/m³\n体积: '+fmt(vol)+' m³');
+  addLog('重量→体积 '+fmt(wt)+'kg = '+fmt(vol)+'m³');
+}
+
+initMatSelects();
+cMatChange();
+mMatChange();  // ✅ 新增：同步通用材料容重
+</script>
+<script>
+// 粒子背景
+var c=document.getElementById('particleCanvas'),x=c.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

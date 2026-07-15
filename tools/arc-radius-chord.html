@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>弦长拱高求半径 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.main-panel{display:flex;gap:10px;padding:1rem;min-height:0}
+.left{width:340px;min-width:300px;overflow-y:auto;padding:0 16px}
+.right{flex:1;padding:8px;min-height:300px}
+.field{margin-bottom:12px}
+.field label{font-size:13px;color:var(--text-light);display:block;margin-bottom:4px}
+.field input{width:100%;padding:8px 10px;font-size:18px;font-weight:700;background:var(--bg-card);color:var(--primary-dark);border:1px solid #ddd;border-radius:6px;font-family:Consolas,monospace;box-sizing:border-box}
+.field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(44,110,73,0.15)}
+.field .unit{font-size:12px;color:var(--text-light)}
+.btn{width:100%;padding:10px;font-size:15px;font-weight:700;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;margin-bottom:14px}
+.btn:hover{background:var(--primary-dark)}
+.result-card{background:var(--bg-card);border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
+.result-card .label{font-size:11px;color:var(--text-light);margin-bottom:2px}
+.result-card .value{font-size:20px;font-weight:700}
+.result-card .unit-row{font-size:12px;color:var(--text-light)}
+canvas{width:100%;height:480px;border-radius:8px;background:#fff;box-shadow:var(--shadow);cursor:default}
+.history-box{margin-top:18px;background:var(--bg-card);border-radius:8px;padding:12px 14px;box-shadow:var(--shadow)}
+.history-box h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.history-box h3 button{font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--text-light)}
+.history-box h3 button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+.hist-item{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-family:'Consolas',monospace;border-bottom:1px solid var(--border)}
+.hist-item:last-child{border:none}
+.hist-item .tag{display:inline-block;background:var(--primary-light);color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;margin-right:4px;white-space:nowrap;flex-shrink:0}
+.hist-item .coord{flex:1;min-width:0}
+.hist-item .del{color:#ccc;cursor:pointer;margin-left:auto;padding:0 4px;flex-shrink:0}
+.hist-item .del:hover{color:#e74c3c}
+@media(max-width:768px){.main-panel{flex-direction:column}.left{width:100%;min-width:0}.right{min-height:300px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.main-panel{padding:0.6rem}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container" style="max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)">
+<div class="main-panel" style="padding:0;background:none;max-width:none;margin:0;flex:1">
+  <div class="left">
+    <div class="field">
+      <label>弦长 D <span class="unit">（弧两端直线距离）</span></label>
+      <div style="display:flex;align-items:center;gap:6px"><input id="D" type="number" value="10" step="any" style="flex:1"><span class="unit">m</span></div>
+    </div>
+    <div class="field">
+      <label>拱高 B <span class="unit">（弧顶到弦的垂直高度）</span></label>
+      <div style="display:flex;align-items:center;gap:6px"><input id="B" type="number" value="2" step="any" style="flex:1"><span class="unit">m</span></div>
+    </div>
+    <button class="btn" onclick="calc()">计 算</button>
+
+    <div class="result-card">
+      <div class="label">半径 R</div>
+      <div class="value" style="color:var(--primary-dark)" id="rVal">--</div>
+      <div class="unit-row">米</div>
+    </div>
+    <div class="result-card">
+      <div class="label">圆心角 θ</div>
+      <div class="value" style="color:#2196F3" id="thetaVal">--</div>
+      <div class="unit-row">度</div>
+    </div>
+    <div class="result-card">
+      <div class="label">弧长 L</div>
+      <div class="value" style="color:#4CAF50" id="lVal">--</div>
+      <div class="unit-row">米</div>
+    </div>
+    <div class="result-card">
+      <div class="label">矢高比 B/D</div>
+      <div class="value" style="color:#636e72" id="ratioVal">--</div>
+    </div>
+
+    <div class="history-box">
+      <h3>📋 计算记录 <button onclick="clearHistory()">清空记录</button></h3>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <div class="right">
+    <canvas id="c"></canvas>
+  </div>
+</div>
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:2rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+var lastVals = null;
+
+// ─── 历史记录 ───
+var historyKey='arc_radius_chord_history';
+function getHist(){try{return JSON.parse(localStorage.getItem(historyKey))||[]}catch(e){return[]}}
+function saveHist(arr){try{localStorage.setItem(historyKey,JSON.stringify(arr.slice(0,50)))}catch(e){}}
+function addHist(R,thetaDeg,L){
+  var arr=getHist();
+  arr.unshift({R:R,theta:thetaDeg,L:L,time:new Date().toLocaleString()});
+  saveHist(arr);renderHist();
+}
+function renderHist(){
+  var arr=getHist(),el=document.getElementById('historyList');
+  if(!el)return;
+  if(arr.length===0){el.innerHTML='<div style="color:var(--text-light);font-size:12px;padding:8px;text-align:center">暂无记录</div>';return}
+  el.innerHTML=arr.map(function(r,i){
+    return'<div class="hist-item"><span class="tag">R='+r.R.toFixed(2)+'</span><span class="coord">θ='+r.theta.toFixed(2)+'° L='+r.L.toFixed(2)+'m</span><span style="color:var(--text-light);font-size:10px;margin-left:auto;flex-shrink:0">'+r.time+'</span><span class="del" onclick="delHist('+i+')">✕</span></div>'
+  }).join('');
+}
+function delHist(i){var arr=getHist();arr.splice(i,1);saveHist(arr);renderHist()}
+function clearHistory(){saveHist([]);renderHist()}
+
+function calc() {
+  const D = parseFloat(document.getElementById('D').value) || 0;
+  const B = parseFloat(document.getElementById('B').value) || 0;
+  if (D <= 0 || B <= 0) return;
+
+  const R = (D*D + 4*B*B) / (8*B);
+  const thetaRad = 2 * Math.asin(Math.min(D/(2*R),1));
+  const thetaDeg = thetaRad * 180 / Math.PI;
+  const L = R * thetaRad;
+  const ratio = B / D;
+
+  document.getElementById('rVal').textContent = R.toFixed(4);
+  document.getElementById('thetaVal').textContent = thetaDeg.toFixed(2);
+  document.getElementById('lVal').textContent = L.toFixed(4);
+  document.getElementById('ratioVal').textContent = ratio.toFixed(4);
+
+  draw(D, B, R);
+  addHist(R,thetaDeg,L);
+  lastVals = {D,B,R};
+}
+
+function draw(D, B, R) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.parentElement.getBoundingClientRect();
+  const w = rect.width, h = rect.height;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + 'px'; c.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const half = D/2, m = 50;
+  const yMin = Math.min(0, B-R)*1.05 - 1;
+  const yMax = Math.max(B, 0)*1.3 + 1;
+  const xRange = Math.max(half, Math.abs(B-R))*1.35;
+  const s = Math.min((w-2*m)/(2*xRange), (h-2*m)/(yMax-yMin));
+  const tx = x => w/2 + x*s;
+  const ty = y => h - m - (y - yMin)*s;
+
+  // grid
+  ctx.strokeStyle = '#e0e0e0'; ctx.lineWidth = 1;
+  ctx.setLineDash([3,3]); ctx.beginPath(); ctx.moveTo(m, h/2); ctx.lineTo(w-m, h/2); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // arc
+  const ha = Math.asin(half/R);
+  ctx.strokeStyle = '#D4A017'; ctx.lineWidth = 3;
+  ctx.beginPath();
+  for (let i = 0; i <= 80; i++) {
+    const a = -ha + 2*ha*i/80;
+    const px = R*Math.sin(a), py = (B-R) + R*Math.cos(a);
+    i === 0 ? ctx.moveTo(tx(px),ty(py)) : ctx.lineTo(tx(px),ty(py));
+  }
+  ctx.stroke();
+
+  // chord
+  ctx.strokeStyle = '#37474F'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.moveTo(tx(-half),ty(0)); ctx.lineTo(tx(half),ty(0)); ctx.stroke();
+  for (const px of [-half, half]) {
+    ctx.beginPath(); ctx.arc(tx(px),ty(0),5,0,Math.PI*2); ctx.fillStyle='#D4A017'; ctx.fill();
+  }
+
+  // sagitta
+  ctx.strokeStyle = '#FF9800'; ctx.lineWidth = 2;
+  ctx.setLineDash([5,3]);
+  ctx.beginPath(); ctx.moveTo(tx(0),ty(0)); ctx.lineTo(tx(0),ty(B)); ctx.stroke();
+  ctx.setLineDash([]);
+  for (const py of [0,B]) {
+    ctx.beginPath(); ctx.moveTo(tx(0)-5,ty(py)); ctx.lineTo(tx(0)+5,ty(py)); ctx.stroke();
+  }
+  ctx.beginPath(); ctx.arc(tx(0),ty(B),5,0,Math.PI*2); ctx.fillStyle='#FF9800'; ctx.fill();
+
+  // center O
+  const ox=tx(0), oy=ty(B-R);
+  ctx.beginPath(); ctx.arc(ox,oy,5,0,Math.PI*2); ctx.fillStyle='#2196F3'; ctx.fill();
+  ctx.font = 'bold 12px Consolas'; ctx.fillStyle = '#2196F3';
+  ctx.fillText('O', ox+10, oy+14);
+
+  // radius line
+  ctx.strokeStyle = '#2196F3'; ctx.lineWidth = 1.5;
+  ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(tx(half),ty(0)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // labels
+  ctx.font = '12px Microsoft YaHei';
+  ctx.fillStyle = '#37474F'; ctx.textAlign = 'center';
+  ctx.fillText('D = '+D.toFixed(2)+' m', tx(0), ty(0)+22);
+  ctx.fillStyle = '#2196F3';
+  ctx.fillText('R = '+R.toFixed(2)+' m', (ox+tx(half))/2, (oy+ty(0))/2 - 10);
+
+  // B label (vertical)
+  ctx.save(); ctx.translate(tx(0)+22, (ty(0)+ty(B))/2);
+  ctx.rotate(Math.PI/2); ctx.fillStyle = '#FF9800'; ctx.textAlign = 'center';
+  ctx.fillText('B = '+B.toFixed(2)+' m', 0, 0); ctx.restore();
+
+  // endpoints
+  ctx.fillStyle = '#D4A017'; ctx.textAlign = 'right';
+  ctx.fillText('A', tx(-half)-8, ty(0)+4);
+  ctx.textAlign = 'left';
+  ctx.fillText('C', tx(half)+8, ty(0)+4);
+
+  // By Lvmyth AI
+  ctx.fillStyle = 'rgba(150,150,150,0.6)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('By Lvmyth AI', w - 10, h - 10);
+}
+
+window.addEventListener('load', function(){calc();renderHist();});
+window.addEventListener('resize', ()=>{if(document.getElementById('rVal').textContent!=='--')calc()});
+
+// ─── 画布重绘 ───
+</script>
+<script>
+// 粒子背景
+var c_p=document.getElementById('particleCanvas'),x=c_p.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c_p.width=innerWidth;H=c_p.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

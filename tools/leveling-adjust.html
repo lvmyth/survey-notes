@@ -1,0 +1,1588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>水准平差系统 - 测量工程笔记</title>
+<style>
+:root {
+  --primary: #2c6e49;
+  --primary-dark: #1b4d2e;
+  --primary-light: #4c956c;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --warning: #f39c12;
+  --bg: #ecf0f1;
+  --card-bg: #ffffff;
+  --border: #bdc3c7;
+  --text: #2c3e50;
+  --shadow: 0 2px 10px rgba(0,0,0,0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { 
+  font-family: "Microsoft YaHei", "PingFang SC", sans-serif; 
+  background: var(--bg); 
+  color: var(--text); 
+  font-size: 13px;
+  line-height: 1.6;
+  padding-top: 64px;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 3px; }
+
+.app-header {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+  color: #fff;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.app-header h1 { font-size: 20px; font-weight: 600; letter-spacing: 1px; }
+.app-header h1 small { font-size: 12px; font-weight: 400; opacity: 0.8; margin-left: 12px; }
+.header-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.container { max-width: 1400px; margin: 12px auto; padding: 0 12px; }
+
+.tabs { display: flex; gap: 2px; margin-bottom: 12px; flex-wrap: wrap; }
+.tab-btn {
+  padding: 8px 20px;
+  border: none;
+  background: var(--card-bg);
+  color: var(--text);
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  box-shadow: var(--shadow);
+}
+.tab-btn:hover { background: #e8edf2; }
+.tab-btn.active { background: var(--primary); color: #fff; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+.card {
+  background: var(--card-bg);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-dark);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-title .badge {
+  font-size: 11px;
+  font-weight: 400;
+  color: #7f8c8d;
+  background: var(--bg);
+  padding: 2px 10px;
+  border-radius: 12px;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+
+@media(max-width: 900px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+
+.form-group { margin-bottom: 8px; }
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 2px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 13px;
+  transition: border-color 0.2s;
+  font-family: 'Consolas', monospace;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(46, 134, 193, 0.1);
+}
+.form-control-sm { padding: 4px 8px; font-size: 12px; }
+select.form-control { appearance: auto; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  color: #fff;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.btn:active { transform: translateY(0); }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-block { width: 100%; justify-content: center; }
+
+.btn-primary { background: var(--primary); }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-success { background: var(--success); }
+.btn-danger { background: var(--danger); }
+.btn-warning { background: var(--warning); }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+.btn-outline:hover { background: var(--bg); }
+.btn-outline-primary { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+.btn-outline-primary:hover { background: var(--primary); color: #fff; }
+
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+table th {
+  background: var(--primary-dark);
+  color: #fff;
+  padding: 6px 10px;
+  text-align: center;
+  font-weight: 500;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+table td { padding: 5px 8px; text-align: center; border-bottom: 1px solid #eee; }
+table tr:hover td { background: #f4f9fc; }
+table .highlight { background: #d4efdf !important; }
+table .danger { color: var(--danger); }
+table .success { color: var(--success); }
+
+.tag-group { display: flex; gap: 4px; flex-wrap: wrap; }
+.tag {
+  padding: 3px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: #fff;
+  transition: all 0.2s;
+}
+.tag:hover { background: var(--bg); }
+.tag.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+.toast-container {
+  position: fixed; top: 80px; right: 20px; z-index: 9999;
+  display: flex; flex-direction: column; gap: 8px; max-width: 400px;
+}
+.toast {
+  padding: 12px 18px; border-radius: 6px; color: #fff; font-size: 13px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15); animation: slideIn 0.3s ease;
+}
+.toast-success { background: var(--success); }
+.toast-error { background: var(--danger); }
+.toast-warning { background: var(--warning); }
+.toast-info { background: var(--primary); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+.result-box {
+  background: #f8f9fa; border-radius: 4px; padding: 10px 14px;
+  font-family: 'Consolas', monospace; font-size: 12px; line-height: 1.8;
+  white-space: pre-wrap; max-height: 250px; overflow-y: auto; border-left: 4px solid var(--primary);
+}
+.result-box.pass { border-left-color: var(--success); background: #f0fff4; }
+.result-box.fail { border-left-color: var(--danger); background: #fff5f5; }
+
+.canvas-wrap {
+  background: #fff; border-radius: 8px; padding: 10px; box-shadow: var(--shadow);
+  position: relative; min-height: 320px;
+}
+.canvas-wrap canvas { width: 100%; height: auto; display: block; }
+.chart-hint {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: #999; font-size: 14px; pointer-events: none;
+}
+
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5); z-index: 9998; justify-content: center; align-items: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: #fff; border-radius: 12px; padding: 24px; max-width: 800px;
+  width: 95%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: modalIn 0.3s ease;
+}
+@keyframes modalIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }.modal-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 2px solid var(--bg); margin-bottom: 16px; }
+@media print { .navbar, #particleCanvas, .no-print { display: none !important; } body { padding-top: 0 !important; } }
+.modal-header h2 { font-size: 18px; }
+.modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+.modal-close:hover { color: var(--danger); }
+
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; margin: 6px 0; }
+.stat-item { background: #f8f9fa; padding: 6px 12px; border-radius: 4px; text-align: center; }
+.stat-item .val { font-size: 18px; font-weight: 700; color: var(--primary); }
+.stat-item .label { font-size: 11px; color: #7f8c8d; }
+
+@media print {
+  .app-header { position: static; }
+  .header-actions, .no-print { display: none !important; }
+  .card { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; }
+  .tab-btn { display: none; }
+  .tab-content { display: block !important; }
+}
+</style>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="particleCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:var(--bg)"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+
+<div class="container" style="max-width:1400px;margin:12px auto;padding:0 12px;position:relative;z-index:1">
+  <div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px" class="no-print">
+    <button class="btn btn-sm" onclick="saveState()">💾 保存</button>
+    <button class="btn btn-sm" onclick="restoreState()">📂 恢复</button>
+    <button class="btn btn-sm" onclick="window.print()">🖨️ 打印</button>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tab-data">📊 数据录入</button>
+    <button class="tab-btn" data-tab="tab-adjust">🧮 平差计算</button>
+    <button class="tab-btn" data-tab="tab-report">📄 成果报告</button>
+    <button class="tab-btn" data-tab="tab-network">🌐 水准网</button>
+  </div>
+
+  <!-- TAB 1: 数据录入 -->
+  <div class="tab-content active" id="tab-data">
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-title">📋 路线信息</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>路线类型</label>
+              <div class="tag-group" id="routeTypeGroup">
+                <span class="tag active" data-value="closed" onclick="setRouteType('closed')">闭合</span>
+                <span class="tag" data-value="linked" onclick="setRouteType('linked')">附合</span>
+                <span class="tag" data-value="spur" onclick="setRouteType('spur')">支水准</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>精度等级</label>
+              <select class="form-control" id="grade" onchange="updateGrade()">
+                <option value="12">三等 (±12√L mm)</option>
+                <option value="20" selected>四等 (±20√L mm)</option>
+                <option value="30">等外 (±30√L mm)</option>
+                <option value="40">图根 (±40√L mm)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>观测日期</label>
+              <input class="form-control" id="obsDate" type="date">
+            </div>
+            <div class="form-group">
+              <label>观测者</label>
+              <input class="form-control" id="observer" placeholder="姓名">
+            </div>
+            <div class="form-group">
+              <label>仪器编号</label>
+              <input class="form-control" id="instrument" placeholder="如：DSZ2-001">
+            </div>
+            <div class="form-group">
+              <label>天气/温度</label>
+              <input class="form-control" id="weather" placeholder="晴/多云 25°C">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📏 已知点数据</div>
+          <div class="grid-2">
+            <div class="form-group">
+              <label>起点点名</label>
+              <input class="form-control" id="startName" value="BM0" placeholder="点名">
+            </div>
+            <div class="form-group">
+              <label>起点高程 H₀ (m)</label>
+              <input class="form-control" id="hStart" value="50.000" placeholder="高程">
+            </div>
+            <div class="form-group" id="endPointGroup" style="display:none">
+              <label>终点点名</label>
+              <input class="form-control" id="endName" value="BMn" placeholder="点名">
+            </div>
+            <div class="form-group" id="endElevGroup" style="display:none">
+              <label>终点高程 Hₙ (m)</label>
+              <input class="form-control" id="hEnd" value="50.020" placeholder="高程">
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">⚙️ 输入模式</div>
+          <div class="tag-group">
+            <span class="tag active" data-mode="dh" onclick="setInputMode('dh')">直接输入高差</span>
+            <span class="tag" data-mode="read" onclick="setInputMode('read')">后视-前视</span>
+            <span class="tag" data-mode="full" onclick="setInputMode('full')">完整记录</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title">
+            测段数据
+            <span class="badge" id="segCount">0 段</span>
+          </div>
+
+          <div id="inputDh" class="grid-4" style="margin-bottom:8px">
+            <div class="form-group">
+              <label>点名</label>
+              <input class="form-control form-control-sm" id="inpName" value="BM1" placeholder="点名">
+            </div>
+            <div class="form-group">
+              <label>距离 (km)</label>
+              <input class="form-control form-control-sm" id="inpDist" value="0.8" type="number" step="0.01" min="0.01">
+            </div>
+            <div class="form-group">
+              <label>测站数</label>
+              <input class="form-control form-control-sm" id="inpStations" value="8" type="number" step="1" min="1">
+            </div>
+            <div class="form-group">
+              <label>高差 (m)</label>
+              <input class="form-control form-control-sm" id="inpDh" value="+1.200" placeholder="高差">
+            </div>
+          </div>
+
+          <div id="inputRead" style="display:none" class="grid-4" style="margin-bottom:8px">
+            <div class="form-group">
+              <label>点名</label>
+              <input class="form-control form-control-sm" id="inpNameR" value="BM1">
+            </div>
+            <div class="form-group">
+              <label>距离 (km)</label>
+              <input class="form-control form-control-sm" id="inpDistR" value="0.8" type="number" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>后视 (m)</label>
+              <input class="form-control form-control-sm" id="inpRear" value="1.345" type="number" step="0.001">
+            </div>
+            <div class="form-group">
+              <label>前视 (m)</label>
+              <input class="form-control form-control-sm" id="inpFore" value="0.145" type="number" step="0.001">
+            </div>
+          </div>
+
+          <div id="inputFull" style="display:none" class="grid-4" style="margin-bottom:8px">
+            <div class="form-group">
+              <label>点名</label>
+              <input class="form-control form-control-sm" id="inpNameF" value="BM1">
+            </div>
+            <div class="form-group">
+              <label>距离 (km)</label>
+              <input class="form-control form-control-sm" id="inpDistF" value="0.8" type="number" step="0.01">
+            </div>
+            <div class="form-group">
+              <label>测站数</label>
+              <input class="form-control form-control-sm" id="inpStationsF" value="8" type="number" step="1">
+            </div>
+            <div class="form-group">
+              <label>后视 (m)</label>
+              <input class="form-control form-control-sm" id="inpRearF" value="1.345" type="number" step="0.001">
+            </div>
+            <div class="form-group">
+              <label>前视 (m)</label>
+              <input class="form-control form-control-sm" id="inpForeF" value="0.145" type="number" step="0.001">
+            </div>
+            <div class="form-group">
+              <label>返测高差 (m)</label>
+              <input class="form-control form-control-sm" id="inpDhReturn" value="-1.198" placeholder="返测高差">
+            </div>
+          </div>
+
+          <div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-primary" onclick="addSegment()">➕ 添加</button>
+            <button class="btn btn-sm btn-warning" onclick="batchImportDialog()">📥 批量导入</button>
+            <button class="btn btn-sm btn-outline" onclick="loadDemoData()">📋 演示</button>
+          </div>
+
+          <div class="table-wrap" style="max-height:350px;overflow-y:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:30px">#</th><th>点名</th><th>距离 km</th><th>测站数</th>
+                  <th>高差 m</th><th>返测 m</th><th>较差 mm</th><th>检核</th><th style="width:30px"></th>
+                </tr>
+              </thead>
+              <tbody id="segBody"></tbody>
+              <tfoot id="segFoot" style="display:none;font-weight:600;background:#f0f4f8">
+                <tr>
+                  <td colspan="2">合计</td><td id="totalDist">0.000</td><td id="totalStations">0</td>
+                  <td id="totalDh">0.0000</td><td></td><td></td><td></td><td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div style="display:flex;gap:4px;margin-top:8px;flex-wrap:wrap">
+            <button class="btn btn-sm btn-danger" onclick="clearAllData()">🗑️ 清空</button>
+            <button class="btn btn-sm btn-outline" onclick="exportData()">📤 导出JSON</button>
+            <button class="btn btn-sm btn-outline" onclick="document.getElementById('fileInput').click()">📥 导入JSON</button>
+            <button class="btn btn-sm btn-outline" onclick="exportCSV()">📊 导出CSV</button>
+            <input id="fileInput" type="file" accept=".json" style="display:none" onchange="importData(event)">
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+      <button class="btn btn-success" onclick="calcAdjust()">🧮 平差计算</button>
+      <button class="btn btn-primary" onclick="checkSegments()">✔️ 测段检核</button>
+      <button class="btn btn-warning" onclick="showNetworkView()">🌐 网图查看</button>
+    </div>
+  </div>
+
+  <!-- TAB 2: 平差计算 -->
+  <div class="tab-content" id="tab-adjust">
+    <div class="grid-2">
+      <div>
+        <div class="card">
+          <div class="card-title">📊 平差结果</div>
+          <div id="resultSummary" class="result-box" style="min-height:100px">等待计算...</div>
+          <div class="stats-grid" id="statsGrid" style="display:none"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📈 精度评定</div>
+          <div id="precisionBox" style="font-size:13px;line-height:1.8">等待计算...</div>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <div class="card-title">📋 平差成果表</div>
+          <div class="table-wrap" style="max-height:300px;overflow-y:auto">
+            <table id="resultTable">
+              <thead>
+                <tr>
+                  <th>点名</th><th>距离 km</th><th>观测高差</th><th>改正数 mm</th>
+                  <th>平差高差</th><th>高程 m</th><th>中误差 mm</th>
+                </tr>
+              </thead>
+              <tbody id="resultBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;">
+          <button class="btn btn-sm btn-success" onclick="exportReport()">📄 导出报告</button>
+          <button class="btn btn-sm btn-primary" onclick="copyResult()">📋 复制结果</button>
+          <button class="btn btn-sm btn-warning" onclick="showReportModal()">📊 详细报告</button>
+        </div>
+        <div class="card">
+          <div class="card-title">📉 高程剖面图</div>
+          <div class="canvas-wrap">
+            <canvas id="c"></canvas>
+            <div class="chart-hint" id="profileHint">计算后显示高程剖面图</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: 成果报告 -->
+  <div class="tab-content" id="tab-report">
+    <div class="card" id="reportContent">
+      <div class="card-title">📄 水准测量平差报告</div>
+      <div id="reportBody" style="padding:20px;line-height:2;font-size:14px">
+        <p style="color:#999">请先进行平差计算</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: 水准网 -->
+  <div class="tab-content" id="tab-network">
+    <div class="card">
+      <div class="card-title">🌐 水准网图</div>
+      <div class="canvas-wrap" id="networkCanvasWrap">
+        <canvas id="networkCanvas" style="width:100%;height:auto;min-height:320px;background:#fff;border-radius:4px"></canvas>
+        <div class="chart-hint" id="networkHint">计算后显示水准网图</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 网形统计</div>
+      <div id="networkStats" style="font-size:13px;line-height:1.8">等待计算...</div>
+    </div>
+  </div>
+<div style="text-align:center;padding:1.2rem 0 1.5rem;border-top:1px solid var(--border);margin-top:0.8rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modalContent">
+    <div class="modal-header">
+      <h2 id="modalTitle">详细报告</h2>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// 全局状态
+// ================================================================
+const state = {
+  segments: [],
+  routeType: 'closed',
+  inputMode: 'dh',
+  grade: '20',
+  results: null,
+  history: [],
+  historyIndex: -1,
+  maxHistory: 50
+};
+
+// ================================================================
+// DOM 工具
+// ================================================================
+function $(id) { return document.getElementById(id); }
+function $$(sel) { return document.querySelectorAll(sel); }
+function val(id) { return parseFloat($(id)?.value) || 0; }
+function str(id) { return $(id)?.value || ''; }
+
+function showToast(msg, type = 'info') {
+  const container = $('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-' + type;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function pushHistory() {
+  state.history = state.history.slice(0, state.historyIndex + 1);
+  const snapshot = {
+    segments: state.segments.map(s => ({ ...s })),
+    routeType: state.routeType,
+    inputMode: state.inputMode,
+    grade: state.grade,
+    hStart: $('hStart').value,
+    hEnd: $('hEnd').value,
+    startName: $('startName').value,
+    endName: $('endName').value
+  };
+  state.history.push(JSON.stringify(snapshot));
+  if (state.history.length > state.maxHistory) state.history.shift();
+  state.historyIndex = state.history.length - 1;
+}
+
+function restoreFromHistory(index) {
+  if (index < 0 || index >= state.history.length) return;
+  state.historyIndex = index;
+  const data = JSON.parse(state.history[index]);
+  state.segments = data.segments.map(s => ({ ...s }));
+  state.routeType = data.routeType;
+  state.inputMode = data.inputMode || 'dh';
+  state.grade = data.grade || '20';
+  $('hStart').value = data.hStart || '50.000';
+  $('hEnd').value = data.hEnd || '50.020';
+  $('startName').value = data.startName || 'BM0';
+  $('endName').value = data.endName || 'BMn';
+  $('grade').value = state.grade;
+  updateGrade();
+  setRouteType(state.routeType);
+  setInputMode(state.inputMode);
+  renderSegments();
+  showToast('已恢复', 'info');
+}
+
+// ================================================================
+// 路线与模式设置
+// ================================================================
+function setRouteType(type) {
+  state.routeType = type;
+  $$('#routeTypeGroup .tag').forEach(el => {
+    el.classList.toggle('active', el.dataset.value === type);
+  });
+  const showEnd = type === 'linked';
+  $('endPointGroup').style.display = showEnd ? '' : 'none';
+  $('endElevGroup').style.display = showEnd ? '' : 'none';
+  pushHistory();
+}
+
+function setInputMode(mode) {
+  state.inputMode = mode;
+  $$('[data-mode]').forEach(el => {
+    el.classList.toggle('active', el.dataset.mode === mode);
+  });
+  $('inputDh').style.display = mode === 'dh' ? 'grid' : 'none';
+  $('inputRead').style.display = mode === 'read' ? 'grid' : 'none';
+  $('inputFull').style.display = mode === 'full' ? 'grid' : 'none';
+  pushHistory();
+}
+
+function updateGrade() {
+  state.grade = $('grade').value;
+  pushHistory();
+}
+
+// ================================================================
+// 测段管理
+// ================================================================
+function getSegmentFromInput() {
+  const mode = state.inputMode;
+  let seg = { name: '', dist: 0, stations: 0, dh: 0, dhReturn: null, rear: null, fore: null, check: null };
+
+  if (mode === 'dh') {
+    seg.name = str('inpName') || 'P' + (state.segments.length + 1);
+    seg.dist = val('inpDist');
+    seg.stations = val('inpStations') || Math.round(seg.dist * 10);
+    const dhStr = str('inpDh').trim();
+    if (!dhStr) { showToast('请输入高差', 'error'); return null; }
+    let s = 1, v = dhStr;
+    if (v.startsWith('+')) v = v.slice(1);
+    else if (v.startsWith('-')) { s = -1; v = v.slice(1); }
+    seg.dh = s * parseFloat(v);
+    if (isNaN(seg.dh) || seg.dist <= 0) { showToast('数据无效', 'error'); return null; }
+  } else if (mode === 'read') {
+    seg.name = str('inpNameR') || 'P' + (state.segments.length + 1);
+    seg.dist = val('inpDistR');
+    seg.stations = val('inpStations') || Math.round(seg.dist * 10);
+    const rear = val('inpRear');
+    const fore = val('inpFore');
+    if (isNaN(rear) || isNaN(fore) || seg.dist <= 0) { showToast('数据无效', 'error'); return null; }
+    seg.dh = rear - fore;
+    seg.rear = rear; seg.fore = fore;
+  } else if (mode === 'full') {
+    seg.name = str('inpNameF') || 'P' + (state.segments.length + 1);
+    seg.dist = val('inpDistF');
+    seg.stations = val('inpStationsF') || Math.round(seg.dist * 10);
+    const rear = val('inpRearF');
+    const fore = val('inpForeF');
+    if (isNaN(rear) || isNaN(fore) || seg.dist <= 0) { showToast('数据无效', 'error'); return null; }
+    seg.dh = rear - fore;
+    seg.rear = rear; seg.fore = fore;
+    const dhRet = str('inpDhReturn').trim();
+    if (dhRet) {
+      let s = 1, v = dhRet;
+      if (v.startsWith('+')) v = v.slice(1);
+      else if (v.startsWith('-')) { s = -1; v = v.slice(1); }
+      seg.dhReturn = s * parseFloat(v);
+    }
+  }
+  return seg;
+}
+
+function addSegment() {
+  const seg = getSegmentFromInput();
+  if (!seg) return;
+  
+  // 检查点名是否重复
+  const existing = state.segments.some(s => s.name === seg.name);
+  if (existing) {
+    showToast(`点名 "${seg.name}" 已存在，请使用不同的点名`, 'warning');
+    return;
+  }
+
+  const gradeVal = parseInt(state.grade);
+  if (seg.dhReturn !== null && seg.dhReturn !== undefined) {
+    const diff = Math.abs(seg.dh - seg.dhReturn) * 1000;
+    const limit = gradeVal * Math.sqrt(seg.dist);
+    seg.check = diff <= limit ? '✓' : '✗';
+    seg.dhDiff = diff;
+  }
+
+  state.segments.push(seg);
+  renderSegments();
+  pushHistory();
+  showToast(`已添加: ${seg.name}`, 'success');
+  
+  if (state.inputMode === 'dh') {
+    $('inpName').value = nextName(str('inpName'));
+    $('inpDh').value = '';
+  } else if (state.inputMode === 'read') {
+    $('inpNameR').value = nextName(str('inpNameR'));
+    $('inpRear').value = ''; $('inpFore').value = '';
+  } else {
+    $('inpNameF').value = nextName(str('inpNameF'));
+    $('inpRearF').value = ''; $('inpForeF').value = ''; $('inpDhReturn').value = '';
+  }
+}
+
+function nextName(name) {
+  const m = name.match(/^([A-Za-z]+)(\d+)$/);
+  if (m) return m[1] + (parseInt(m[2]) + 1);
+  const n = name.match(/(\d+)$/);
+  if (n) return name.slice(0, -n[0].length) + (parseInt(n[0]) + 1);
+  return name + '1';
+}
+
+function delSegment(index) {
+  const name = state.segments[index].name;
+  state.segments.splice(index, 1);
+  renderSegments();
+  pushHistory();
+  showToast(`已删除: ${name}`, 'info');
+}
+
+function renderSegments() {
+  const tbody = $('segBody');
+  if (state.segments.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="color:#999;padding:20px">暂无数据，请添加测段</td></tr>';
+    $('segFoot').style.display = 'none';
+    $('segCount').textContent = '0 段';
+    return;
+  }
+
+  tbody.innerHTML = state.segments.map((s, i) => {
+    const diff = s.dhDiff !== undefined ? s.dhDiff.toFixed(1) : '-';
+    const check = s.check || '-';
+    const dhStr = (s.dh >= 0 ? '+' : '') + s.dh.toFixed(4);
+    const dhRetStr = s.dhReturn !== null ? ((s.dhReturn >= 0 ? '+' : '') + s.dhReturn.toFixed(4)) : '-';
+    return `<tr>
+      <td>${i + 1}</td>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.dist.toFixed(3)}</td>
+      <td>${s.stations || '-'}</td>
+      <td>${dhStr}</td>
+      <td>${dhRetStr}</td>
+      <td>${diff}</td>
+      <td class="${check === '✓' ? 'success' : check === '✗' ? 'danger' : ''}">${check}</td>
+      <td><span style="color:var(--danger);cursor:pointer" onclick="delSegment(${i})">✕</span></td>
+    </tr>`;
+  }).join('');
+
+  const totalDist = state.segments.reduce((s, o) => s + o.dist, 0);
+  const totalStations = state.segments.reduce((s, o) => s + (o.stations || 0), 0);
+  const totalDh = state.segments.reduce((s, o) => s + o.dh, 0);
+  $('totalDist').textContent = totalDist.toFixed(3);
+  $('totalStations').textContent = totalStations;
+  $('totalDh').textContent = (totalDh >= 0 ? '+' : '') + totalDh.toFixed(4);
+  $('segFoot').style.display = '';
+  $('segCount').textContent = state.segments.length + ' 段';
+
+  // 严重Bug修复：删除自动覆盖已知终点高程的代码，以免附合水准闭合差永远为0
+}
+
+// ================================================================
+// 测段检核
+// ================================================================
+function checkSegments() {
+  if (state.segments.length === 0) { showToast('请先添加测段数据', 'warning'); return; }
+
+  let passed = 0, failed = 0, noReturn = 0;
+  let results = [];
+  const gradeVal = parseInt(state.grade);
+  
+  state.segments.forEach((s, i) => {
+    if (s.dhReturn !== null && s.dhReturn !== undefined) {
+      const diff = Math.abs(s.dh - s.dhReturn) * 1000;
+      const limit = gradeVal * Math.sqrt(s.dist);
+      const ok = diff <= limit;
+      if (ok) passed++; else failed++;
+      results.push(`${s.name}: 较差 ${diff.toFixed(1)}mm ${ok ? '✓' : '✗'} (限差 ±${limit.toFixed(1)}mm)`);
+      s.check = ok ? '✓' : '✗';
+      s.dhDiff = diff;
+    } else {
+      noReturn++;
+      results.push(`${s.name}: 无往返测数据`);
+      s.check = '—';
+    }
+  });
+
+  renderSegments();
+  
+  const msg = `测段检核完成\n`;
+  const summary = `通过: ${passed} 段, 超限: ${failed} 段${noReturn > 0 ? `, 无返测: ${noReturn} 段` : ''}\n\n` + results.join('\n');
+  
+  showToast(`检核完成: ${passed} 通过, ${failed} 超限${noReturn > 0 ? `, ${noReturn} 无数据` : ''}`, failed > 0 ? 'warning' : 'success');
+  
+  $('resultSummary').textContent = msg + summary;
+  $('resultSummary').className = 'result-box ' + (failed > 0 ? 'fail' : 'pass');
+  switchTab('tab-adjust');
+}
+
+// ================================================================
+// 批量导入与文件操作
+// ================================================================
+function batchImportDialog() {
+  const html = `
+    <div class="form-group">
+      <label>批量导入 (CSV格式: 点名,距离,高差)</label>
+      <textarea id="batchText" style="width:100%;min-height:120px;padding:8px;border:1px solid var(--border);border-radius:4px;font-family:Consolas,monospace;font-size:12px" placeholder="BM1,0.8,+1.200&#10;BM2,0.6,-0.543&#10;BM3,0.5,+0.425"></textarea>
+      <div style="font-size:11px;color:#999;margin-top:4px">每行一个测段，用逗号分隔</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn btn-success" onclick="doBatchImport()">导入</button>
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+    </div>
+  `;
+  showModal('批量导入测段', html);
+}
+
+function doBatchImport() {
+  const textarea = document.getElementById('batchText');
+  if (!textarea) { showToast('输入框不存在', 'error'); return; }
+  const text = textarea.value || '';
+  if (!text.trim()) { showToast('请输入数据', 'error'); return; }
+  
+  const lines = text.split('\n').filter(l => l.trim());
+  let count = 0;
+  for (const line of lines) {
+    const parts = line.split(',').map(s => s.trim());
+    if (parts.length < 3) continue;
+    const name = parts[0] || 'P' + (state.segments.length + 1);
+    const dist = parseFloat(parts[1]);
+    const dh = parseFloat(parts[2]);
+    if (isNaN(dist) || dist <= 0 || isNaN(dh)) continue;
+    // 检查点名是否重复
+    if (state.segments.some(s => s.name === name)) continue;
+    state.segments.push({ name, dist, stations: Math.round(dist * 10), dh, dhReturn: null, rear: null, fore: null });
+    count++;
+  }
+  if (count === 0) { showToast('未导入有效数据，请检查格式或点名是否重复', 'error'); return; }
+  renderSegments(); pushHistory(); closeModal();
+  showToast(`成功导入 ${count} 个测段`, 'success');
+}
+
+function exportData() {
+  const data = {
+    version: '2.1', routeType: state.routeType, grade: state.grade,
+    startName: $('startName').value, hStart: $('hStart').value,
+    endName: $('endName').value, hEnd: $('hEnd').value,
+    obsDate: $('obsDate').value, observer: $('observer').value,
+    instrument: $('instrument').value, weather: $('weather').value,
+    segments: state.segments.map(s => ({ ...s }))
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `水准数据_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast('数据已导出', 'success');
+}
+
+function importData(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.routeType) setRouteType(data.routeType);
+      if (data.grade) { $('grade').value = data.grade; updateGrade(); }
+      if (data.hStart) $('hStart').value = data.hStart;
+      if (data.hEnd) $('hEnd').value = data.hEnd;
+      if (data.startName) $('startName').value = data.startName;
+      if (data.endName) $('endName').value = data.endName;
+      if (data.obsDate) $('obsDate').value = data.obsDate;
+      if (data.observer) $('observer').value = data.observer;
+      if (data.instrument) $('instrument').value = data.instrument;
+      if (data.weather) $('weather').value = data.weather;
+      state.segments = data.segments.map(s => ({ ...s }));
+      renderSegments(); pushHistory();
+      showToast('数据导入成功', 'success');
+    } catch(err) { showToast('导入失败: ' + err.message, 'error'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+function exportCSV() {
+  if (state.segments.length === 0) { showToast('没有数据可导出', 'warning'); return; }
+  let csv = '点名,距离(km),测站数,高差(m),返测高差(m)\n';
+  state.segments.forEach(s => {
+    csv += `${s.name},${s.dist.toFixed(3)},${s.stations || ''},${s.dh.toFixed(4)},${s.dhReturn !== null ? s.dhReturn.toFixed(4) : ''}\n`;
+  });
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `水准数据_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast('CSV已导出', 'success');
+}
+
+function loadDemoData() {
+  if (state.segments.length > 0 && !confirm('将替换当前数据，是否继续？')) return;
+  state.segments = [
+    { name: 'BM1', dist: 0.6, stations: 6, dh: 0.856, dhReturn: -0.854, rear: null, fore: null },
+    { name: 'BM2', dist: 0.8, stations: 8, dh: -0.543, dhReturn: 0.545, rear: null, fore: null },
+    { name: 'BM3', dist: 0.5, stations: 5, dh: 0.425, dhReturn: -0.423, rear: null, fore: null },
+    { name: 'BM4', dist: 0.7, stations: 7, dh: -0.718, dhReturn: 0.720, rear: null, fore: null },
+    { name: 'BM5', dist: 0.4, stations: 4, dh: 0.312, dhReturn: -0.310, rear: null, fore: null }
+  ];
+  const gradeVal = parseInt(state.grade);
+  state.segments.forEach(s => {
+    if (s.dhReturn !== null) {
+      s.dhDiff = Math.abs(s.dh - s.dhReturn) * 1000;
+      s.check = s.dhDiff <= gradeVal * Math.sqrt(s.dist) ? '✓' : '✗';
+    }
+  });
+  $('hStart').value = '50.000'; $('startName').value = 'BM0';
+  
+  // 优化演示数据：为附合水准制造闭合差
+  if (state.routeType === 'linked') {
+    $('hEnd').value = '50.350'; // 制造 -18mm 闭合差
+  }
+  
+  renderSegments(); pushHistory();
+  showToast('已加载演示数据 (含往返测)', 'success');
+}
+
+function clearAllData() {
+  if (state.segments.length === 0) return;
+  if (!confirm('确定要清空所有数据吗？')) return;
+  state.segments = [];
+  renderSegments(); pushHistory();
+  $('resultSummary').textContent = '等待计算...';
+  $('resultSummary').className = 'result-box';
+  $('resultBody').innerHTML = '';
+  $('statsGrid').style.display = 'none';
+  showToast('已清空', 'info');
+}
+
+// ================================================================
+// 本地持久化
+// ================================================================
+function saveState() {
+  const data = {
+    segments: state.segments.map(s => ({ ...s })),
+    routeType: state.routeType, grade: state.grade,
+    hStart: $('hStart').value, hEnd: $('hEnd').value,
+    startName: $('startName').value, endName: $('endName').value,
+    obsDate: $('obsDate').value, observer: $('observer').value,
+    instrument: $('instrument').value, weather: $('weather').value
+  };
+  try {
+    localStorage.setItem('levelingProData', JSON.stringify(data));
+    showToast('数据已保存到本地', 'success');
+  } catch(e) { showToast('保存失败: ' + e.message, 'error'); }
+}
+
+function restoreState() {
+  try {
+    const raw = localStorage.getItem('levelingProData');
+    if (!raw) { showToast('未找到保存的数据', 'warning'); return; }
+    const data = JSON.parse(raw);
+    if (data.routeType) setRouteType(data.routeType);
+    if (data.grade) { $('grade').value = data.grade; updateGrade(); }
+    if (data.hStart) $('hStart').value = data.hStart;
+    if (data.hEnd) $('hEnd').value = data.hEnd;
+    if (data.startName) $('startName').value = data.startName;
+    if (data.endName) $('endName').value = data.endName;
+    if (data.obsDate) $('obsDate').value = data.obsDate;
+    if (data.observer) $('observer').value = data.observer;
+    if (data.instrument) $('instrument').value = data.instrument;
+    if (data.weather) $('weather').value = data.weather;
+    state.segments = data.segments.map(s => ({ ...s }));
+    renderSegments(); pushHistory();
+    showToast('数据已恢复', 'success');
+  } catch(e) { showToast('恢复失败: ' + e.message, 'error'); }
+}
+
+// ================================================================
+// 平差计算（核心逻辑）
+// ================================================================
+function calcAdjust() {
+  if (state.segments.length < 2) { showToast('至少需要 2 个测段', 'error'); return; }
+
+  const segs = state.segments;
+  const n = segs.length;
+  const hStart = val('hStart');
+  let hEnd = hStart;
+  if (state.routeType === 'linked') hEnd = val('hEnd');
+  const gradeVal = parseInt(state.grade);
+
+  const totalDist = segs.reduce((s, o) => s + o.dist, 0);
+  const totalStations = segs.reduce((s, o) => s + (o.stations || 0), 0);
+  const sumDh = segs.reduce((s, o) => s + o.dh, 0);
+
+  let fh;
+  if (state.routeType === 'closed') fh = sumDh;
+  else if (state.routeType === 'spur') fh = 0;
+  else fh = sumDh - (hEnd - hStart);
+
+  const fhAllow = gradeVal * Math.sqrt(totalDist);
+  const absFh = Math.abs(fh) * 1000;
+  const isQualified = state.routeType === 'spur' || absFh <= fhAllow;
+
+  let corrections = [];
+  if (state.routeType === 'spur') corrections = segs.map(() => 0);
+  else corrections = segs.map(s => -fh * s.dist / totalDist);
+  
+  const sumCorr = corrections.reduce((a, b) => a + b, 0);
+
+  let H = hStart;
+  const results = [];
+  results.push({ name: $('startName').value || '起点', dist: 0, dh: 0, corr: 0, adjDh: 0, H: H, mse: 0 });
+
+  for (let i = 0; i < n; i++) {
+    const s = segs[i];
+    const adjDh = s.dh + corrections[i];
+    H += adjDh;
+    const mse = (gradeVal / 2) * Math.sqrt(s.dist);
+    results.push({ 
+      name: s.name, 
+      dist: s.dist, 
+      dh: s.dh, 
+      corr: corrections[i], 
+      adjDh: adjDh, 
+      H: H, 
+      mse: mse 
+    });
+  }
+
+  state.results = results;
+
+  // 精度评定
+  let precisionText = '';
+  if (state.routeType === 'spur') {
+    precisionText = '⚠️ 支水准路线，无闭合差检核\n建议进行往返观测';
+  } else {
+    const M0 = absFh / (2 * Math.sqrt(totalDist)); // 后验单位权中误差 (mm/km)
+    const weakestMse = M0 * Math.sqrt(totalDist / 4); // 最弱点高程中误差
+    precisionText = `后验单位权中误差: ${M0.toFixed(2)} mm/km\n`;
+    precisionText += `最弱点高程中误差: ${weakestMse.toFixed(2)} mm\n`;
+    precisionText += `闭合差: ${absFh.toFixed(1)} mm  ${isQualified ? '✓ 合格' : '✗ 超限'}\n`;
+    precisionText += `限差: ±${fhAllow.toFixed(1)} mm\n`;
+    precisionText += `路线长度: ${totalDist.toFixed(3)} km\n`;
+    precisionText += `测站总数: ${totalStations}`;
+  }
+
+  const summaryBox = $('resultSummary');
+  let summaryText = '';
+  if (state.routeType === 'spur') {
+    summaryText = '⚠️ 支水准路线 (单程)\n';
+    summaryText += `ΣD = ${totalDist.toFixed(3)} km\n`;
+    summaryText += `Σ测站 = ${totalStations}\n`;
+    summaryText += '提示: 规范要求支水准必须往返观测';
+  } else {
+    summaryText = `ΣΔh = ${(sumDh >= 0 ? '+' : '') + sumDh.toFixed(4)} m\n`;
+    summaryText += `fh = ${(fh >= 0 ? '+' : '') + (fh * 1000).toFixed(1)} mm\n`;
+    summaryText += `fh允 = ±${fhAllow.toFixed(1)} mm  ${isQualified ? '✓ 合格' : '✗ 超限'}\n`;
+    summaryText += `ΣD = ${totalDist.toFixed(3)} km\n`;
+    summaryText += `Σv = ${(sumCorr * 1000).toFixed(1)} mm (检核 Σv=−fh)`;
+  }
+  summaryBox.textContent = summaryText;
+  summaryBox.className = 'result-box ' + (isQualified ? 'pass' : 'fail');
+
+  const statsGrid = $('statsGrid');
+  statsGrid.style.display = '';
+  statsGrid.innerHTML = `
+    <div class="stat-item"><div class="val">${segs.length}</div><div class="label">测段数</div></div>
+    <div class="stat-item"><div class="val">${totalDist.toFixed(2)}</div><div class="label">总距离 km</div></div>
+    <div class="stat-item"><div class="val">${totalStations}</div><div class="label">总测站数</div></div>
+    <div class="stat-item"><div class="val">${absFh.toFixed(1)}</div><div class="label">fh mm</div></div>
+    <div class="stat-item"><div class="val">${isQualified ? '✓' : '✗'}</div><div class="label">合格判定</div></div>
+    <div class="stat-item"><div class="val">${(sumCorr * 1000).toFixed(1)}</div><div class="label">Σv mm</div></div>
+  `;
+
+  $('precisionBox').innerHTML = precisionText;
+
+  let tableHtml = '';
+  results.forEach((r, i) => {
+    const isStart = i === 0;
+    tableHtml += `<tr class="${isStart ? 'highlight' : ''}">
+      <td><strong>${r.name}</strong></td>
+      <td>${isStart ? '—' : r.dist.toFixed(3)}</td>
+      <td>${isStart ? '—' : ((r.dh >= 0 ? '+' : '') + r.dh.toFixed(4))}</td>
+      <td>${isStart ? '—' : ((r.corr * 1000 >= 0 ? '+' : '') + (r.corr * 1000).toFixed(1))}</td>
+      <td>${isStart ? '—' : ((r.adjDh >= 0 ? '+' : '') + r.adjDh.toFixed(4))}</td>
+      <td><strong>${r.H.toFixed(4)}</strong></td>
+      <td>${isStart ? '—' : r.mse.toFixed(2)}</td>
+    </tr>`;
+  });
+  $('resultBody').innerHTML = tableHtml;
+
+  switchTab('tab-adjust');
+  showToast('平差计算完成', 'success');
+  drawProfile(results);
+}
+
+// ================================================================
+// 绘制高程剖面图
+// ================================================================
+function drawProfile(results) {
+  const canvas = $('c');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const wrap = canvas.parentElement;
+  const W = wrap.clientWidth - 20 || 600;
+  const H = Math.max(280, W * 0.45);
+  canvas.width = W * 2; canvas.height = H * 2;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  
+  // 重置变换矩阵，防止缩放累加
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(2, 2);
+  ctx.clearRect(0, 0, W, H);
+
+  const hint = $('profileHint');
+  if (!results || results.length < 2) {
+    if (hint) { hint.style.display = ''; hint.textContent = '计算后显示高程剖面图'; }
+    return;
+  }
+  if (hint) hint.style.display = 'none';
+
+  const pad = { top: 30, bottom: 45, left: 65, right: 20 };
+  const plotW = W - pad.left - pad.right;
+  const plotH = H - pad.top - pad.bottom;
+
+  const elevations = results.map(r => r.H);
+  const hMin = Math.min(...elevations);
+  const hMax = Math.max(...elevations);
+  const hRange = (hMax - hMin) * 1.3 || 1;
+  const hBase = hMin - hRange * 0.1;
+
+  const dists = [0];
+  let cum = 0;
+  for (let i = 1; i < results.length; i++) {
+    cum += results[i].dist || 0;
+    dists.push(cum);
+  }
+  const totalDist = cum || 1;
+
+  ctx.fillStyle = '#fafcfa';
+  ctx.fillRect(pad.left, pad.top, plotW, plotH);
+
+  ctx.strokeStyle = '#e8ece4';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 8; i++) {
+    const x = pad.left + plotW * i / 8;
+    ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, pad.top + plotH); ctx.stroke();
+  }
+  for (let i = 0; i <= 6; i++) {
+    const y = pad.top + plotH * i / 6;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + plotW, y); ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(pad.left, pad.top); ctx.lineTo(pad.left, pad.top + plotH);
+  ctx.lineTo(pad.left + plotW, pad.top + plotH);
+  ctx.stroke();
+
+  ctx.fillStyle = '#555';
+  ctx.font = '10px Consolas,sans-serif';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let i = 0; i <= 6; i++) {
+    const y = pad.top + plotH * i / 6;
+    const v = hBase + hRange * (1 - i / 6);
+    ctx.fillText(v.toFixed(3), pad.left - 4, y);
+  }
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  for (let i = 0; i <= 8; i++) {
+    const x = pad.left + plotW * i / 8;
+    ctx.fillText((totalDist * i / 8).toFixed(2), x, pad.top + plotH + 4);
+  }
+
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('距离', pad.left + plotW/2, H - 2);
+  ctx.save();
+  ctx.translate(14, pad.top + plotH/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText('高程', 0, 0);
+  ctx.restore();
+
+  const pts = results.map((r, i) => ({
+    x: pad.left + plotW * dists[i] / totalDist,
+    y: pad.top + plotH * (1 - (r.H - hBase) / hRange)
+  }));
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pad.top + plotH);
+  pts.forEach(p => ctx.lineTo(p.x, p.y));
+  ctx.lineTo(pts[pts.length-1].x, pad.top + plotH);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(26, 82, 118, 0.08)';
+  ctx.fill();
+
+  ctx.beginPath();
+  pts.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+  ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5; ctx.stroke();
+
+  pts.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+    ctx.fillStyle = '#2c6e49'; ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  });
+
+  ctx.fillStyle = '#2c6e49';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  pts.forEach((p, i) => { ctx.fillText(results[i].name, p.x, p.y - 8); });
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.font='10px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('By Lvmyth AI',W-30,H-4);
+}
+
+// ================================================================
+// 绘制水准网图 (优化布局)
+// ================================================================
+function drawNetwork(results) {
+  const canvas = $('networkCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const wrap = $('networkCanvasWrap');
+  const W = wrap ? (wrap.clientWidth - 20 || 600) : 600;
+  const H = Math.max(320, W * 0.5);
+  
+  canvas.width = W * 2; canvas.height = H * 2;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(2, 2);
+  ctx.clearRect(0, 0, W, H);
+
+  const hint = $('networkHint');
+  if (!results || results.length < 2) {
+    if (hint) { hint.style.display = ''; hint.textContent = '计算后显示水准网图'; }
+    return;
+  }
+  if (hint) hint.style.display = 'none';
+
+  const n = results.length;
+  const pad = 50;
+  const pts = [];
+
+  // 优化网图布局：闭合画圆，附合/支水准画水平直线
+  if (state.routeType === 'closed') {
+    const r = Math.min((W - pad*2) / 2, (H - pad*2) / 2) * 0.7;
+    const cx = W/2, cy = H/2;
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * 2 * Math.PI - Math.PI/2;
+      pts.push({
+        x: cx + r * Math.cos(angle),
+        y: cy + r * Math.sin(angle),
+        name: results[i].name, H: results[i].H,
+        isStart: i === 0, isEnd: false
+      });
+    }
+  } else {
+    // 水平直线分布
+    const stepX = (W - pad*2) / (n - 1 || 1);
+    const startX = pad;
+    const baseY = H / 2;
+    for (let i = 0; i < n; i++) {
+      pts.push({
+        x: startX + i * stepX,
+        y: baseY,
+        name: results[i].name, H: results[i].H,
+        isStart: i === 0,
+        isEnd: i === n - 1 && state.routeType === 'linked'
+      });
+    }
+  }
+
+  // 绘制连线
+  ctx.strokeStyle = '#5d6d7e';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < n - 1; i++) {
+    ctx.beginPath();
+    ctx.moveTo(pts[i].x, pts[i].y);
+    ctx.lineTo(pts[i+1].x, pts[i+1].y);
+    ctx.stroke();
+    
+    const mx = (pts[i].x + pts[i+1].x) / 2;
+    const my = (pts[i].y + pts[i+1].y) / 2 - 14;
+    const dh = results[i+1] ? results[i+1].dh : 0;
+    ctx.fillStyle = '#e67e22';
+    ctx.font = '10px Consolas,sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.fillText((dh >= 0 ? '+' : '') + dh.toFixed(3), mx, my);
+  }
+
+  // 闭合路线首尾相连
+  if (state.routeType === 'closed') {
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0].x, pts[0].y);
+    ctx.lineTo(pts[n-1].x, pts[n-1].y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // 绘制节点和标签
+  pts.forEach((p, i) => {
+    const isKnown = p.isStart || p.isEnd;
+    const radius = isKnown ? 18 : 14;
+    
+    ctx.shadowColor = 'rgba(0,0,0,0.1)';
+    ctx.shadowBlur = 8; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
+    
+    const grad = ctx.createRadialGradient(p.x-3, p.y-3, 2, p.x, p.y, radius);
+    if (isKnown) { grad.addColorStop(0, '#f1c40f'); grad.addColorStop(1, '#d68910'); }
+    else { grad.addColorStop(0, '#3498db'); grad.addColorStop(1, '#2c6e49'); }
+    
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI*2);
+    ctx.fillStyle = grad; ctx.fill();
+    
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+
+    // 点名在圆圈内
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(p.name, p.x, p.y);
+
+    // 标签上下交错显示，防止遮挡
+    const isUp = i % 2 === 0;
+    const labelOffset = isKnown ? 35 : 30;
+    const labelY = isUp ? p.y - labelOffset : p.y + labelOffset;
+        
+    ctx.fillStyle = '#2c6e49';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textBaseline = isUp ? 'bottom' : 'top';
+    ctx.fillText(p.name, p.x, labelY);
+    
+    ctx.fillStyle = '#555';
+    ctx.font = '10px sans-serif';
+    const hLabelY = isUp ? labelY - 14 : labelY + 14;
+    ctx.fillText(p.H.toFixed(4), p.x, hLabelY);
+  });
+
+  // 图例
+  const legendY = H - 30;
+  ctx.fillStyle = '#f1c40f';
+  ctx.beginPath();
+  ctx.arc(20, legendY, 8, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#2c3e50';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('已知点', 32, legendY);
+
+  ctx.fillStyle = '#3498db';
+  ctx.beginPath();
+  ctx.arc(100, legendY, 8, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = '#2c3e50';
+  ctx.fillText('未知点', 112, legendY);
+
+  ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.font='10px sans-serif'; ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText('By Lvmyth AI',W-30,H-4);
+
+  // 统计信息
+  const stats = $('networkStats');
+  if (stats) {
+    const totalDist = state.segments.reduce((s, o) => s + o.dist, 0);
+    const routeNames = { 'closed': '闭合水准', 'linked': '附合水准', 'spur': '支水准' };
+    const knownCount = state.routeType === 'linked' ? 2 : 1;
+    stats.innerHTML = `
+      <div><strong>📊 网形信息</strong></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;margin-top:6px">
+        <div>节点数: <strong>${results.length}</strong></div>
+        <div>测段数: <strong>${results.length - 1}</strong></div>
+        <div>路线类型: <strong>${routeNames[state.routeType]}</strong></div>
+        <div>总距离: <strong>${totalDist.toFixed(3)} km</strong></div>
+        <div>已知点: <strong>${knownCount}</strong></div>
+      </div>
+    `;
+  }
+}
+
+// ================================================================
+// 报告与复制
+// ================================================================
+function exportReport() {
+  if (!state.results) { showToast('请先进行平差计算', 'warning'); return; }
+  
+  const now = new Date().toLocaleString();
+  const results = state.results;
+  const totalDist = state.segments.reduce((s, o) => s + o.dist, 0);
+  const sumDh = state.segments.reduce((s, o) => s + o.dh, 0);
+  const fh = state.routeType === 'closed' ? sumDh : state.routeType === 'spur' ? 0 : sumDh - (val('hEnd') - val('hStart'));
+  const gradeVal = parseInt(state.grade);
+  const fhAllow = gradeVal * Math.sqrt(totalDist);
+  const isQualified = state.routeType === 'spur' || Math.abs(fh) * 1000 <= fhAllow;
+
+  let html = `
+    <div style="text-align:center;margin-bottom:20px">
+      <h2 style="font-size:20px;color:#1a5276">水准测量平差报告</h2>
+      <p style="color:#7f8c8d">生成时间: ${now}</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><strong>路线类型:</strong> ${state.routeType === 'closed' ? '闭合水准' : state.routeType === 'linked' ? '附合水准' : '支水准'}</div>
+      <div><strong>精度等级:</strong> ${state.grade}等</div>
+      <div><strong>起点:</strong> ${$('startName').value} (H=${val('hStart').toFixed(4)})</div>
+      <div><strong>终点:</strong> ${state.routeType === 'linked' ? $('endName').value + ' (H=' + val('hEnd').toFixed(4) + ')' : '-'}</div>
+      <div><strong>总距离:</strong> ${totalDist.toFixed(3)} km</div>
+      <div><strong>测段数:</strong> ${state.segments.length}</div>
+      <div><strong>闭合差:</strong> ${(fh * 1000).toFixed(1)} mm</div>
+      <div><strong>限差:</strong> ±${fhAllow.toFixed(1)} mm</div>
+      <div><strong>合格判定:</strong> ${isQualified ? '✓ 合格' : '✗ 超限'}</div>
+      <div><strong>观测者:</strong> ${$('observer').value || '-'}</div>
+    </div>
+    <h3 style="color:#1a5276;margin:12px 0 8px">平差成果表</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <thead><tr style="background:#1a5276;color:#fff">
+        <th style="padding:6px;border:1px solid #ddd">点名</th><th style="padding:6px;border:1px solid #ddd">距离</th>
+        <th style="padding:6px;border:1px solid #ddd">观测高差</th><th style="padding:6px;border:1px solid #ddd">改正数</th>
+        <th style="padding:6px;border:1px solid #ddd">平差高差</th><th style="padding:6px;border:1px solid #ddd">高程</th>
+      </tr></thead><tbody>
+  `;
+  results.forEach((r, i) => {
+    html += `<tr>
+      <td style="padding:4px 6px;border:1px solid #ddd;text-align:center"><strong>${r.name}</strong></td>
+      <td style="padding:4px 6px;border:1px solid #ddd;text-align:center">${i === 0 ? '—' : r.dist.toFixed(3)}</td>
+      <td style="padding:4px 6px;border:1px solid #ddd;text-align:center">${i === 0 ? '—' : ((r.dh >= 0 ? '+' : '') + r.dh.toFixed(4))}</td>
+      <td style="padding:4px 6px;border:1px solid #ddd;text-align:center">${i === 0 ? '—' : ((r.corr * 1000 >= 0 ? '+' : '') + (r.corr * 1000).toFixed(1))}</td>
+      <td style="padding:4px 6px;border:1px solid #ddd;text-align:center">${i === 0 ? '—' : ((r.adjDh >= 0 ? '+' : '') + r.adjDh.toFixed(4))}</td>
+      <td style="padding:4px 6px;border:1px solid #ddd;text-align:center;font-weight:bold">${r.H.toFixed(4)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>
+    <div style="margin-top:16px;font-size:12px;color:#7f8c8d;border-top:1px solid #ddd;padding-top:12px">
+      注: 本报告由水准平差系统自动生成<br>
+      仪器: ${$('instrument').value || '-'} | 天气: ${$('weather').value || '-'}
+    </div>
+  `;
+  $('reportBody').innerHTML = html;
+  switchTab('tab-report');
+  showToast('报告已生成', 'success');
+}
+
+function showReportModal() {
+  const html = $('reportBody').innerHTML;
+  if (!html || html.includes('请先进行平差计算')) { showToast('请先进行平差计算', 'warning'); return; }
+  showModal('详细平差报告', html);
+}
+
+function copyResult() {
+  if (!state.results) { showToast('请先进行平差计算', 'warning'); return; }
+  let text = '=== 水准平差成果 ===\n\n';
+  text += $('resultSummary').textContent + '\n\n';
+  text += '点名\t距离\t观测高差\t改正数\t平差高差\t高程\n';
+  state.results.forEach((r, i) => {
+    if (i === 0) { text += `${r.name}\t-\t-\t-\t-\t${r.H.toFixed(4)}\n`; }
+    else { text += `${r.name}\t${r.dist.toFixed(3)}\t${(r.dh >= 0 ? '+' : '') + r.dh.toFixed(4)}\t${(r.corr * 1000 >= 0 ? '+' : '') + (r.corr * 1000).toFixed(1)}\t${(r.adjDh >= 0 ? '+' : '') + r.adjDh.toFixed(4)}\t${r.H.toFixed(4)}\n`; }
+  });
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板', 'success')).catch(() => fallbackCopy(text));
+  } else { fallbackCopy(text); }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); showToast('已复制', 'success'); } catch(e) { showToast('复制失败', 'error'); }
+  document.body.removeChild(ta);
+}
+
+// ================================================================
+// UI 交互
+// ================================================================
+function showNetworkView() {
+  if (!state.results) { showToast('请先进行平差计算', 'warning'); return; }
+  switchTab('tab-network');
+  setTimeout(() => drawNetwork(state.results), 100);
+}
+
+function switchTab(tabId) {
+  $$('.tab-content').forEach(el => el.classList.remove('active'));
+  $$('.tab-btn').forEach(el => el.classList.remove('active'));
+  const target = document.getElementById(tabId);
+  if (target) target.classList.add('active');
+  document.querySelectorAll(`.tab-btn[data-tab="${tabId}"]`).forEach(el => el.classList.add('active'));
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    switchTab(this.dataset.tab);
+    if (this.dataset.tab === 'tab-network' && state.results) {
+      setTimeout(() => drawNetwork(state.results), 150);
+    }
+  });
+});
+
+function showModal(title, content) {
+  $('modalTitle').textContent = title;
+  $('modalBody').innerHTML = content;
+  $('modalOverlay').classList.add('show');
+}
+function closeModal() { $('modalOverlay').classList.remove('show'); }
+$('modalOverlay').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+// 快捷键
+document.addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); calcAdjust(); }
+  if (e.ctrlKey && e.key === 'z' && !e.shiftKey) { e.preventDefault(); if (state.historyIndex > 0) restoreFromHistory(state.historyIndex - 1); }
+  if ((e.ctrlKey && e.shiftKey && e.key === 'z') || (e.ctrlKey && e.key === 'y')) { e.preventDefault(); if (state.historyIndex < state.history.length - 1) restoreFromHistory(state.historyIndex + 1); }
+  if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveState(); }
+  if (e.key === 'Escape') closeModal();
+});
+
+// 窗口缩放重绘
+let resizeTimer;
+window.addEventListener('resize', function() {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (state.results) {
+      if ($('tab-adjust').classList.contains('active')) drawProfile(state.results);
+      if ($('tab-network').classList.contains('active')) drawNetwork(state.results);
+    }
+  }, 200);
+});
+
+// 初始化
+function init() {
+  $('obsDate').value = new Date().toISOString().slice(0, 10);
+  renderSegments();
+  pushHistory();
+}
+init();
+</script>
+<script>
+var c_p=document.getElementById('particleCanvas'),x=c_p.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c_p.width=innerWidth;H=c_p.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

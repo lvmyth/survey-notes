@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>弧上三点求半径和圆心坐标 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg)}
+.main-panel{display:flex;gap:10px;min-height:0;padding:0}
+.left{width:380px;min-width:320px;overflow-y:auto;padding:0 16px}
+.right{flex:1;padding:8px;min-height:480px}
+.point-group{margin-bottom:12px}
+.point-group h3{font-size:13px;color:var(--primary-dark);margin-bottom:4px}
+.coord-row{display:flex;gap:6px}
+.coord-field{flex:1}
+.coord-field label{font-size:11px;color:var(--text-light);display:block}
+.coord-field input{width:100%;padding:6px 8px;font-size:14px;font-weight:700;background:var(--bg-card);color:var(--primary-dark);border:1px solid #ddd;border-radius:5px;font-family:Consolas,monospace;box-sizing:border-box}
+.coord-field input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 2px rgba(44,110,73,0.15)}
+.btn{width:100%;padding:10px;font-size:15px;font-weight:700;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;margin-bottom:14px}
+.btn:hover{background:var(--primary-dark)}
+.result-card{background:var(--bg-card);border-radius:8px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
+.result-card .label{font-size:11px;color:var(--text-light);margin-bottom:2px}
+.result-card .value{font-size:20px;font-weight:700}
+canvas{width:100%;height:480px;border-radius:8px;background:#fff;box-shadow:var(--shadow);cursor:default}
+.history-box{margin-top:18px;background:var(--bg-card);border-radius:8px;padding:12px 14px;box-shadow:var(--shadow)}
+.history-box h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.history-box h3 button{font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--text-light)}
+.history-box h3 button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+.hist-item{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-family:'Consolas',monospace;border-bottom:1px solid var(--border)}
+.hist-item:last-child{border:none}
+.hist-item .tag{display:inline-block;background:var(--primary-light);color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;margin-right:4px;white-space:nowrap;flex-shrink:0}
+.hist-item .coord{flex:1;min-width:0}
+.hist-item .del{color:#ccc;cursor:pointer;margin-left:auto;padding:0 4px;flex-shrink:0}
+.hist-item .del:hover{color:#e74c3c}
+@media(max-width:768px){.main-panel{flex-direction:column}.left{width:100%;min-width:0}.right{min-height:300px}canvas{height:350px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}.left{padding:0 8px}canvas{height:280px}.coord-field input{font-size:13px}}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+<div class="main-panel" style="padding:0;background:none;max-width:none;margin:0">
+  <div class="left">
+    <div class="point-group">
+      <h3>P₁</h3>
+      <div class="coord-row">
+        <div class="coord-field"><label>X₁</label><input id="x1" type="number" value="100" step="any"></div>
+        <div class="coord-field"><label>Y₁</label><input id="y1" type="number" value="0" step="any"></div>
+      </div>
+    </div>
+    <div class="point-group">
+      <h3>P₂</h3>
+      <div class="coord-row">
+        <div class="coord-field"><label>X₂</label><input id="x2" type="number" value="150" step="any"></div>
+        <div class="coord-field"><label>Y₂</label><input id="y2" type="number" value="50" step="any"></div>
+      </div>
+    </div>
+    <div class="point-group">
+      <h3>P₃</h3>
+      <div class="coord-row">
+        <div class="coord-field"><label>X₃</label><input id="x3" type="number" value="120" step="any"></div>
+        <div class="coord-field"><label>Y₃</label><input id="y3" type="number" value="100" step="any"></div>
+      </div>
+    </div>
+    <button class="btn" onclick="calc()">计 算</button>
+
+    <div class="result-card">
+      <div class="label">半径 R</div>
+      <div class="value" style="color:var(--primary-dark)" id="rVal">--</div>
+    </div>
+    <div class="result-card">
+      <div class="label">圆心 O</div>
+      <div class="value" style="color:#2196F3;font-size:16px" id="oVal">--</div>
+    </div>
+
+    <div class="history-box">
+      <h3>📋 计算记录 <button onclick="clearHistory()">清空记录</button></h3>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <div class="right">
+    <canvas id="c"></canvas>
+  </div>
+</div>
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+var historyKey='circle_three_points_history';
+function getHist(){try{return JSON.parse(localStorage.getItem(historyKey))||[]}catch(e){return[]}}
+function saveHist(arr){try{localStorage.setItem(historyKey,JSON.stringify(arr.slice(0,50)))}catch(e){}}
+function addHist(R,cx,cy){
+  var arr=getHist();arr.unshift({R:R,cx:cx,cy:cy,time:new Date().toLocaleString()});saveHist(arr);renderHist();
+}
+function renderHist(){
+  var arr=getHist(),el=document.getElementById('historyList');
+  if(!el)return;
+  if(arr.length===0){el.innerHTML='<div style="color:var(--text-light);font-size:12px;padding:8px;text-align:center">暂无记录</div>';return}
+  el.innerHTML=arr.map(function(r,i){
+    return'<div class="hist-item"><span class="tag">R='+r.R.toFixed(2)+'</span><span class="coord">O('+r.cx.toFixed(2)+','+r.cy.toFixed(2)+')</span><span style="color:var(--text-light);font-size:10px;margin-left:auto;flex-shrink:0">'+r.time+'</span><span class="del" onclick="delHist('+i+')">✕</span></div>'
+  }).join('');
+}
+function delHist(i){var arr=getHist();arr.splice(i,1);saveHist(arr);renderHist()}
+function clearHistory(){saveHist([]);renderHist()}
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function calc() {
+  const x1=getVal('x1'),y1=getVal('y1'),x2=getVal('x2'),y2=getVal('y2'),x3=getVal('x3'),y3=getVal('y3');
+
+  const L = Math.hypot(x2-x1, y2-y1);
+  const H = Math.hypot(x3-x2, y3-y2);
+  const T = Math.hypot(x3-x1, y3-y1);
+  let W = Math.atan2(y3-y1, x3-x1) * 180/Math.PI;
+  if (W < 0) W += 360;
+  if (L < 1e-10 || H < 1e-10) return;
+
+  const cosI = Math.max(-1, Math.min(1, (L*L + H*H - T*T) / (2*L*H)));
+  const I_deg = Math.acos(cosI) * 180/Math.PI;
+  const K = I_deg - 90;
+  const sinD = Math.sin((360 - 2*I_deg) * Math.PI/180);
+  if (Math.abs(sinD) < 1e-10) return;
+  const R = T / sinD * Math.sin(K * Math.PI/180);
+
+  const M = W + K;
+  const cx = R * Math.cos(M * Math.PI/180) + x1;
+  const cy = R * Math.sin(M * Math.PI/180) + y1;
+
+  document.getElementById('rVal').textContent = 'R = ' + R.toFixed(4) + ' m';
+  document.getElementById('oVal').textContent = 'O(' + cx.toFixed(4) + ', ' + cy.toFixed(4) + ')';
+
+  addHist(R,cx,cy);
+
+  draw(x1,y1,x2,y2,x3,y3,cx,cy,R);
+}
+
+function draw(x1,y1,x2,y2,x3,y3,cx,cy,R) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = c.clientWidth, h = c.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + 'px'; c.style.height = h + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, w, h);
+
+  const xs = [x1,x2,x3,cx-R,cx+R], ys = [y1,y2,y3,cy-R,cy+R];
+  const xMin=Math.min(...xs),xMax=Math.max(...xs),yMin=Math.min(...ys),yMax=Math.max(...ys);
+  const span = Math.max(xMax-xMin,yMax-yMin,10)*1.25;
+  const mx = (xMin+xMax)/2, my = (yMin+yMax)/2;
+  const m = 50;
+  const s = Math.min((w-2*m)/span, (h-2*m)/span);
+  const tx = x => w/2 + (x-mx)*s;
+  const ty = y => h/2 - (y-my)*s;
+
+  // axes
+  ctx.strokeStyle='#e0e0e0';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(m,h/2);ctx.lineTo(w-m,h/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(w/2,m);ctx.lineTo(w/2,h-m);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // circle
+  ctx.strokeStyle='#2196F3';ctx.lineWidth=2;ctx.setLineDash([6,4]);
+  ctx.beginPath();ctx.arc(tx(cx),ty(cy),R*s,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+
+  // arc P1→P2→P3
+  const a1=Math.atan2(y1-cy,x1-cx),a2=Math.atan2(y2-cy,x2-cx),a3=Math.atan2(y3-cy,x3-cx);
+  const angs=[a1,a2,a3].sort((a,b)=>a-b);
+  ctx.strokeStyle='#D4A017';ctx.lineWidth=3;
+  ctx.beginPath();
+  for(let i=0;i<=80;i++){
+    const a=angs[0]+(angs[2]-angs[0])*i/80;
+    i===0?ctx.moveTo(tx(cx+R*Math.cos(a)),ty(cy+R*Math.sin(a))):ctx.lineTo(tx(cx+R*Math.cos(a)),ty(cy+R*Math.sin(a)));
+  }
+  ctx.stroke();
+
+  // points
+  const pts = [[x1,y1,'P₁','#E53935'],[x2,y2,'P₂','#FF9800'],[x3,y3,'P₃','#2196F3']];
+  for (const [px,py,name,clr] of pts) {
+    ctx.beginPath();ctx.arc(tx(px),ty(py),5,0,Math.PI*2);ctx.fillStyle=clr;ctx.fill();
+    ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=clr;ctx.font='bold 11px Consolas';
+    ctx.fillText(name,tx(px)+10,ty(py)-6);
+  }
+
+  // center O
+  const ox=tx(cx),oy=ty(cy);
+  ctx.beginPath();ctx.arc(ox,oy,5,0,Math.PI*2);ctx.fillStyle='#D4A017';ctx.fill();
+  ctx.strokeStyle='#333';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='#D4A017';ctx.font='bold 12px Consolas';
+  ctx.fillText('O',ox+14,oy+16);
+  ctx.fillStyle='#D4A017';ctx.font='9px Consolas';
+  ctx.fillText('('+cx.toFixed(1)+','+cy.toFixed(1)+')',ox+14,oy+32);
+
+  // radius line
+  ctx.strokeStyle='#D4A017';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(tx(x1),ty(y1));ctx.stroke();
+  ctx.setLineDash([]);
+
+  // corner info
+  ctx.fillStyle='#2196F3';ctx.font='bold 13px Consolas';ctx.textAlign='right';
+  ctx.fillText('R = '+R.toFixed(2), w-m, 18);
+  ctx.fillStyle='#D4A017';ctx.font='bold 11px Consolas';
+  ctx.fillText('O ('+cx.toFixed(3)+', '+cy.toFixed(3)+')', w-m, 36);
+
+  // By Lvmyth AI
+  ctx.fillStyle = 'rgba(150,150,150,0.6)';
+  ctx.font = '11px sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('By Lvmyth AI', w - 10, h - 10);
+}
+
+window.addEventListener('load', function(){calc();renderHist();});
+window.addEventListener('resize', ()=>{if(document.getElementById('rVal').textContent!=='--')calc()});
+</script>
+<script>
+// 粒子背景
+var c_p=document.getElementById('particleCanvas'),x=c_p.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c_p.width=innerWidth;H=c_p.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>

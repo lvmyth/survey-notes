@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>圆弧放样坐标计算 - 测量员在线工具箱</title>
+<link rel="stylesheet" href="style.css">
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+html,body{overflow-x:hidden}
+html{background:var(--bg-nav)}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg-nav);color:var(--text);margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;padding-top:64px;line-height:1.6}
+.navbar,.container{position:relative;z-index:1}
+.container{max-width:1200px;margin:0 auto;padding:1rem;flex:1;width:100%;box-sizing:border-box;background:var(--bg);overflow-x:hidden}
+.panel{display:flex;gap:6px;min-height:0}
+.panel-left{flex:0 0 380px;min-width:300px;overflow-x:hidden;overflow-y:auto;padding:8px 16px 0}
+.panel-right{flex:1;padding:8px;min-height:480px}
+.calc-btn{padding:8px 24px;font-size:14px;font-weight:700;background:var(--primary);color:#fff;border:none;border-radius:6px;cursor:pointer;display:block;margin:8px auto 12px}
+.calc-btn:hover{background:var(--primary-dark)}
+.calc-btn.sm{padding:8px 24px;font-size:14px;margin:6px auto 0}
+.field-row input{font-size:12px;padding:4px 6px;max-width:110px}
+
+/* 画布 */
+canvas{width:100%;height:550px;border-radius:8px;background:#fff;box-shadow:var(--shadow);cursor:default}
+@media(max-width:768px){.panel{flex-direction:column}.panel-left{flex:1 1 100%;min-width:0}.panel-right{min-height:300px}canvas{height:350px}}
+@media(max-width:600px){.navbar{padding:0 0.8rem !important}.navbar-inner{height:52px !important}.navbar .logo{font-size:1rem !important}.navbar .logo img{height:24px !important;margin-right:4px !important}.nav-links a{padding:6px 8px !important;font-size:0.8rem !important}}
+@media(max-width:480px){.container{padding:0.6rem}.panel-left{padding:0 8px}canvas{height:280px}.field-row input{font-size:13px}}
+
+/* 计算记录 */
+.history-box{margin-top:18px}
+.history-box h3{font-size:13px;color:var(--primary-dark);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.history-box h3 button{font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 8px;cursor:pointer;color:var(--text-light)}
+.history-box h3 button:hover{background:var(--primary-light);color:#fff;border-color:var(--primary-light)}
+.hist-item{display:flex;align-items:center;gap:6px;padding:5px 8px;font-size:12px;font-family:'Consolas',monospace;border-bottom:1px solid var(--border);overflow:hidden}
+.hist-item:last-child{border:none}
+.hist-item .tag{display:inline-block;background:var(--primary-light);color:#fff;border-radius:3px;padding:1px 5px;font-size:10px;margin-right:4px;white-space:nowrap;flex-shrink:0}
+.hist-item .del{color:#ccc;cursor:pointer;margin-left:auto;padding:0 4px;flex-shrink:0}
+.hist-item .del:hover{color:#e74c3c}
+.hist-item .coord{flex:1;min-width:0}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+<div class="container">
+<div class="panel">
+  <div class="panel-left">
+    <div class="card">
+      <h3>基线参数 <span style="font-size:11px;color:var(--text-light);font-weight:400">（输入圆弧的起点P₁和终点P₂，半径R）</span></h3>
+      <div class="field-row"><span style="font-size:11px;color:var(--text-light);width:22px;flex-shrink:0">P₁</span><label style="width:auto;min-width:auto">X</label><input id="x1" value="0"><label style="width:auto;min-width:auto">Y</label><input id="y1" value="0"></div>
+      <div class="field-row"><span style="font-size:11px;color:var(--text-light);width:22px;flex-shrink:0">P₂</span><label style="width:auto;min-width:auto">X</label><input id="x2" value="100"><label style="width:auto;min-width:auto">Y</label><input id="y2" value="0"></div>
+      <div class="field-row"><span style="width:22px;flex-shrink:0"></span><label style="width:auto;min-width:auto">R</label><input id="r" value="100"><span class="unit" style="font-size:11px;color:var(--text-light)">m</span></div>
+      <div style="display:flex;gap:6px;margin-bottom:6px"><span style="width:22px;flex-shrink:0"></span><span style="width:auto;min-width:auto;visibility:hidden">R</span>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="radio" name="dir" value="left" checked> ↰ 左转
+        </label>
+        <label style="font-size:13px;display:flex;align-items:center;gap:4px;cursor:pointer">
+          <input type="radio" name="dir" value="right"> ↱ 右转
+        </label>
+      </div>
+      <button class="calc-btn" onclick="calc0()">确 认 基 线</button>
+    </div>
+
+    <div class="card">
+      <div class="lbl" style="font-size:10px;color:var(--text-light)">弧长 Z</div>
+      <div class="val" style="font-size:18px;font-weight:700;color:var(--primary-dark)" id="zVal">--</div>
+    </div>
+    <div class="card">
+      <div class="lbl" style="font-size:10px;color:var(--text-light)">圆心 O</div>
+      <div class="val" style="font-size:14px;font-weight:700;color:#2196F3" id="oVal">--</div>
+    </div>
+    <div class="card">
+      <div class="lbl" style="font-size:10px;color:var(--text-light)">切线方位 F</div>
+      <div class="val" style="font-size:14px;font-weight:700;color:#FF9800" id="fVal">--</div>
+    </div>
+
+    <div class="card">
+      <h3>里程放样</h3>
+      <div class="field-row" style="margin-bottom:4px"><span style="width:22px;flex-shrink:0"></span><label style="width:auto;min-width:auto">L</label><input id="l" value="30"><span class="unit" style="font-size:11px;color:var(--text-light)">m（P₁~P₂）</span></div>
+      <div class="field-row" style="margin-bottom:4px"><span style="width:22px;flex-shrink:0"></span><label style="width:auto;min-width:auto">K</label><input id="k" value="0"><span class="unit" style="font-size:11px;color:var(--text-light)">m</span><span style="font-size:11px;color:var(--text-light);white-space:nowrap">（正为弧外负为弧内）</span></div>
+      <div class="field-row" style="margin-bottom:0"><span style="width:22px;flex-shrink:0"></span><span style="width:auto;min-width:auto;visibility:hidden">K</span><button class="calc-btn sm" onclick="calc1()" style="margin:0;display:inline-block">算 点</button></div>
+    </div>
+
+    <div class="card">
+      <div class="lbl" style="font-size:10px;color:var(--text-light)">N (X)</div>
+      <div class="val" style="font-size:20px;font-weight:700;color:#2196F3" id="nVal">--</div>
+    </div>
+    <div class="card">
+      <div class="lbl" style="font-size:10px;color:var(--text-light)">E (Y)</div>
+      <div class="val" style="font-size:20px;font-weight:700;color:#4CAF50" id="eVal">--</div>
+    </div>
+
+    <div class="card history-box">
+      <h3>📋 计算记录 <button onclick="clearHistory()">清空记录</button></h3>
+      <div id="historyList"></div>
+    </div>
+  </div>
+
+  <div class="panel-right">
+    <canvas id="c"></canvas>
+  </div>
+</div>
+<div style="text-align:center;padding:1.5rem 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+</div>
+
+<script>
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+let _x1=0,_y1=0,_x2=0,_y2=0,_r=0,_cx=0,_cy=0,_f=0,_z=0,_j=0;
+
+function g(id) { return parseFloat(document.getElementById(id).value) || 0; }
+function s(id, v) { document.getElementById(id).textContent = v; }
+
+function getDir() {
+  return document.querySelector('input[name="dir"]:checked').value;
+}
+
+// ===== 计算记录 =====
+var histKey='arc_alignment_history';
+function getHist(){try{return JSON.parse(localStorage.getItem(histKey))||[]}catch(e){return[]}}
+function saveHist(arr){try{localStorage.setItem(histKey,JSON.stringify(arr.slice(0,50)))}catch(e){}}
+function addHist(msg){
+  var arr=getHist();arr.unshift({msg:msg,time:new Date().toLocaleString()});saveHist(arr);renderHist();
+}
+function renderHist(){
+  var arr=getHist(),el=document.getElementById('historyList');
+  if(!el)return;
+  if(arr.length===0){el.innerHTML='<div style="color:var(--text-light);font-size:12px;padding:8px;text-align:center">暂无记录</div>';return}
+  el.innerHTML=arr.map(function(r,i){
+    return '<div class="hist-item"><span class="tag">放样</span><span class="coord">'+r.msg+'</span><span style="color:var(--text-light);font-size:10px;flex-shrink:0">'+r.time+'</span><span class="del" onclick="delHist('+i+')">✕</span></div>'
+  }).join('');
+}
+function delHist(i){var arr=getHist();arr.splice(i,1);saveHist(arr);renderHist()}
+function clearHistory(){saveHist([]);renderHist()}
+
+// Lbl 0
+function calc0() {
+  _x1=g('x1'); _y1=g('y1'); _x2=g('x2'); _y2=g('y2'); _r=g('r');
+  if (_r<=0 || Math.hypot(_x2-_x1,_y2-_y1)<=0) return;
+
+  const I = Math.hypot(_x2-_x1, _y2-_y1);
+  const halfAngle = Math.asin(Math.min(I/(2*_r),1));
+  const halfDeg = halfAngle * 180/Math.PI;
+
+  let _j = Math.atan2(_y2-_y1, _x2-_x1) * 180/Math.PI;
+  if (_j < 0) _j += 360;
+
+  const isLeft = getDir() === 'left';
+  _f = isLeft ? (_j + halfDeg) : (_j - halfDeg);
+  if (_f < 0) _f += 360; if (_f >= 360) _f -= 360;
+
+  _z = 2 * halfAngle * _r;
+
+  const centerAngle = isLeft ? (_f - 90) : (_f + 90);
+  _cx = _x1 + _r * Math.cos(centerAngle * Math.PI/180);
+  _cy = _y1 + _r * Math.sin(centerAngle * Math.PI/180);
+
+  s('zVal', _z.toFixed(3) + ' m');
+  s('oVal', 'O('+_cx.toFixed(3)+', '+_cy.toFixed(3)+')');
+  s('fVal', _f.toFixed(4) + '° 弧' + (isLeft?'左鼓':'右鼓'));
+
+  addHist('基线 Z='+_z.toFixed(3)+'m O('+_cx.toFixed(2)+','+_cy.toFixed(2)+')');
+  draw0();
+}
+
+// Lbl 1
+function calc1() {
+  const L = g('l'), K = g('k');
+  if (_r <= 0 || L < 0 || L > _z) {
+    s('nVal', 'L超范围 (0~'+_z.toFixed(2)+')');
+    s('eVal', '');
+    return;
+  }
+
+  const isLeft = getDir() === 'left';
+  const arcAngle = (L/_r) * 180/Math.PI;
+  const T = isLeft ? (_f + 90 - arcAngle) : (_f - 90 + arcAngle);
+
+  const N = _cx + (_r + K) * Math.cos(T * Math.PI/180);
+  const E = _cy + (_r + K) * Math.sin(T * Math.PI/180);
+
+  s('nVal', N.toFixed(4));
+  s('eVal', E.toFixed(4));
+
+  addHist('L='+L.toFixed(2)+' K='+K.toFixed(2)+' N('+N.toFixed(3)+','+E.toFixed(3)+')');
+  draw1(L, K, T, N, E);
+}
+
+let _draw_w=0, _draw_h=0, _draw_m=50, _draw_scale=1, _draw_mx=0, _draw_my=0;
+
+// ── draw baseline ──
+function draw0() {
+  const w=c.clientWidth, h=c.clientHeight, dpr=window.devicePixelRatio||1;
+  c.width=w*dpr; c.height=h*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+
+  const xs=[_x1,_x2,_cx], ys=[_y1,_y2,_cy];
+  const xMin=Math.min(...xs)-10,xMax=Math.max(...xs)+10;
+  const yMin=Math.min(...ys)-10,yMax=Math.max(...ys)+10;
+  const span=Math.max(xMax-xMin,yMax-yMin,20)*1.3;
+  const mx=(xMin+xMax)/2, my=(yMin+yMax)/2, m=50;
+  const scale=Math.min((w-2*m)/span,(h-2*m)/span);
+  const tx = x => w/2 + (x-mx)*scale;
+  const ty = y => h/2 - (y-my)*scale;
+  _draw_w=w; _draw_h=h; _draw_m=m; _draw_scale=scale; _draw_mx=mx; _draw_my=my;
+
+  ctx.strokeStyle='#e0e0e0';ctx.lineWidth=1;ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(m,h/2);ctx.lineTo(w-m,h/2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(w/2,m);ctx.lineTo(w/2,h-m);ctx.stroke();
+  ctx.setLineDash([]);
+
+  const cx_=_cx, cy_=_cy;
+  ctx.strokeStyle='#BBDEFB';ctx.lineWidth=1.5;ctx.setLineDash([5,4]);
+  ctx.beginPath();ctx.arc(tx(cx_),ty(cy_),_r*scale,0,Math.PI*2);ctx.stroke();
+  ctx.setLineDash([]);
+
+  const a1=Math.atan2(_y1-cy_, _x1-cx_), a2=Math.atan2(_y2-cy_, _x2-cx_);
+  let arcStart = a1, arcEnd = a2;
+  if (arcEnd <= arcStart) arcEnd += 2*Math.PI;
+  if (arcEnd - arcStart > Math.PI) { [arcStart, arcEnd] = [arcEnd, arcStart + 2*Math.PI]; }
+  ctx.strokeStyle='#D4A017';ctx.lineWidth=3.5;
+  ctx.beginPath();
+  const steps = 80;
+  for(let i=0;i<=steps;i++){
+    const t = i/steps;
+    const a = arcStart + (arcEnd-arcStart)*t;
+    const px=cx_+_r*Math.cos(a), py=cy_+_r*Math.sin(a);
+    i===0?ctx.moveTo(tx(px),ty(py)):ctx.lineTo(tx(px),ty(py));
+  }
+  ctx.stroke();
+
+  const isLeft = getDir() === 'left';
+  const la = arcStart + (arcEnd-arcStart)*0.5;
+  const lx=cx_+_r*Math.cos(la), ly=cy_+_r*Math.sin(la);
+  ctx.fillStyle='#D4A017'; ctx.font='bold 11px Microsoft YaHei'; ctx.textAlign='center';
+  ctx.fillText(isLeft?'↰ 左弯':'↱ 右弯', tx(lx), ty(ly)+4);
+
+  ctx.strokeStyle='#37474F';ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(tx(_x1),ty(_y1));ctx.lineTo(tx(_x2),ty(_y2));ctx.stroke();
+
+  const ox=tx(cx_), oy=ty(cy_);
+  ctx.beginPath();ctx.arc(ox,oy,5,0,Math.PI*2);
+  ctx.fillStyle='#D4A017';ctx.fill();ctx.strokeStyle='#333';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='#D4A017';ctx.font='bold 11px Consolas';
+  ctx.fillText('O',ox+12,oy+14);
+
+  ctx.strokeStyle='#D4A017';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(tx(_x1),ty(_y1));ctx.stroke();
+  ctx.setLineDash([]);
+
+  for(const [x,y,name,clr] of [[_x2,_y2,'P₁','#E53935'],[_x1,_y1,'P₂','#FF9800']]){
+    const px=tx(x), py=ty(y);
+    ctx.beginPath();ctx.arc(px,py,5,0,Math.PI*2);
+    ctx.fillStyle=clr;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=clr;ctx.font='bold 11px Consolas';
+    ctx.fillText(name,px+10,py-8);
+  }
+
+  const dd=_x2-_x1, dy2=_y2-_y1;
+  const cross = dd*(_cy-_y1) - dy2*(_cx-_x1);
+  ctx.fillStyle='#D4A017'; ctx.font='bold 12px Microsoft YaHei'; ctx.textAlign='right';
+  ctx.fillText(cross < 0 ? '← 左转' : '→ 右转', w-m, 18);
+  ctx.fillStyle='#37474F';ctx.font='bold 12px Consolas';
+  ctx.fillText('Z='+_z.toFixed(2)+'m', w-m, 36);
+  ctx.fillStyle='#D4A017';ctx.font='bold 11px Consolas';
+  ctx.fillText('O('+_cx.toFixed(2)+','+_cy.toFixed(2)+')', w-m, 54);
+
+  // By Lvmyth AI 水印
+  ctx.fillStyle='rgba(150,150,150,0.5)';ctx.font='10px sans-serif';ctx.textAlign='right';ctx.textBaseline='bottom';
+  ctx.fillText('By Lvmyth AI', w-8, h-6);
+}
+
+function draw1(L, K, T, N, E) {
+  draw0();
+  const w=_draw_w, h=_draw_h, m=_draw_m, scale=_draw_scale, mx=_draw_mx, my=_draw_my;
+  const tx=x=>w/2+(x-mx)*scale, ty=y=>h/2-(y-my)*scale;
+
+  const px=tx(N), py=ty(E);
+  ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);
+  ctx.fillStyle='#E91E63';ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+
+  if (Math.abs(K)>0.01){
+    const onX=_cx+_r*Math.cos(T*Math.PI/180), onY=_cy+_r*Math.sin(T*Math.PI/180);
+    ctx.strokeStyle='#E91E63';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+    ctx.beginPath();ctx.moveTo(tx(onX),ty(onY));ctx.lineTo(px,py);ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  ctx.fillStyle='#E91E63';ctx.font='bold 11px Consolas';
+  ctx.fillText('P(L='+L.toFixed(1)+')', px+12, py-8);
+}
+
+window.addEventListener('load', function(){calc0();renderHist()});
+window.addEventListener('resize', ()=>{if(document.getElementById('zVal').textContent!=='--')draw0()});
+</script>
+<script>
+// 粒子背景
+var c_p=document.getElementById('particleCanvas'),x=c_p.getContext('2d');var W,H,ps=[],m={x:-9999,y:-9999};var CF={count:120,speed:0.25,cDist:110,mR:160};
+function rs(){W=c_p.width=innerWidth;H=c_p.height=innerHeight}
+class P{constructor(){this.rr()}rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}}
+function ln(){var dS=CF.cDist*CF.cDist;for(var i=0;i<ps.length;i++)for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}if(m.x>0){var mR2=CF.mR*CF.mR;for(var i=0;i<ps.length;i++){var dx=ps[i].x-m.x,dy=ps[i].y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}}
+function an(){x.clearRect(0,0,W,H);for(var i=0;i<ps.length;i++){ps[i].up();ps[i].dr()}ln();requestAnimationFrame(an)}
+rs();for(var i=0;i<CF.count;i++)ps.push(new P());
+addEventListener('resize',function(){rs();for(var i=0;i<ps.length;i++){ps[i].x=Math.random()*W;ps[i].y=Math.random()*H}});
+addEventListener('mousemove',function(e){m.x=e.clientX;m.y=e.clientY});
+addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
+addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
+addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
+an();
+</script>
+</body>
+</html>
