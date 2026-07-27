@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极坐标放样计算器 - 测量员在线工具箱</title>
+    <style>
+:root {
+  --primary: #2c6e49; --primary-light: #4c956c; --primary-dark: #1b4d2e;
+  --accent: #d68c45; --accent-glow: rgba(214,140,69,0.3);
+  --info: #2980b9; --bg: #f5f7f0; --bg-card: #ffffff; --bg-nav: #1a2f24;
+  --text: #2d3436; --text-light: #636e72; --text-muted: #9ea4a8;
+  --border: #dde1d6; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-hover: 0 4px 20px rgba(0,0,0,0.14);
+  --radius: 12px; --radius-sm: 6px;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html{background:var(--bg-nav)}
+body {
+  font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  background: var(--bg); color: var(--text); line-height: 1.6;
+  min-height: 100vh; padding-top: 64px;
+}
+#particleCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; background: var(--bg); }
+
+        
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+        }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { #app { padding: 0.5rem !important; } .card { padding: 12px !important; } #visualizer-container { height: 220px !important; } .station-summary { flex-direction: column; gap: 6px; } }
+        @media (max-width: 600px) {
+          nav[class*="navbar"] { padding: 0 0.5rem !important; }
+          .navbar-inner { height: 52px !important; }
+          .navbar .logo { font-size: 0.95rem !important; }
+          .navbar .logo img { height: 22px !important; margin-right: 4px !important; }
+          .nav-links a { padding: 4px 8px !important; font-size: 0.75rem !important; }
+          input[type="number"], textarea { font-size: 0.85rem !important; } textarea { min-height: 100px !important; }
+        }
+        @media (max-width: 480px) {
+          .nav-links a { padding: 4px 6px !important; font-size: 0.65rem !important; }
+          #app { padding: 0.3rem !important; }
+          .btn-primary, .btn-outline { padding: 8px 12px !important; font-size: 0.8rem !important; }
+        }
+        header {
+            max-width: 1200px;
+            margin: 0 auto 20px auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 {
+            font-size: 1.5rem;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .icon-calculator {
+            width: 24px;
+            height: 24px;
+            background-color: var(--primary);
+            mask: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-6 14H7v-2h6v2zm4-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>') no-repeat center;
+            -webkit-mask: url('data:image/svg+xml;utf8,<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-6 14H7v-2h6v2zm4-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>') no-repeat center;
+        }
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow); padding: 20px; border: 1px solid var(--border);
+        }
+        .card-header {
+            margin-bottom: 15px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .form-group { margin-bottom: 15px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        .input-row { display: flex; gap: 10px; }
+        .input-wrapper { flex: 1; position: relative; }
+        .input-wrapper span {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            pointer-events: none;
+        }
+        input[type="number"], textarea {
+            width: 100%;
+            padding: 8px 10px 8px 35px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+            font-family: monospace;
+        }
+        textarea {
+            padding: 10px;
+            min-height: 150px;
+            resize: vertical;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            gap: 6px;
+        }
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        .btn-primary:hover { background: var(--primary-light); }
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        .btn-outline:hover {
+            background-color: var(--bg);
+            border-color: var(--text-light);
+        }
+        #visualizer-container {
+            width: 100%;
+            height: 300px;
+            background-color: var(--bg);
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        canvas { display: block; width: 100%; height: 100%; }
+        .canvas-overlay {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+        .table-container { overflow-x: auto; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            text-align: center;
+            padding: 12px 8px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        th:first-child, td:first-child { text-align: left; }
+        th {
+            background-color: #f8fafc;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        tr:hover { background-color: var(--bg); }
+        .result-highlight {
+            font-family: monospace;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .status-badge {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        .bg-green { background-color: var(--primary); }
+        .bg-blue { background-color: var(--primary); }
+        .bg-orange { background-color: #f97316; }
+
+        /* 新增：参数摘要栏样式 */
+        .station-summary {
+            display: flex;
+            gap: 20px;
+            background: var(--bg); /* 淡蓝色背景 */
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .summary-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+            flex: 1;
+            min-width: 200px;
+        }
+        .summary-label {
+            color: var(--text-light);
+            margin-right: 10px;
+            font-weight: 500;
+        }
+        .summary-value {
+            font-weight: 700;
+            font-family: monospace;
+            color: var(--primary);
+            font-size: 1rem;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--text);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 1000;
+        }
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .helper-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+    @media print { .navbar, .btn, .no-print, #particleCanvas { display: none !important; } }
+</style>
+</head>
+<body>
+
+      <canvas id="particleCanvas"></canvas>
+  <nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+    <div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+      <a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+      <ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+        <li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+        <li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+        <li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+      </ul>
+    </div>
+  </nav>
+  <div id="app" style="max-width:1400px;margin:0 auto;padding:1rem;position:relative;z-index:1">
+    
+
+    <div class="container">
+        <!-- Left Column: Inputs -->
+        <div class="sidebar">
+            <!-- Station & Backsight -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <span><span class="status-badge bg-orange"></span>测站与后视</span>
+                </div>
+                <div class="form-group">
+                    <label>测站点坐标 (A)</label>
+                    <div class="input-row">
+                        <div class="input-wrapper">
+                            <span>X:</span>
+                            <input type="number" id="stationX" step="0.001" placeholder="0.000" value="100.000">
+                        </div>
+                        <div class="input-wrapper">
+                            <span>Y:</span>
+                            <input type="number" id="stationY" step="0.001" placeholder="0.000" value="100.000">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>后视点坐标 (B)</label>
+                    <div class="input-row">
+                        <div class="input-wrapper">
+                            <span>X:</span>
+                            <input type="number" id="backsightX" step="0.001" placeholder="0.000" value="200.000">
+                        </div>
+                        <div class="input-wrapper">
+                            <span>Y:</span>
+                            <input type="number" id="backsightY" step="0.001" placeholder="0.000" value="100.000">
+                        </div>
+                    </div>
+                    <p class="helper-text">用于计算后视方位角和后视距离</p>
+                </div>
+            </div>
+
+            <!-- Target Points Input -->
+            <div class="card">
+                <div class="card-header">
+                    <span>待放样点数据 (P)</span>
+                </div>
+                <div class="form-group">
+                    <label>输入坐标 (格式: 编号 X Y)</label>
+                    <textarea id="pointsInput" placeholder="P1 150.5 120.3&#10;P2 110.2 180.5&#10;P3 80.5 90.0">P1 150.000 120.000
+P2 110.000 180.000
+P3 50.000 100.000</textarea>
+                    <p class="helper-text">每行一个点，用空格或逗号分隔。</p>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-primary" style="flex:1;" onclick="calculateAndRender()">
+                        计算放样
+                    </button>
+                    <button class="btn btn-outline" onclick="loadExampleData()">
+                        示例
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Results & Visualizer -->
+        <div class="main-content">
+            <!-- Visualizer -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <span><span class="status-badge bg-blue"></span>图形预览 (北向上)</span>
+                    <span style="font-size:0.8rem; font-weight:400; color:var(--text-muted)">自动缩放</span>
+                </div>
+                <div id="visualizer-container">
+                    <canvas id="mapCanvas"></canvas>
+                    <div class="canvas-overlay">测站(红色) | 后视(橙色) | 放样点(蓝色)</div>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div class="card">
+                <div class="card-header">
+                    <span>计算结果</span>
+                    <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;" onclick="exportCSV()">
+                        导出 CSV
+                    </button>
+                </div>
+                
+                <!-- 测站-后视固定参数摘要 -->
+                <div class="station-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">后视方位角 α<sub>BS</sub>:</span>
+                        <span class="summary-value" id="resAlphaBS">-</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">后视距离 S<sub>BS</sub>:</span>
+                        <span class="summary-value" id="resDistBS">-</span>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table id="resultTable">
+                        <thead>
+                            <tr>
+                                <th>点号</th>
+                                <!-- 删除了后视方位角列 -->
+                                <th>放样方位角<br><span style="font-size:0.8em;font-weight:normal">α_Target</span></th>
+                                <th>夹角 β (HR)<br><span style="font-size:0.8em;font-weight:normal">α_Target - α_BS</span></th>
+                                <th>水平距离 L (HD)<br><span style="font-size:0.8em;font-weight:normal">√(Δx²+Δy²)</span></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: var(--text-muted;">
+                                    请输入坐标并点击“计算放样”
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">计算完成</div>
+
+    <script>
+        const D2R = Math.PI / 180;
+        const R2D = 180 / Math.PI;
+        let calculatedData = [];
+        let globalBaseAzimuthStr = "-"; // 存储用于导出
+
+        const stationXEl = document.getElementById('stationX');
+        const stationYEl = document.getElementById('stationY');
+        const backsightXEl = document.getElementById('backsightX');
+        const backsightYEl = document.getElementById('backsightY');
+        const pointsInputEl = document.getElementById('pointsInput');
+        const resultTableBody = document.querySelector('#resultTable tbody');
+        const resAlphaBSEl = document.getElementById('resAlphaBS');
+        const resDistBSEl = document.getElementById('resDistBS');
+        
+        const canvas = document.getElementById('mapCanvas');
+        const ctx = canvas.getContext('2d');
+        const toast = document.getElementById('toast');
+
+        function ddToDms(dd) {
+            let sign = dd < 0 ? -1 : 1;
+            dd = Math.abs(dd);
+            let deg = Math.floor(dd);
+            let minFloat = (dd - deg) * 60;
+            let min = Math.floor(minFloat);
+            let sec = ((minFloat - min) * 60).toFixed(1); 
+            
+            if (sec == 60) { 
+                sec = "0.0"; 
+                min++; 
+            }
+            if (min == 60) { 
+                min = 0; 
+                deg++; 
+            }
+            return { deg, min, sec, str: `${deg}°${min.toString().padStart(2, '0')}'${sec.padStart(4, '0')}"` };
+        }
+
+        function calculateAzimuth(x1, y1, x2, y2) {
+            let dx = x2 - x1;
+            let dy = y2 - y1;
+            let angle = Math.atan2(dy, dx);
+            if (angle < 0) angle += 2 * Math.PI;
+            return angle;
+        }
+
+        function calculateAndRender() {
+            const stX = parseFloat(stationXEl.value);
+            const stY = parseFloat(stationYEl.value);
+
+            const bsX = parseFloat(backsightXEl.value);
+            const bsY = parseFloat(backsightYEl.value);
+
+            if (isNaN(stX) || isNaN(stY) || isNaN(bsX) || isNaN(bsY)) {
+                showToast("请填写有效的测站和后视坐标");
+                return;
+            }
+
+            const baseAzimuthRad = calculateAzimuth(stX, stY, bsX, bsY);
+            const baseAzimuthDeg = baseAzimuthRad * R2D;
+            const baseAzimuthDms = ddToDms(baseAzimuthDeg);
+            
+            // 计算后视距离
+            const distBS = Math.sqrt(Math.pow(bsX - stX, 2) + Math.pow(bsY - stY, 2));
+            
+            // 更新上方摘要显示
+            resAlphaBSEl.textContent = baseAzimuthDms.str;
+            resDistBSEl.textContent = distBS.toFixed(3) + " m";
+            globalBaseAzimuthStr = baseAzimuthDms.str;
+
+            const rawText = pointsInputEl.value.trim();
+            if (!rawText) {
+                showToast("请输入待放样点数据");
+                return;
+            }
+
+            const lines = rawText.split('\n');
+            const results = [];
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+                const parts = line.split(/[\s,]+/);
+                
+                if (parts.length < 3) return;
+
+                const id = parts[0];
+                const x = parseFloat(parts[1]);
+                const y = parseFloat(parts[2]);
+
+                if (isNaN(x) || isNaN(y)) return;
+
+                const dist = Math.sqrt(Math.pow(x - stX, 2) + Math.pow(y - stY, 2));
+                const targetAzimuthRad = calculateAzimuth(stX, stY, x, y);
+                const targetAzimuthDeg = targetAzimuthRad * R2D;
+                const targetAzimuthDms = ddToDms(targetAzimuthDeg);
+                
+                let betaRad = targetAzimuthRad - baseAzimuthRad;
+                if (betaRad < 0) betaRad += 2 * Math.PI;
+                
+                const betaDeg = betaRad * R2D;
+                const betaDms = ddToDms(betaDeg);
+
+                results.push({
+                    id,
+                    x, y,
+                    dist,
+                    targetAzimuthStr: targetAzimuthDms.str,
+                    betaStr: betaDms.str
+                });
+            });
+
+            calculatedData = results;
+            renderTable(results);
+            drawVisualizer(stX, stY, bsX, bsY, results);
+            showToast("计算完成");
+        }
+
+        function renderTable(data) {
+            resultTableBody.innerHTML = '';
+            if (data.length === 0) {
+                resultTableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">无有效数据</td></tr>';
+                return;
+            }
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${row.id}</strong><br><span style="color:var(--text-muted); font-size:0.8em">X:${row.x} Y:${row.y}</span></td>
+                    <td>${row.targetAzimuthStr}</td>
+                    <td class="result-highlight">${row.betaStr}</td>
+                    <td class="result-highlight">${row.dist.toFixed(3)}</td>
+                `;
+                tr.style.cursor = 'pointer';
+                tr.addEventListener('click', () => {
+                   drawVisualizer(
+                       parseFloat(stationXEl.value), 
+                       parseFloat(stationYEl.value), 
+                       parseFloat(backsightXEl.value), 
+                       parseFloat(backsightYEl.value), 
+                       calculatedData, 
+                       row.id
+                   );
+                });
+                resultTableBody.appendChild(tr);
+            });
+        }
+
+        function drawVisualizer(stX, stY, bsX, bsY, points, highlightId = null) {
+            const container = document.getElementById('visualizer-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2;
+
+            ctx.clearRect(0, 0, w, h);
+            ctx.fillStyle = '#f5f7f0';
+            ctx.fillRect(0,0,w,h);
+
+            let minX = stX, maxX = stX, minY = stY, maxY = stY;
+            [bsX, bsY, ...points.flatMap(p => [p.x, p.y])].forEach((val, i) => {
+                if (i % 2 === 0) { 
+                    if (val < minX) minX = val;
+                    if (val > maxX) maxX = val;
+                } else { 
+                    if (val < minY) minY = val;
+                    if (val > maxY) maxY = val;
+                }
+            });
+
+            const padX = (maxX - minX) * 0.2 || 10;
+            const padY = (maxY - minY) * 0.2 || 10;
+            minX -= padX; maxX += padX;
+            minY -= padY; maxY += padY;
+
+            const rangeX = maxX - minX;
+            const rangeY = maxY - minY;
+
+            function toScreen(x, y) {
+                const sx = cx + ((y - (minY + maxY)/2) / rangeY) * (w * 0.8); // y (东) -> 屏幕水平
+                const sy = cy - ((x - (minX + maxX)/2) / rangeX) * (h * 0.8); // x (北) -> 屏幕垂直
+                return { x: sx, y: sy };
+            }
+
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for(let i=0; i<=10; i++) {
+                const y = (minY) + (rangeY * i / 10); 
+                const p = toScreen(minX, y);
+                ctx.moveTo(p.x, 0); ctx.lineTo(p.x, h);
+            }
+            for(let i=0; i<=10; i++) {
+                const x = (minX) + (rangeX * i / 10); 
+                const p = toScreen(x, minY);
+                ctx.moveTo(0, p.y); ctx.lineTo(w, p.y);
+            }
+            ctx.stroke();
+
+            const stPt = toScreen(stX, stY);
+            const bsPt = toScreen(bsX, bsY);
+            
+            ctx.strokeStyle = '#f59e0b'; 
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(stPt.x, stPt.y);
+            ctx.lineTo(bsPt.x, bsPt.y);
+            ctx.stroke();
+
+            drawPoint(stPt.x, stPt.y, '#ef4444', 'ST', 6);
+            drawPoint(bsPt.x, bsPt.y, '#f59e0b', 'BS', 5);
+
+            points.forEach(p => {
+                const pt = toScreen(p.x, p.y);
+                const isHighlight = highlightId === p.id;
+                const color = isHighlight ? '#2563eb' : '#9ea4a8';
+                const size = isHighlight ? 6 : 4;
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(stPt.x, stPt.y);
+                ctx.lineTo(pt.x, pt.y);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                drawPoint(pt.x, pt.y, color, p.id, size);
+            });
+            
+            // 右下角水印
+            ctx.fillStyle = 'rgba(0,0,0,0.25)';
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText('By Lvmyth AI', w - 8, h - 6);
+        }
+
+        function drawPoint(x, y, color, label, size) {
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            ctx.font = '10px sans-serif';
+            const metrics = ctx.measureText(label);
+            const lw = metrics.width + 4;
+            const lh = 14;
+            
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.fillRect(x + 8, y - 7, lw, lh);
+            
+            ctx.fillStyle = '#2d3436';
+            ctx.fillText(label, x + 10, y + 4);
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        function loadExampleData() {
+            stationXEl.value = 5000.000;
+            stationYEl.value = 5000.000;
+            backsightXEl.value = 5100.000;
+            backsightYEl.value = 5000.000;
+            pointsInputEl.value = "K1+100 5050.000 5020.000\nK1+200 5080.000 5050.000\nK1+300 5120.000 5030.000\nK1+400 5150.000 4980.000";
+            calculateAndRender();
+        }
+
+        function exportCSV() {
+            if (calculatedData.length === 0) {
+                showToast("无数据可导出");
+                return;
+            }
+
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
+            // CSV Header: 移除了后视方位角列
+            csvContent += "点号,坐标X,坐标Y,放样方位角,夹角(度),夹角(DMS),水平距离\n";
+            
+            calculatedData.forEach(row => {
+                const id = row.id.replace(/,/g, '');
+                const dms = row.betaStr.match(/(\d+)°(\d+)'([\d.]+)"/);
+                const betaDeg = dms ? (parseFloat(dms[1]) + parseFloat(dms[2])/60 + parseFloat(dms[3])/3600).toFixed(5) : "";
+                
+                csvContent += `${id},${row.x},${row.y},${row.targetAzimuthStr},${betaDeg},${row.betaStr},${row.dist.toFixed(3)}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "放样数据_" + new Date().toISOString().slice(0,10) + ".csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.addEventListener('resize', () => {
+            if (calculatedData.length > 0) {
+                calculateAndRender();
+            }
+        });
+
+        window.addEventListener('DOMContentLoaded', calculateAndRender);
+    </script>
+  </div>
+  <div class="no-print" style="max-width:1400px;margin:0 auto;padding:1rem;border-top:1px solid #ddd;text-align:center;color:#999;font-size:0.8rem;position:relative;z-index:1;background:var(--bg)">
+    <a href="mailto:lvmyth@qq.com" style="color:#999;text-decoration:none">By Lvmyth AI</a>
+  </div>
+</body>
+</html>

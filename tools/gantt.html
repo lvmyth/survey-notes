@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>甘特图 - 测量员在线工具箱</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+  <!-- PDF 导出依赖 -->
+      
+  <!-- Google Fonts -->
+        
+  <style>
+    :root {
+      --primary: #2c6e49;
+      --primary-light: #4c956c;
+      --primary-dark: #1b4d2e;
+      --accent: #d68c45;
+      --bg: #f5f7f0;
+      --bg-card: #fff;
+      --bg-nav: #1a2f24;
+      --text: #2d3436;
+      --text-light: #636e72;
+      --text-muted: #9ea4a8;
+      --border: #dde1d6;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --accent-glow: rgba(44, 110, 73, 0.15);
+      --danger: #e5534e;
+      --info: #4a90d9;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { background: var(--bg-nav); }
+    html { background: var(--bg-nav); }
+    body {
+      font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      padding-top: 64px;
+    }
+
+    .mono { font-family: 'JetBrains Mono', 'Consolas', monospace; }
+
+    /* 任务条 */
+    .task-bar {
+      position: absolute;
+      height: 18px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+
+    .task-bar:hover {
+      transform: translateY(-1px) scaleY(1.1);
+      box-shadow: 0 4px 16px var(--accent-glow);
+      z-index: 10;
+    }
+
+    .bar-completed { background: linear-gradient(135deg, var(--primary), var(--primary-light)); }
+    .bar-active { background: linear-gradient(135deg, var(--info), #3a78b8); }
+    .bar-pending { background: linear-gradient(135deg, var(--text-muted), #8a8f94); }
+
+    .task-row {
+      transition: background 0.15s ease;
+      border-bottom: 1px solid var(--border);
+    }
+    .task-row:hover { background: #eef1ea; }
+    .task-row:nth-child(even) { background: #fafbf8; }
+    .task-row:nth-child(even):hover { background: #eef1ea; }
+
+    /* 表格样式 */
+    table { border-collapse: collapse; width: 100%; }
+    th { font-weight: 500; white-space: nowrap; }
+
+    /* 滚动条 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-light); }
+
+    /* 按钮 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .btn-outline {
+      background: transparent;
+      color: var(--text-light);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(44,110,73,0.05);
+    }
+
+    /* 输入框 */
+    .input-field {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .input-field::placeholder { color: var(--text-muted); }
+
+    .inline-date {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-light);
+      padding: 1px 3px;
+      border-radius: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      width: 100%;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      line-height: 1.2;
+    }
+    .inline-date:hover {
+      background: var(--bg);
+      border-color: var(--border);
+    }
+    .inline-date:focus {
+      outline: none;
+      background: var(--bg);
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px var(--accent-glow);
+    }
+
+    .del-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .del-btn:hover {
+      background: rgba(229, 83, 78, 0.15);
+      color: var(--danger);
+    }
+
+    /* 模态框 */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+    }
+    .modal-backdrop.active { opacity: 1; visibility: visible; }
+    .modal-panel {
+      position: fixed;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.95);
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      width: 92%;
+      max-width: 440px;
+      z-index: 101;
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .modal-backdrop.active .modal-panel {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .tag-done { background: rgba(44,110,73,0.12); color: var(--primary); }
+    .tag-doing { background: rgba(74,144,217,0.12); color: var(--info); }
+    .tag-todo { background: rgba(158,164,168,0.2); color: var(--text-muted); }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .anim-slide { animation: slideUp 0.5s ease forwards; }
+    .anim-d1 { animation-delay: 0.05s; opacity: 0; }
+    .anim-d2 { animation-delay: 0.1s; opacity: 0; }
+    .anim-d3 { animation-delay: 0.15s; opacity: 0; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    @media (max-width: 992px) {
+      .hide-tablet { display: none !important; }
+      header .flex-col { flex-direction: column !important; }
+    }
+    @media (max-width: 768px) {
+      .hide-mobile { display: none !important; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      #app { padding: 0.75rem !important; }
+      header h1 input { font-size: 1.1rem !important; min-width: 200px !important; }
+      header .flex.items-center.gap-3.mb-1 { flex-wrap: wrap; }
+      header .flex.items-center.gap-3.ml-5 { flex-wrap: wrap; gap: 6px !important; }
+      header .flex.items-center.gap-3.ml-5 .btn { font-size: 0.78rem !important; padding: 6px 10px !important; }
+      header .flex.items-center.gap-3.ml-5 .btn svg { width: 14px !important; height: 14px !important; }
+    }
+    @media (max-width: 640px) {
+      #app { padding: 0.5rem !important; }
+      body { padding-top: 52px; }
+      .stats-grid { gap: 0.5rem !important; }
+      .stats-grid > div { padding: 0.5rem !important; }
+      .stats-grid > div > div.text-lg { font-size: 1rem !important; }
+    }
+    @media (max-width: 600px) {
+      nav[class*="navbar"] { padding: 0 0.5rem !important; }
+      .navbar-inner { height: 52px !important; }
+      .navbar .logo { font-size: 1rem !important; }
+      .navbar .logo img { height: 24px !important; margin-right: 4px !important; }
+      .nav-links a { padding: 6px 8px !important; font-size: 0.8rem !important; }
+    }
+    @media (max-width: 480px) {
+      .nav-links a { padding: 4px 6px !important; font-size: 0.7rem !important; }
+      #app { padding: 0.3rem !important; }
+    }
+    @media print {
+      .navbar, #toolbar, #editTip, .btn, .no-print, nav[class*="navbar"], #particleCanvas { display: none !important; }
+      .w-10.flex-shrink-0.flex.items-center.justify-center { display: none !important; }
+      body { background: #fff !important; color: #000 !important; }
+      #app { max-width: none !important; margin: 0 !important; padding: 3px !important; }
+      /* thead 每页重复，加顶边模拟卡片顶部 */
+      thead { display: table-header-group; }
+      thead tr { border-top: 3px solid var(--primary) !important; }
+      tbody { display: table-row-group; }
+      .task-row, tr { break-inside: avoid; page-break-inside: avoid; }
+      .task-bar, .bar-completed, .bar-active, .bar-pending { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .task-row { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      .task-row:nth-child(even) { background: #f2f5ef !important; }
+      .task-row:nth-child(odd) { background: #ffffff !important; }
+      .inline-date { color: #000 !important; border-color: #ccc !important; }
+      header h1 { font-size: 16px !important; }
+      .stats-grid > div { padding: 6px !important; }
+      .stats-grid > div > div.text-2xl { font-size: 16px !important; }
+      @page { size: landscape; margin: 5mm; }
+    }
+    #particleCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; background: var(--bg); }
+    #app { position: relative; z-index: 1; }
+  </style>
+</head>
+<body>
+  <canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div></nav>
+
+  <div id="app" class="p-4 md:p-6 lg:p-8" style="max-width:1400px;margin:0 auto">
+    
+    <!-- 头部 -->
+    <header class="anim-slide mb-6">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-3 mb-1">
+            <div class="w-2 h-8 rounded-sm" style="background: var(--primary);"></div>
+            <h1 class="text-xl md:text-2xl font-bold tracking-tight" style="color:var(--primary-dark);display:flex;align-items:center;gap:8px">
+              <input type="text" id="projectName" value="Lvmyth 工程工期横道图" 
+                     style="font:inherit;color:inherit;background:transparent;border:none;outline:none;border-bottom:2px solid transparent;width:auto;min-width:320px"
+                     onfocus="this.style.borderBottomColor='var(--primary)'" 
+                     onblur="saveData();this.style.borderBottomColor='transparent'"
+                     oninput="localStorage.setItem('ganttProjectName', this.value)">
+            </h1>
+          </div>
+          <p class="text-sm ml-5" style="color: var(--text-light);">
+            项目周期：<span class="mono" id="projStart">2026-06-01</span> 至 <span class="mono" id="projEnd">2026-07-31</span> | 总工期 <span class="mono font-semibold" id="projDays" style="color: var(--primary);">61</span> 天
+          </p>
+        </div>
+        <div class="flex items-center gap-3 ml-5 lg:ml-0">
+          <button class="btn btn-outline" onclick="window.print()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+            </svg>
+            打印
+          </button>
+          <button class="btn btn-outline" onclick="document.getElementById('importFile').click()" title="导入 .json 工程数据">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            导入
+          </button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+          <button class="btn btn-outline" onclick="exportData()" title="导出 .json 工程数据">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            导出
+          </button>
+          <button class="btn btn-primary" onclick="openForm()">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            新增任务
+          </button>
+          <button class="btn btn-outline" onclick="resetTasks()" title="恢复到初始的15条示例任务">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            重置
+          </button>
+          <button class="btn btn-outline" onclick="clearTasks()" title="删除所有任务">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M3 4h18"/></svg>
+            清空
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 可编辑注释 -->
+    <div class="mb-2 anim-slide anim-d1" style="color: var(--text-light); font-size: 12px; display: flex; align-items: center; gap: 6px;">
+      <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <input type="text" id="projectNote" value="开工时间：以具体开工令为准" 
+             style="font:inherit;color:inherit;background:transparent;border:none;outline:none;width:100%;min-width:200px;padding:2px 0"
+             onfocus="this.style.borderBottom='1px solid var(--primary)'"
+             onblur="saveData();this.style.borderBottom='none'"
+             onkeydown="if(event.key==='Enter')this.blur()">
+    </div>
+
+    <!-- 统计 -->
+    <div class="stats-grid grid grid-cols-4 gap-2 mb-3 anim-slide anim-d1">
+      <div class="p-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border);">
+        <div class="text-xs uppercase tracking-wide" style="color: var(--text-muted);">任务总数</div>
+        <div class="text-lg font-bold mono" id="statTotal">15</div>
+      </div>
+      <div class="p-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border);">
+        <div class="text-xs uppercase tracking-wide" style="color: var(--text-muted);">已完成</div>
+        <div class="text-lg font-bold mono" style="color: var(--primary);" id="statDone">0</div>
+      </div>
+      <div class="p-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border);">
+        <div class="text-xs uppercase tracking-wide" style="color: var(--text-muted);">进行中</div>
+        <div class="text-lg font-bold mono" style="color: var(--info);" id="statDoing">0</div>
+      </div>
+      <div class="p-2 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border);">
+        <div class="text-xs uppercase tracking-wide" style="color: var(--text-muted);">待开始</div>
+        <div class="text-lg font-bold mono" style="color: var(--text-light);" id="statTodo">0</div>
+      </div>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="flex flex-wrap items-center gap-3 mb-5 anim-slide anim-d2" id="toolbar">
+      <div class="flex-1 min-w-[180px] max-w-[300px]">
+        <input type="text" id="searchBox" class="input-field" placeholder="搜索任务名称..." oninput="applyFilter()">
+      </div>
+      <select id="filterStatus" class="input-field" style="width: auto; min-width: 120px;" onchange="applyFilter()">
+        <option value="">全部状态</option>
+        <option value="completed">已完成</option>
+        <option value="active">进行中</option>
+        <option value="pending">待开始</option>
+      </select>
+    </div>
+
+    <!-- 主体表格 -->
+    <div class="anim-slide anim-d3 rounded-lg" style="background: var(--bg-card); border: 1px solid var(--border); overflow-x: auto; overflow-y: hidden;">
+      
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:var(--bg);border-bottom:2px solid var(--primary);">
+            <th style="width:40px;padding:10px 5px;font-size:13px;font-weight:700;text-align:center;color:var(--text);border-right:1px solid var(--border);">序</th>
+            <th style="width:240px;padding:10px 12px;font-size:13px;font-weight:700;text-align:left;color:var(--text);border-right:1px solid var(--border);">任务名称</th>
+            <th style="width:128px;padding:10px 5px;font-size:13px;font-weight:700;text-align:center;color:var(--text);border-right:1px solid var(--border);">开始日期</th>
+            <th style="width:128px;padding:10px 5px;font-size:13px;font-weight:700;text-align:center;color:var(--text);border-right:1px solid var(--border);">结束日期</th>
+            <th style="width:56px;padding:10px 5px;font-size:13px;font-weight:700;text-align:center;color:var(--text);border-right:1px solid var(--border);">工期</th>
+            <th id="timeHeader" style="padding:0;position:relative;overflow:hidden;min-width:200px"></th>
+            <th class="no-print" style="width:40px;padding:10px 5px;font-size:13px;font-weight:700;text-align:center;color:var(--text);border-left:1px solid var(--border);">操作</th>
+          </tr>
+        </thead>
+        <tbody id="taskList"></tbody>
+      </table>
+
+      <!-- 任务列表 -->
+      <div id="taskList" class="chart-body"></div>
+    </div>
+
+    <!-- 图例 -->
+    <div class="mt-5 flex flex-wrap items-center gap-5 text-xs" style="color: var(--text-muted);">
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-sm bar-completed"></span>
+        <span>已完成</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-sm bar-active"></span>
+        <span>进行中</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="w-3 h-3 rounded-sm bar-pending"></span>
+        <span>待开始</span>
+      </div>
+      <div class="flex items-center gap-2 ml-auto" id="editTip" style="color: var(--text-light);">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        <span>点击横道线可直接编辑</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 任务表单模态框 -->
+  <div id="formModal" class="modal-backdrop">
+    <div class="modal-panel">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-semibold" id="formTitle">新增任务</h3>
+        <button onclick="closeForm()" class="p-1.5 rounded transition-colors hover:bg-white/10">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <form id="taskForm" onsubmit="saveTask(event)">
+        <input type="hidden" id="editId">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs mb-1.5" style="color: var(--text-muted);">项目名称</label>
+            <input type="text" id="editName" class="input-field" placeholder="输入项目名称" required>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs mb-1.5" style="color: var(--text-muted);">开始日期</label>
+              <input type="date" id="editStart" class="input-field" required>
+            </div>
+            <div>
+              <label class="block text-xs mb-1.5" style="color: var(--text-muted);">结束日期</label>
+              <input type="date" id="editEnd" class="input-field" required>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs mb-1.5" style="color: var(--text-muted);">状态</label>
+              <select id="editStatus" class="input-field">
+                <option value="pending">待开始</option>
+                <option value="active">进行中</option>
+                <option value="completed">已完成</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs mb-1.5" style="color: var(--text-muted);">&nbsp;</label>
+              <button type="submit" class="btn btn-primary w-full">保存</button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 页脚 -->
+  <div class="no-print" style="max-width:1400px;margin:0 auto;padding:1rem;border-top:1px solid #ddd;text-align:center;color:#999;font-size:0.8rem;position:relative;z-index:1;background:var(--bg)">
+    <a href="mailto:lvmyth@qq.com" style="color:#999;text-decoration:none">By Lvmyth AI</a>
+  </div>
+
+  <script>
+    // ====== 数据定义（基于 Excel 模板）======
+    let projectStart = new Date('2026-06-01');
+    let projectEnd = new Date('2026-07-31');
+    let totalDays = 61;
+    let dayWidth = Math.max(3, Math.min(22, Math.floor(1200 / totalDays)));
+    // 时间轴标签间隔
+    let labelInterval = dayWidth >= 18 ? 1 : dayWidth >= 12 ? 3 : dayWidth >= 8 ? 5 : 10;
+
+    let tasks = [
+      { id: 1, seq: 1, name: '场地整平', start: '2026-06-01', end: '2026-06-03', status: 'completed' },
+      { id: 2, seq: 2, name: '图纸会审', start: '2026-06-02', end: '2026-06-04', status: 'completed' },
+      { id: 3, seq: 3, name: '报建手续', start: '2026-06-01', end: '2026-06-10', status: 'completed' },
+      { id: 4, seq: 4, name: '桩基施工', start: '2026-06-05', end: '2026-06-14', status: 'completed' },
+      { id: 5, seq: 5, name: '土方开挖', start: '2026-06-10', end: '2026-06-17', status: 'completed' },
+      { id: 6, seq: 6, name: '地下室施工', start: '2026-06-15', end: '2026-06-29', status: 'active' },
+      { id: 7, seq: 7, name: '基坑回填', start: '2026-06-25', end: '2026-06-30', status: 'active' },
+      { id: 8, seq: 8, name: '主体结构', start: '2026-06-26', end: '2026-07-15', status: 'active' },
+      { id: 9, seq: 9, name: '主体验收', start: '2026-07-13', end: '2026-07-15', status: 'pending' },
+      { id: 10, seq: 10, name: '砌体施工', start: '2026-07-10', end: '2026-07-20', status: 'pending' },
+      { id: 11, seq: 11, name: '内外墙装饰', start: '2026-07-16', end: '2026-07-25', status: 'pending' },
+      { id: 12, seq: 12, name: '门窗安装', start: '2026-07-20', end: '2026-07-27', status: 'pending' },
+      { id: 13, seq: 13, name: '机电安装', start: '2026-07-18', end: '2026-07-28', status: 'pending' },
+      { id: 14, seq: 14, name: '专项验收', start: '2026-07-26', end: '2026-07-29', status: 'pending' },
+      { id: 15, seq: 15, name: '竣工交付', start: '2026-07-30', end: '2026-07-31', status: 'pending' },
+    ];
+
+    let nextId = 16;
+
+    // ====== localStorage 持久化 ======
+    function loadData() {
+      var saved = localStorage.getItem('ganttTasks');
+      if (saved) {
+        try {
+          var data = JSON.parse(saved);
+          tasks = data.tasks || tasks;
+          projectStart = data.projectStart ? new Date(data.projectStart) : projectStart;
+          projectEnd = data.projectEnd ? new Date(data.projectEnd) : projectEnd;
+          totalDays = data.totalDays || totalDays;
+          nextId = data.nextId || nextId;
+          dayWidth = Math.max(3, Math.min(22, Math.floor(1200 / totalDays)));
+          labelInterval = dayWidth >= 18 ? 1 : dayWidth >= 12 ? 3 : dayWidth >= 8 ? 5 : 10;
+        } catch(e) {}
+      }
+    }
+    function saveData() {
+      localStorage.setItem('ganttTasks', JSON.stringify({
+        tasks: tasks,
+        projectStart: projectStart.toISOString().slice(0,10),
+        projectEnd: projectEnd.toISOString().slice(0,10),
+        totalDays: totalDays,
+        nextId: nextId
+      }));
+      localStorage.setItem('ganttProjectName', document.getElementById('projectName').value);
+      // 保存注释
+      var note = document.getElementById('projectNote');
+      if (note) localStorage.setItem('ganttNote', note.value);
+      document.title = '甘特图 - 测量员在线工具箱';
+    }
+
+    // ====== PDF 导出 ======
+    async function exportPDF() {
+      // 导出前隐藏搜索栏、提示和删除按钮
+      var tb = document.getElementById('toolbar');
+      var tip = document.getElementById('editTip');
+      if (tb) tb.style.display = 'none';
+      if (tip) tip.style.display = 'none';
+      // 隐藏操作列的 hover 删除按钮
+      document.querySelectorAll('.w-10.flex-shrink-0.flex.items-center.justify-center').forEach(function(el){
+        if(el.style.borderLeft) el.style.display = 'none';
+      });
+
+      var el = document.getElementById('app');
+      el.style.background = '#fff';
+
+      try {
+        window.print();
+      } catch(e) {
+        console.error('导出失败:', e);
+        alert('导出失败，请重试');
+      } finally {
+        el.style.background = '';
+        if (tb) tb.style.display = '';
+        if (tip) tip.style.display = '';
+        document.querySelectorAll('.w-10.flex-shrink-0.flex.items-center.justify-center').forEach(function(el){
+          if(el.style.borderLeft) el.style.display = '';
+        });
+      }
+    }
+
+    function updateProjectInfo() {
+      document.getElementById('projStart').textContent = projectStart.toISOString().slice(0,10);
+      document.getElementById('projEnd').textContent = projectEnd.toISOString().slice(0,10);
+      document.getElementById('projDays').textContent = totalDays;
+      // 恢复项目名称
+      var savedName = localStorage.getItem('ganttProjectName');
+      if (savedName) document.getElementById('projectName').value = savedName;
+      var savedNote = localStorage.getItem('ganttNote');
+      if (savedNote) document.getElementById('projectNote').value = savedNote;
+      document.title = '甘特图 - 测量员在线工具箱';
+    }
+
+    // ====== 初始化 ======
+    function init() {
+      // 先恢复项目名称，避免被默认值覆盖
+      var savedName = localStorage.getItem('ganttProjectName');
+      if (savedName) document.getElementById('projectName').value = savedName;
+      var savedNote = localStorage.getItem('ganttNote');
+      if (savedNote) document.getElementById('projectNote').value = savedNote;
+
+      loadData();
+      // 自动修复：时间轴从第一个任务的开始到最后一个任务的结束
+      if (tasks.length > 0) {
+        projectStart = new Date(tasks[0].start);
+        projectEnd = new Date(tasks[0].end);
+        tasks.forEach(function(t){
+          var s = new Date(t.start); if (s < projectStart) projectStart = s;
+          var e = new Date(t.end); if (e > projectEnd) projectEnd = e;
+        });
+        totalDays = Math.ceil((projectEnd - projectStart) / (1000*60*60*24)) + 1;
+        dayWidth = Math.max(3, Math.min(22, Math.floor(1200 / totalDays)));
+        labelInterval = dayWidth >= 18 ? 1 : dayWidth >= 12 ? 3 : dayWidth >= 8 ? 5 : 10;
+        saveData();
+      }
+      var chartW = totalDays * dayWidth;
+      document.getElementById('timeHeader').style.minWidth = chartW + 'px';
+      updateProjectInfo();
+      renderTimeHeader();
+      renderTasks();
+      updateStats();
+    }
+
+    // ====== 渲染时间轴头部 ======
+    function renderTimeHeader() {
+      const container = document.getElementById('timeHeader');
+      const chartWidth = totalDays * dayWidth;
+      
+      let monthHtml = '<div class="flex" style="width: ' + chartWidth + 'px;">';
+      let dayHtml = '<div class="flex" style="width: ' + chartWidth + 'px;">';
+      
+      let d = new Date(projectStart);
+      let lastMonth = -1;
+      
+      for (let i = 0; i < totalDays; i++) {
+        const day = d.getDate();
+        const month = d.getMonth();
+        const year = d.getFullYear();
+        const isWeekend = d.getDay() === 0 || d.getDay() === 6;
+        const isMon = d.getDay() === 1;
+        const isToday = d.toISOString().slice(0,10) === new Date().toISOString().slice(0,10);
+        
+        let dayStyle = 'width: ' + dayWidth + 'px; text-align: center; font-size: 10px; padding: 3px 0; border-right: 1px solid var(--border);';
+        if (isWeekend) dayStyle += 'background: rgba(233,236,239,0.6);';
+        if (isToday) dayStyle += 'position:relative;';
+        
+        // 月份合并单元格
+        if (month !== lastMonth) {
+          let monthDays = 0;
+          let td = new Date(d);
+          for (let j = i; j < totalDays; j++) {
+            if (td.getMonth() === month) monthDays++;
+            else break;
+            td.setDate(td.getDate() + 1);
+          }
+          var monthLabel = year !== 2026 ? (month + 1) + '月' : (month + 1) + '月';
+          monthHtml += '<div style="width: ' + (monthDays * dayWidth) + 'px; text-align: center; font-size: 11px; font-weight: 600; padding: 4px 0; border-right: 1px solid var(--border); color: var(--primary-dark); background: var(--bg);">' + monthLabel + '</div>';
+          lastMonth = month;
+        }
+        
+        // 日期标签：根据 labelInterval 间隔显示，或只显示周一和月初
+        var showLabel = false;
+        if (labelInterval === 1) {
+          showLabel = true; // 每天显示
+        } else if (labelInterval === 5) {
+          showLabel = (day % 5 === 1) || day === 1 || isMon; // 每5天 + 周一
+        } else {
+          showLabel = day === 1 || isMon; // 每月/每周
+        }
+        
+        dayHtml += '<div style="' + dayStyle + '">';
+        if (showLabel) {
+          dayHtml += day;
+        } else {
+          dayHtml += '·';
+        }
+        dayHtml += '</div>';
+        
+        if (isToday) {
+          dayHtml += '<div style="position:absolute;top:0;bottom:0;left:50%;width:2px;background:#e74c3c;z-index:5;"></div>';
+        }
+        
+        d.setDate(d.getDate() + 1);
+      }
+      
+      dayHtml += '</div>';
+      monthHtml += '</div>';
+      
+      container.innerHTML = monthHtml + '<div style="border-top:1px solid var(--border);"></div>' + dayHtml;
+    }
+
+    // ====== 渲染任务列表 ======
+    function renderTasks(filtered) {
+      const list = document.getElementById('taskList');
+      if (!list) return;
+      const data = filtered || tasks;
+      const chartWidth = Math.max(totalDays * dayWidth, 100);
+
+      let html = '';
+
+      data.forEach((t, idx) => {
+        // 防御：跳过无效任务
+        if (!t || !t.start || !t.end) return;
+        const sd = new Date(t.start), ed = new Date(t.end);
+        if (isNaN(sd.getTime()) || isNaN(ed.getTime())) return;
+
+        const duration = calcDuration(t.start, t.end);
+        const offsetDays = calcDays(t.start, projectStart);
+        const left = isNaN(offsetDays) ? 0 : offsetDays * dayWidth;
+        const width = Math.max(duration * dayWidth, 8);
+
+        const barClass = t.status === 'completed' ? 'bar-completed' : t.status === 'active' ? 'bar-active' : 'bar-pending';
+
+        html += '<tr class="task-row" data-id="' + t.id + '" style="border-bottom:1px solid var(--border);">';
+        html += '<td style="width:40px;padding:3px 2px;text-align:center;font-size:10px;font-family:monospace;border-right:1px solid var(--border);color:var(--text-muted);vertical-align:middle;line-height:1.3">' + t.seq + '</td>';
+        html += '<td style="width:240px;padding:3px 8px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-right:1px solid var(--border);vertical-align:middle;line-height:1.3">' + t.name + '</td>';
+        
+        // 开始日期
+        html += '<td style="width:128px;padding:3px 2px;border-right:1px solid var(--border);text-align:center;vertical-align:middle;font-size:11px;font-family:monospace;color:var(--text-light);line-height:1.3;white-space:nowrap">' + sd.getFullYear() + '/' + (sd.getMonth()+1) + '/' + sd.getDate() + '</td>';
+
+        // 结束日期
+        html += '<td style="width:128px;padding:3px 2px;border-right:1px solid var(--border);text-align:center;vertical-align:middle;font-size:11px;font-family:monospace;color:var(--text-light);line-height:1.3;white-space:nowrap">' + ed.getFullYear() + '/' + (ed.getMonth()+1) + '/' + ed.getDate() + '</td>';
+        
+        // 工期
+        html += '<td style="width:56px;padding:3px 2px;text-align:center;font-size:10px;font-family:monospace;font-weight:500;border-right:1px solid var(--border);color:var(--primary);vertical-align:middle;line-height:1.3">' + duration + '天</td>';
+        
+        // 图表区
+        html += '<td style="position:relative;height:22px;padding:0;min-width:' + chartWidth + 'px;background:repeating-linear-gradient(90deg, transparent 0, transparent ' + (dayWidth-1) + 'px, var(--border) ' + (dayWidth-1) + 'px, var(--border) ' + dayWidth + 'px);">';
+        
+        // 当前日期竖线
+        var now = new Date();
+        var todayOffset = calcDays(now.toISOString().slice(0,10), projectStart);
+        if (todayOffset >= 0 && todayOffset <= totalDays) {
+          var todayLeft = todayOffset * dayWidth;
+          html += '<div style="position:absolute;top:0;bottom:0;left:' + todayLeft + 'px;width:2px;background:#e74c3c;z-index:5;box-shadow:0 0 6px rgba(231,76,60,0.4);"></div>';
+        }
+        
+        // 任务条
+        html += '<div class="task-bar ' + barClass + '" style="left: ' + left + 'px; top: 2px; width: ' + Math.max(width, 6) + 'px; height:18px;" onclick="editTask(' + t.id + ')"></div>';
+        
+        html += '</td>';  // 图表区结束
+        
+        // 操作列
+        html += '<td class="no-print" style="width:40px;text-align:center;vertical-align:middle;border-left:1px solid var(--border);">';
+        html += '<button onclick="deleteTask(' + t.id + ')" title="删除任务" style="background:none;border:none;color:#e5534e;padding:1px 5px;border-radius:4px;cursor:pointer;font-size:14px;line-height:1">×</button>';
+        html += '</td>';
+        
+        html += '</tr>';  // tr结束
+      });
+      
+      list.innerHTML = html;
+    }
+
+    // ====== 统计更新 ======
+    function updateStats() {
+      document.getElementById('statTotal').textContent = tasks.length;
+      document.getElementById('statDone').textContent = tasks.filter(t => t.status === 'completed').length;
+      document.getElementById('statDoing').textContent = tasks.filter(t => t.status === 'active').length;
+      document.getElementById('statTodo').textContent = tasks.filter(t => t.status === 'pending').length;
+    }
+
+    // ====== 日期更新 ======
+    function updateDate(id, field, value) {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      
+      task[field] = value;
+      
+      // 如果开始日期大于结束日期，自动调整
+      if (new Date(task.start) > new Date(task.end)) {
+        if (field === 'start') {
+          task.end = task.start;
+        } else {
+          task.start = task.end;
+        }
+      }
+      
+      init();
+    }
+
+    // ====== 删除任务 ======
+    function deleteTask(id) {
+      if (!confirm('确定要删除此任务吗？')) return;
+      
+      tasks = tasks.filter(t => t.id !== id);
+      tasks.forEach((t, i) => { t.seq = i + 1; });
+      saveData();
+      init();
+    }
+
+    // ====== 筛选 ======
+    function applyFilter() {
+      const kw = document.getElementById('searchBox').value.toLowerCase();
+      const st = document.getElementById('filterStatus').value;
+      
+      const filtered = tasks.filter(t => {
+        const matchKw = t.name.toLowerCase().includes(kw);
+        const matchSt = !st || t.status === st;
+        return matchKw && matchSt;
+      });
+      
+      renderTasks(filtered);
+    }
+
+    // ====== 表单操作 ======
+    function openForm() {
+      document.getElementById('formTitle').textContent = '新增任务';
+      document.getElementById('editId').value = '';
+      document.getElementById('taskForm').reset();
+      // 默认日期：有任务则取上个任务的结束日期+1天，否则取今天
+      var defaultStart, defaultEnd;
+      if (tasks.length > 0) {
+        var last = tasks[tasks.length - 1];
+        var d = new Date(last.end);
+        d.setDate(d.getDate() + 1);
+        defaultStart = d.toISOString().slice(0,10);
+      } else {
+        defaultStart = new Date().toISOString().slice(0,10);
+      }
+      var d2 = new Date(defaultStart);
+      d2.setDate(d2.getDate() + 1);
+      defaultEnd = d2.toISOString().slice(0,10);
+      document.getElementById('editStart').value = defaultStart;
+      document.getElementById('editEnd').value = defaultEnd;
+      document.getElementById('formModal').classList.add('active');
+    }
+
+    function closeForm() {
+      document.getElementById('formModal').classList.remove('active');
+    }
+
+    function editTask(id) {
+      const t = tasks.find(x => x.id === id);
+      if (!t) return;
+      
+      document.getElementById('formTitle').textContent = '编辑任务';
+      document.getElementById('editId').value = t.id;
+      document.getElementById('editName').value = t.name;
+      document.getElementById('editStart').value = t.start;
+      document.getElementById('editEnd').value = t.end;
+      document.getElementById('editStatus').value = t.status;
+      document.getElementById('formModal').classList.add('active');
+    }
+
+    function saveTask(e) {
+      e.preventDefault();
+      
+      const id = document.getElementById('editId').value;
+      const name = document.getElementById('editName').value;
+      const start = document.getElementById('editStart').value;
+      const end = document.getElementById('editEnd').value;
+      const status = document.getElementById('editStatus').value;
+      
+      if (id) {
+        const idx = tasks.findIndex(t => t.id === parseInt(id));
+        if (idx > -1) {
+          tasks[idx] = { ...tasks[idx], name, start, end, status };
+        }
+      } else {
+        tasks.push({ 
+          id: nextId++, 
+          seq: tasks.length + 1, 
+          name, 
+          start, 
+          end, 
+          status 
+        });
+      }
+      
+      // 先重新初始化（自动计算 projectStart/projectEnd），再保存
+      saveData();
+      closeForm();
+      init();
+    }
+
+    // ====== PDF 导出 ======
+
+    // ====== 工具函数 ======
+    function calcDays(dateStr, base) {
+      const d = new Date(dateStr);
+      return Math.floor((d - base) / (1000 * 60 * 60 * 24));
+    }
+
+    function calcDuration(start, end) {
+      const s = new Date(start);
+      const e = new Date(end);
+      return Math.ceil((e - s) / (1000 * 60 * 60 * 24)) + 1;
+    }
+
+    function formatDate(str) {
+      const d = new Date(str);
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return m + '-' + day;
+    }
+
+    function resetTasks() {
+      if (!confirm('确定要恢复到初始的15条示例任务吗？当前所有数据将丢失。')) return;
+      localStorage.removeItem('ganttTasks');
+      localStorage.removeItem('ganttProjectName');
+      localStorage.removeItem('ganttNote');
+      location.reload();
+    }
+
+    function clearTasks() {
+      if (!confirm('确定要清空所有任务吗？')) return;
+      tasks = [];
+      projectStart = new Date();
+      projectEnd = new Date();
+      totalDays = 1;
+      dayWidth = 22;
+      labelInterval = 1;
+      saveData();
+      init();
+    }
+
+    function exportData() {
+      var data = {
+        projectName: document.getElementById('projectName').value,
+        projectNote: document.getElementById('projectNote').value,
+        tasks: tasks,
+        projectStart: projectStart.toISOString().slice(0,10),
+        projectEnd: projectEnd.toISOString().slice(0,10)
+      };
+      var blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = document.getElementById('projectName').value + '_' + new Date().toISOString().slice(0,10) + '.json';
+      a.click();
+    }
+
+    function importData(evt) {
+      var file = evt.target.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var data = JSON.parse(e.target.result);
+          if (data.tasks && Array.isArray(data.tasks)) {
+            tasks = data.tasks;
+            if (data.projectStart) projectStart = new Date(data.projectStart);
+            if (data.projectEnd) projectEnd = new Date(data.projectEnd);
+            if (data.projectName) document.getElementById('projectName').value = data.projectName;
+            if (data.projectNote) document.getElementById('projectNote').value = data.projectNote;
+            saveData();
+            init();
+          } else { alert('无效的工程数据文件'); }
+        } catch(err) { alert('文件解析失败：' + err.message); }
+      };
+      reader.readAsText(file);
+      evt.target.value = '';
+    }
+
+    // 启动
+    init();
+
+    // ===== 粒子效果 =====
+    var pc=document.getElementById('particleCanvas'),px=pc.getContext('2d');var PW,PH,pps=[],pm={x:-9999,y:-9999};var PCF={count:100,speed:0.25,cDist:100,mR:150};
+    function prs(){PW=pc.width=innerWidth;PH=pc.height=innerHeight}
+    class PP{constructor(){this.rr()}rr(){this.x=Math.random()*PW;this.y=Math.random()*PH;this.vx=(Math.random()-0.5)*PCF.speed*2;this.vy=(Math.random()-0.5)*PCF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>PW)this.vx*=-1;if(this.y<0||this.y>PH)this.vy*=-1}dr(){px.beginPath();px.arc(this.x,this.y,this.r,0,Math.PI*2);px.fillStyle='rgba(44,110,73,0.3)';px.fill()}}
+    function pln(){var dS=PCF.cDist*PCF.cDist;for(var i=0;i<pps.length;i++)for(var j=i+1;j<pps.length;j++){var dx=pps[i].x-pps[j].x,dy=pps[i].y-pps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.35;px.beginPath();px.moveTo(pps[i].x,pps[i].y);px.lineTo(pps[j].x,pps[j].y);px.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';px.lineWidth=0.5;px.stroke()}}if(pm.x>0){var mR2=PCF.mR*PCF.mR;for(var i=0;i<pps.length;i++){var dx=pps[i].x-pm.x,dy=pps[i].y-pm.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.6;px.beginPath();px.moveTo(pps[i].x,pps[i].y);px.lineTo(pm.x,pm.y);px.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';px.lineWidth=1;px.stroke()}}}}
+    function pan(){px.clearRect(0,0,PW,PH);for(var i=0;i<pps.length;i++){pps[i].up();pps[i].dr()}pln();requestAnimationFrame(pan)}
+    prs();for(var i=0;i<PCF.count;i++)pps.push(new PP());
+    addEventListener('resize',function(){prs();for(var i=0;i<pps.length;i++){pps[i].x=Math.random()*PW;pps[i].y=Math.random()*PH}});
+    addEventListener('mousemove',function(e){pm.x=e.clientX;pm.y=e.clientY});
+    addEventListener('mouseleave',function(){pm.x=-9999;pm.y=-9999});
+    addEventListener('touchmove',function(e){var t=e.touches[0];if(t){pm.x=t.clientX;pm.y=t.clientY}},{passive:true});
+    addEventListener('touchend',function(){pm.x=-9999;pm.y=-9999});
+    pan();
+  </script>
+</body>
+</html>

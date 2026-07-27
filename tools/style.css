@@ -11,6 +11,8 @@
   --text-light: #636e72;
   --border: #dde1d6;
   --radius: 10px;
+  --radius-sm: 6px;
+  --max-width: 1200px;
   --shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }

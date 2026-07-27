@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高程放样计算 - 测量员在线工具箱</title>
+    <link rel="stylesheet" href="style.css">
+<style>
+:root {
+  --blog-primary: #2c6e49; --blog-primary-light: #4c956c; --blog-primary-dark: #1b4d2e;
+  --accent: #d68c45; --accent-glow: rgba(214,140,69,0.3);
+  --info: #2980b9; --bg: #f5f7f0; --bg-card: #ffffff; --bg-nav: #1a2f24;
+  --text: #2d3436; --text-light: #636e72; --text-muted: #9ea4a8;
+  --border: #dde1d6; --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --shadow-hover: 0 4px 20px rgba(0,0,0,0.14);
+  --radius: 12px; --radius-sm: 6px;
+}
+html { background: var(--bg-nav); }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;
+  background: var(--bg-nav); color: var(--text); line-height: 1.6;
+  min-height: 100vh; padding-top: 64px;
+}
+#particleCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; background: var(--bg); }
+
+        
+
+        
+        
+
+        /* --- 标签页样式 --- */
+        .tabs { display: flex; background: var(--bg); }
+        .tab-btn { flex: 1; padding: 14px; border: none; background: none; cursor: pointer; font-weight: 600; color: var(--text-light); transition: 0.3s; outline: none; font-size: 1rem; }
+        .tab-btn.active { background: var(--bg-card); color: var(--primary); border-top: 4px solid var(--primary); }
+        .tab-content { padding: 25px; display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        h2 { margin-top: 0; font-size: 1.2rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 16px; }
+        
+        /* --- 通用组件 --- */
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-size: 0.9rem; color: var(--text-light); margin-bottom: 5px; font-weight: 500; }
+        input[type="number"] { width: 100%; padding: 10px; font-size: 1.1rem; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; transition: 0.3s; }
+        input[type="number"]:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(0,123,255,0.1); }
+        
+        .row { display: flex; gap: 15px; }
+        .col { flex: 1; }
+        .note { font-size: 0.85rem; color: var(--text-muted); margin-top: 5px; }
+
+        /* --- 视线高法特定样式 --- */
+        .hi-display-box {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white; padding: 25px; border-radius: var(--border-radius);
+            text-align: center; margin-bottom: 25px; box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+        .hi-value { font-size: 2.8rem; font-weight: bold; font-family: monospace; }
+        .hi-label { font-size: 0.9rem; opacity: 0.9; }
+        .hi-workspace { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: var(--bg); border: 1px solid var(--border); padding: 16px; border-radius: var(--radius-sm); }
+        .card h3 { margin-top: 0; font-size: 1rem; color: var(--text); margin-bottom: 15px; border-bottom: 1px dashed var(--border); padding-bottom: 8px; }
+        .result-highlight { font-size: 1.6rem; font-weight: bold; color: var(--primary); font-family: monospace; text-align: center; margin-top: 10px; }
+        .warning { color: #e74c3c; font-size: 0.85rem; font-weight: bold; margin-top: 5px; display: none; text-align: center; }
+
+        /* --- 多站路线特定样式 --- */
+        .route-control { background: var(--bg); padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .table-container { overflow-x: auto; margin-bottom: 15px; border: 1px solid var(--border); border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; min-width: 700px; }
+        th, td { padding: 10px; text-align: center; border-bottom: 1px solid var(--border); vertical-align: middle; font-size: 0.9rem; }
+        th { background: var(--bg); color: var(--text); font-weight: 600; white-space: nowrap; }
+        
+        /* 测站名称输入框样式 - 看起来像普通文字 */
+        .station-name-input {
+            width: 100%; border: 1px solid transparent; background: transparent;
+            text-align: center; font-weight: bold; color: var(--text); padding: 5px;
+            transition: all 0.2s;
+        }
+        .station-name-input:hover { border-color: var(--border); background: #fff; }
+        .station-name-input:focus { border-color: var(--primary); background: #fff; outline: none; }
+
+        /* 表格输入框优化 */
+        td input[type="number"] { width: 85px; padding: 8px; text-align: center; border: 1px solid var(--border); border-radius: 4px; -moz-appearance: textfield; }
+        td input[type="number"]::-webkit-outer-spin-button, td input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        td input[type="number"]:focus { border-color: var(--primary); background: #fff; }
+
+        .btn-del { color: var(--text-muted); background: none; border: none; cursor: pointer; font-size: 1.2rem; transition: 0.2s; }
+        .btn-del:hover { color: #e74c3c; background: #ffe6e6; border-radius: 4px; }
+
+        .diff-up { color: var(--primary); font-weight: bold; font-family: monospace; }
+        .diff-down { color: #e74c3c; font-weight: bold; font-family: monospace; }
+        .elev-result { color: var(--primary); font-weight: bold; font-family: monospace; font-size: 1.1rem; }
+
+        .summary-panel { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; }
+        .summary-card { background: var(--bg); padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #eee; }
+        .summary-val { font-size: 1.4rem; font-weight: bold; font-family: monospace; margin-top: 5px; }
+        .val-success { color: var(--primary); }
+
+        .route-actions { margin-top: 20px; text-align: center; }
+        .btn-add { background: var(--primary); color: #fff; border: none; padding: 10px 24px; border-radius: 20px; font-size: 0.95rem; cursor: pointer; }
+        .btn-reset { background: transparent; color: var(--text-light); border: 1px solid var(--border); padding: 10px 20px; border-radius: 20px; margin-left: 10px; cursor: pointer; }
+
+        @media (max-width: 768px) {
+            .hi-workspace { grid-template-columns: 1fr; }
+            .summary-panel { grid-template-columns: 1fr; }
+            .route-control { flex-direction: column; align-items: stretch; }
+            #app { padding: 0.5rem !important; }
+        }
+        @media (max-width: 600px) {
+            nav[class*="navbar"] { padding: 0 0.5rem !important; }
+            .navbar-inner { height: 52px !important; }
+            .navbar .logo { font-size: 0.95rem !important; }
+            .navbar .logo img { height: 22px !important; margin-right: 4px !important; }
+            .nav-links a { padding: 4px 8px !important; font-size: 0.75rem !important; }
+            .tab-btn { padding: 12px 8px !important; font-size: 0.85rem !important; }
+            .hi-value { font-size: 2rem !important; }
+            .hi-display-box { padding: 16px !important; }
+            .card { padding: 12px !important; }
+            .row { flex-direction: column; gap: 8px; }
+            .table-container { margin-bottom: 10px; }
+            th, td { padding: 8px 4px; font-size: 0.8rem; }
+            td input[type="number"] { width: 65px; padding: 6px; }
+            .summary-panel { gap: 8px; }
+            .summary-card { padding: 10px; }
+        }
+        @media (max-width: 480px) {
+            .nav-links a { padding: 4px 6px !important; font-size: 0.65rem !important; }
+            #app { padding: 0.3rem !important; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="particleCanvas"></canvas>
+<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
+<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
+<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
+<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
+<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
+<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
+</ul>
+</div>
+</nav>
+<div id="app" style="max-width:1200px;margin:0 auto;padding:1rem;position:relative;z-index:1">
+<div class="container" style="background:var(--bg-card);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('hi',this)">视线高法 (单站)</button>
+        <button class="tab-btn" onclick="switchTab('route',this)">多站水准路线 (转站)</button>
+    </div>
+
+    <!-- ===================== 视线高法 ===================== -->
+    <div id="tab-hi" class="tab-content active">
+        <h2>视线高法</h2>
+        <div class="note" style="margin-bottom: 20px;">
+            适用场景：仪器架设一次，测量或放样多个点。
+        </div>
+
+        <!-- 核心：视线高 -->
+        <div class="hi-display-box">
+            <div class="hi-label">视线高 (HI = BM + BS)</div>
+            <div class="hi-value" id="hi-val">— . — — —</div>
+        </div>
+
+        <div class="input-group row">
+            <div class="col">
+                <label>已知点高程 (BM)</label>
+                <input type="number" id="hi-bm" step="0.001" placeholder="例如: 10.000">
+            </div>
+            <div class="col">
+                <label>后视读数 (BS)</label>
+                <input type="number" id="hi-bs" step="0.001" placeholder="例如: 1.500">
+            </div>
+        </div>
+
+        <div class="hi-workspace">
+            <!-- 正算：求高程 -->
+            <div class="card">
+                <h3>正算: 求高程</h3>
+                <div class="input-group">
+                    <label>前视读数 (FS)</label>
+                    <input type="number" id="hi-fs" step="0.001" placeholder="尺上读数">
+                </div>
+                <div style="text-align: center;">
+                    <label>测得高程</label>
+                    <div class="result-highlight" id="hi-res-elev">—</div>
+                </div>
+            </div>
+
+            <!-- 反算：求读数 -->
+            <div class="card">
+                <h3>反算: 求读数</h3>
+                <div class="input-group">
+                    <label>设计高程</label>
+                    <input type="number" id="hi-design" step="0.001" placeholder="目标标高">
+                </div>
+                <div style="text-align: center;">
+                    <label>应读前视</label>
+                    <div class="result-highlight" id="hi-res-fs">—</div>
+                    <div id="hi-warn" class="warning">⚠️ 结果为负，需倒尺</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== 多站水准路线 ===================== -->
+    <div id="tab-route" class="tab-content">
+        <h2>多站水准路线计算</h2>
+        
+        <div class="route-control">
+            <div>
+                <label style="margin:0;">起点 A 高程 (HA):</label>
+            </div>
+            <div style="flex:1;">
+                <input type="number" id="route-start-elev" step="0.001" value="10.000" oninput="updateAllElevations()">
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-light);">
+                提示：第一列“点名”可直接点击修改
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="route-table">
+                <thead>
+                    <tr>
+                        <th width="15%">点名/测站</th>
+                        <th width="15%">后视 (BS)</th>
+                        <th width="15%">前视 (FS)</th>
+                        <th width="15%">本站高差</th>
+                        <th width="20%">点高程 (H)</th>
+                        <th width="10%">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="route-tbody">
+                    <!-- Javascript will populate rows here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="route-actions">
+            <button class="btn-add" onclick="addStation()">+ 添加下一测站</button>
+            <button class="btn-reset" onclick="resetRoute()">重置所有</button>
+        </div>
+
+        <div class="summary-panel">
+            <div class="summary-card">
+                <div class="note">累计后视</div>
+                <div class="summary-val" id="sum-bs">0.000</div>
+            </div>
+            <div class="summary-card">
+                <div class="note">累计前视</div>
+                <div class="summary-val" id="sum-fs">0.000</div>
+            </div>
+            <div class="summary-card" style="background: var(--bg); border-color: var(--border);">
+                <div class="note">终点 B 高程</div>
+                <div class="summary-val val-success" id="final-elev">10.000</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ====== 数据持久化 ======
+    function saveElevData() {
+      localStorage.setItem('elevData', JSON.stringify({
+        bm: document.getElementById('hi-bm').value,
+        bs: document.getElementById('hi-bs').value,
+        fs: document.getElementById('hi-fs').value,
+        design: document.getElementById('hi-design').value,
+        stations: stations,
+        startElev: document.getElementById('route-start-elev').value
+      }));
+    }
+    function loadElevData() {
+      var d = localStorage.getItem('elevData');
+      if (d) try {
+        d = JSON.parse(d);
+        if (d.bm !== undefined) document.getElementById('hi-bm').value = d.bm;
+        if (d.bs !== undefined) document.getElementById('hi-bs').value = d.bs;
+        if (d.fs !== undefined) document.getElementById('hi-fs').value = d.fs;
+        if (d.design !== undefined) document.getElementById('hi-design').value = d.design;
+        if (d.stations) stations = d.stations;
+        if (d.startElev) document.getElementById('route-start-elev').value = d.startElev;
+      } catch(e) {}
+    }
+
+    // --- 标签切换逻辑 ---
+    function switchTab(tabId, el) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.add('active');
+        if (el) el.classList.add('active');
+    }
+
+    // ==========================================
+    // 模块 1: 视线高法逻辑
+    // ==========================================
+    function calcHI() {
+        const bm = parseFloat(document.getElementById('hi-bm').value);
+        const bs = parseFloat(document.getElementById('hi-bs').value);
+        
+        saveElevData();
+        if (isNaN(bm) || isNaN(bs)) {
+            document.getElementById('hi-val').innerText = "— . — — —";
+            document.getElementById('hi-res-elev').innerText = "—";
+            document.getElementById('hi-res-fs').innerText = "—";
+            document.getElementById('hi-warn').style.display = 'none';
+            return;
+        }
+
+        const hi = bm + bs;
+        document.getElementById('hi-val').innerText = hi.toFixed(3);
+
+        // 正算
+        const fs = parseFloat(document.getElementById('hi-fs').value);
+        if (!isNaN(fs)) {
+            document.getElementById('hi-res-elev').innerText = (hi - fs).toFixed(3);
+        } else {
+            document.getElementById('hi-res-elev').innerText = "—";
+        }
+
+        // 反算
+        const design = parseFloat(document.getElementById('hi-design').value);
+        if (!isNaN(design)) {
+            const reqFs = hi - design;
+            document.getElementById('hi-res-fs').innerText = reqFs.toFixed(3);
+            document.getElementById('hi-warn').style.display = reqFs < 0 ? 'block' : 'none';
+            document.getElementById('hi-res-fs').style.color = reqFs < 0 ? '#e74c3c' : 'var(--primary)';
+        } else {
+            document.getElementById('hi-res-fs').innerText = "—";
+            document.getElementById('hi-warn').style.display = 'none';
+        }
+    }
+
+    ['hi-bm', 'hi-bs', 'hi-fs', 'hi-design'].forEach(id => {
+        document.getElementById(id).addEventListener('input', calcHI);
+    });
+
+
+    // ==========================================
+    // 模块 2: 多站水准路线逻辑
+    // ==========================================
+    // 数据结构现在包含 name 字段
+    let stations = [
+        { name: 'TP1', bs: '', fs: '' },
+        { name: 'TP2', bs: '', fs: '' },
+        { name: 'TP3', bs: '', fs: '' }
+    ];
+
+    function renderRouteTable() {
+        const tbody = document.getElementById('route-tbody');
+        tbody.innerHTML = '';
+
+        stations.forEach((station, index) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <input type="text" 
+                           class="station-name-input" 
+                           value="${station.name}" 
+                           placeholder="点名" 
+                           oninput="updateStation(${index}, 'name', this.value)">
+                </td>
+                <td><input type="number" step="0.001" placeholder="BS" value="${station.bs}" oninput="updateStation(${index}, 'bs', this.value)"></td>
+                <td><input type="number" step="0.001" placeholder="FS" value="${station.fs}" oninput="updateStation(${index}, 'fs', this.value)"></td>
+                <td id="dh-cell-${index}">—</td>
+                <td id="elev-cell-${index}" class="elev-result">—</td>
+                <td><button class="btn-del" onclick="removeStation(${index})" title="删除">&times;</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        updateAllElevations();
+    }
+
+    function updateStation(index, field, value) {
+        stations[index][field] = value;
+        updateAllElevations();
+        saveElevData();
+    }
+
+    function updateAllElevations() {
+        saveElevData();
+        const startElev = parseFloat(document.getElementById('route-start-elev').value) || 0;
+        let currentElev = startElev;
+        
+        let sumBS = 0;
+        let sumFS = 0;
+        let chainBroken = false;
+
+        stations.forEach((station, index) => {
+            const bs = parseFloat(station.bs);
+            const fs = parseFloat(station.fs);
+
+            const dhCell = document.getElementById(`dh-cell-${index}`);
+            const elevCell = document.getElementById(`elev-cell-${index}`);
+            
+            if (!isNaN(bs)) sumBS += bs;
+            if (!isNaN(fs)) sumFS += fs;
+
+            if (!chainBroken) {
+                if (!isNaN(bs) && !isNaN(fs)) {
+                    const dh = bs - fs;
+                    currentElev += dh;
+                    
+                    let dhText = dh.toFixed(3);
+                    if (dh > 0) { dhText = '+' + dhText; dhCell.className = 'diff-up'; }
+                    else if (dh < 0) { dhCell.className = 'diff-down'; }
+                    else { dhCell.className = ''; }
+                    dhCell.textContent = dhText;
+
+                    elevCell.textContent = currentElev.toFixed(3);
+                    elevCell.style.color = 'var(--primary)';
+                } else {
+                    dhCell.textContent = '—';
+                    dhCell.className = '';
+                    elevCell.textContent = '—';
+                    elevCell.style.color = 'var(--text-muted)';
+                    chainBroken = true;
+                }
+            } else {
+                dhCell.textContent = '—';
+                dhCell.className = '';
+                elevCell.textContent = '—';
+                elevCell.style.color = 'var(--text-muted)';
+            }
+        });
+
+        const finalElev = startElev + sumBS - sumFS;
+        document.getElementById('sum-bs').textContent = sumBS.toFixed(3);
+        document.getElementById('sum-fs').textContent = sumFS.toFixed(3);
+        document.getElementById('final-elev').textContent = finalElev.toFixed(3);
+    }
+
+    function addStation() {
+        // 自动生成下一个默认名称
+        let nextNum = stations.length + 1;
+        stations.push({ name: 'TP' + nextNum, bs: '', fs: '' });
+        renderRouteTable();
+        saveElevData();
+        // 聚焦到新行的 BS 输入框
+        setTimeout(() => {
+            const inputs = document.querySelectorAll('#route-tbody input[type="number"]');
+            if(inputs.length > 0) inputs[inputs.length - 2].focus();
+        }, 50);
+    }
+
+    function removeStation(index) {
+        if (stations.length <= 1) { alert("至少保留一个测站"); return; }
+        if(confirm("确定删除测站 " + (stations[index].name || index + 1) + " 吗？")) {
+            stations.splice(index, 1);
+            renderRouteTable();
+            saveElevData();
+        }
+    }
+
+    function resetRoute() {
+        if(confirm("确定清空？")) {
+            stations = [{ name: 'TP1', bs: '', fs: '' }];
+            document.getElementById('route-start-elev').value = "10.000";
+            renderRouteTable();
+            saveElevData();
+        }
+    }
+
+    // 初始化多站表格
+    loadElevData();
+    renderRouteTable();
+    calcHI();
+
+    // ===== 粒子效果 =====
+    (function(){
+      var pc=document.getElementById('particleCanvas');
+      if(!pc)return;
+      var px=pc.getContext('2d'),PW,PH,pps=[],pm={x:-9999,y:-9999},PCF={count:100,speed:0.25,cDist:100,mR:150};
+      function prs(){PW=pc.width=innerWidth;PH=pc.height=innerHeight}
+      function PP(){this.x=Math.random()*PW;this.y=Math.random()*PH;this.vx=(Math.random()-0.5)*PCF.speed*2;this.vy=(Math.random()-0.5)*PCF.speed*2;this.r=Math.random()*1.8+0.6}
+      PP.prototype.up=function(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>PW)this.vx*=-1;if(this.y<0||this.y>PH)this.vy*=-1};
+      PP.prototype.dr=function(){px.beginPath();px.arc(this.x,this.y,this.r,0,Math.PI*2);px.fillStyle='rgba(44,110,73,0.3)';px.fill()};
+      function ln(){var dS=PCF.cDist*PCF.cDist;for(var i=0;i<pps.length;i++)for(var j=i+1;j<pps.length;j++){var dx=pps[i].x-pps[j].x,dy=pps[i].y-pps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.35;px.beginPath();px.moveTo(pps[i].x,pps[i].y);px.lineTo(pps[j].x,pps[j].y);px.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';px.lineWidth=0.5;px.stroke()}}if(pm.x>0){var mR2=PCF.mR*PCF.mR;for(var i=0;i<pps.length;i++){var dx=pps[i].x-pm.x,dy=pps[i].y-pm.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.6;px.beginPath();px.moveTo(pps[i].x,pps[i].y);px.lineTo(pm.x,pm.y);px.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';px.lineWidth=1;px.stroke()}}}}
+      function an(){px.clearRect(0,0,PW,PH);for(var i=0;i<pps.length;i++){pps[i].up();pps[i].dr()}ln();requestAnimationFrame(an)}
+      prs();for(var i=0;i<PCF.count;i++)pps.push(new PP());
+      addEventListener('resize',function(){prs();for(var i=0;i<pps.length;i++){pps[i].x=Math.random()*PW;pps[i].y=Math.random()*PH}});
+      addEventListener('mousemove',function(e){pm.x=e.clientX;pm.y=e.clientY});
+      addEventListener('mouseleave',function(){pm.x=-9999;pm.y=-9999});
+      addEventListener('touchmove',function(e){var t=e.touches[0];if(t){pm.x=t.clientX;pm.y=t.clientY}},{passive:true});
+      addEventListener('touchend',function(){pm.x=-9999;pm.y=-9999});
+      an();
+    })();
+</script>
+
+<div class="no-print" style="max-width:1200px;margin:1.5rem auto 0;padding:1.5rem 1rem 2rem;border-top:1px solid #ddd;text-align:center;color:#999;font-size:0.85rem;position:relative;z-index:1;background:var(--bg)">
+  <a href="mailto:lvmyth@qq.com" style="color:#999;text-decoration:none">By Lvmyth AI</a>
+</div>
+</body>
+</html>

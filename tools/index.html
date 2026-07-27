@@ -6,6 +6,11 @@
 <title>测量计算工具集</title>
 <link rel="stylesheet" href="style.css">
 <style>
+.tag-bar{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 auto 1.5rem;max-width:700px;position:relative;z-index:1}.tag-btn{padding:6px 18px;border:1px solid var(--border);border-radius:20px;background:var(--bg-card);color:var(--text-light);cursor:pointer;font-size:0.88rem;transition:all 0.2s}.tag-btn:hover{border-color:var(--primary-light);color:var(--primary)}.tag-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}.search-box{max-width:480px;margin:0 auto 1.5rem;position:relative;z-index:1}
+.search-box input{width:100%;padding:10px 16px 10px 40px;border:2px solid var(--border);border-radius:24px;font-size:0.95rem;background:var(--bg-card);color:var(--text);outline:none;transition:border-color 0.2s;font-family:var(--font-sans)}
+.search-box input:focus{border-color:var(--primary-light)}
+.search-box input::placeholder{color:var(--text-light)}
+.search-box .icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-light);font-size:1rem}
 .tool-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(300px,1fr)); gap: 16px; padding: 20px; }
 .tool-card {
   background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow);
@@ -19,17 +24,19 @@
 .page-header { text-align: center; padding: 3rem 0 2rem; }
 .page-header h1 { font-size: 2.2rem; color: var(--primary-dark); margin-bottom: 0.5rem; }
 .page-header p { color: var(--text-light); font-size: 1.05rem; max-width: 600px; margin: 0 auto; }
-.navbar{background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
+.navbar{background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
 .navbar-inner{max-width:var(--max-width);margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
 .navbar .logo{font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
 .navbar .logo img{height:32px}
 .navbar .nav-links{display:flex;gap:4px;list-style:none}
 .navbar .nav-links a{color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:var(--radius-sm);font-size:0.95rem;transition:all 0.2s;cursor:pointer}
 .navbar .nav-links a:hover,.navbar .nav-links a.active{background:rgba(255,255,255,0.12);color:#fff}
-.footer{background:var(--bg-nav);color:rgba(255,255,255,0.6);text-align:center;padding:2rem;margin-top:4rem;font-size:0.88rem}
+.footer{background:var(--bg-nav);color:rgba(255,255,255,0.6);text-align:center;padding:2rem;font-size:0.88rem}
 #particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
-.navbar,.page-header,.container,.footer{position:relative;z-index:1}
-:root{--max-width:1200px}
+.navbar,.page-header,.search-box,.container,.footer{position:relative;z-index:1}
+.container{margin-bottom:4rem}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column}
+.main-wrap{flex:1;position:relative;z-index:1}
 @media(max-width:768px){
 .navbar-inner{height:54px}
 .navbar .logo{font-size:1rem;gap:4px}.navbar .logo img{height:24px}
@@ -39,7 +46,7 @@
 .page-header p{font-size:1rem}
 .tool-grid{padding:0;gap:12px}
 .tool-card{padding:14px}.tool-card h2{font-size:14px}.tool-card p{font-size:12px}.tool-card .icon{font-size:22px}
-.footer{padding:1.2rem;margin-top:2rem;font-size:0.82rem}
+.footer{padding:1.2rem;font-size:0.82rem}
 }
 @media(max-width:480px){
 .navbar-inner{height:48px}
@@ -51,6 +58,12 @@
 .tool-card{padding:12px}
 .footer{font-size:0.82rem;padding:0.8rem}
 }
+@media(max-width:380px){
+.navbar-inner{height:44px}
+.navbar .logo{font-size:0.78rem}
+.navbar .logo img{height:18px}
+.navbar .nav-links a{padding:3px 5px;font-size:0.72rem}
+}
 </style>
 </head>
 <body>
@@ -59,121 +72,148 @@
 <a class="logo" href="../index.html" style="cursor:pointer"><img src="J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
 <ul class="nav-links">
 <li><a href="../index.html">📋 文章</a></li>
+<li><a href="../column.html">🤖 AI</a></li>
 <li><a href="../tools/index.html" class="active">🛠️ 工具</a></li>
 <li><a href="../index.html?view=about">👤 关于</a></li>
 </ul>
 </div></nav>
+<div class="main-wrap">
 <div class="page-header">
   <h1>测量员在线工具箱</h1>
   <p>坐标计算 · 导线平差 · 面积计算 · 交会定位 · 曲线检测 · 线元法 · 交点法</p>
 </div>
+<div class="search-box"><span class="icon">🔍</span><input id="searchInput" type="text" placeholder="搜索工具名称、描述..."></div>
+<div class="tag-bar" id="tagBar">
+  <span class="tag-btn active" data-tag="all" onclick="filterTag('all')">全部</span>
+  <span class="tag-btn" data-tag="coord" onclick="filterTag('coord')">坐标计算</span>
+  <span class="tag-btn" data-tag="intersect" onclick="filterTag('intersect')">放样交会</span>
+  <span class="tag-btn" data-tag="curve" onclick="filterTag('curve')">曲线检测</span>
+  <span class="tag-btn" data-tag="elev" onclick="filterTag('elev')">高程测量</span>
+  <span class="tag-btn" data-tag="other" onclick="filterTag('other')">通用工具</span>
+</div>
 <div class="container">
 <div class="tool-grid">
-  <div class="tool-card" onclick="location='coord-forward-inverse.html'">
+  <div class="tool-card" onclick="location='coord-forward-inverse.html'" data-category="coord">
     <div class="icon">🧭</div>
     <h2>坐标正反算</h2>
     <p>已知起点+距离+方位角求终点坐标，或已知两点求距离和方位角</p>
   </div>
-  <div class="tool-card" onclick="location='perpendicular-foot.html'">
+  <div class="tool-card" onclick="location='perpendicular-foot.html'" data-category="intersect">
     <div class="icon">📏</div>
     <h2>垂足公式</h2>
     <p>计算测点到轴线的垂距，判断偏左还是偏右，显示垂足坐标</p>
   </div>
-  <div class="tool-card" onclick="location='polygon-area.html'">
+  <div class="tool-card" onclick="location='polygon-area.html'" data-category="other">
     <div class="icon">🔺</div>
     <h2>多边形面积计算</h2>
     <p>点击画布添加顶点，鞋带公式自动计算面积和周长</p>
   </div>
-  <div class="tool-card" onclick="location='arc-point.html'">
+  <div class="tool-card" onclick="location='arc-point.html'" data-category="curve">
     <div class="icon">⭕</div>
     <h2>弧上点定位</h2>
     <p>检核测点是否在设计圆弧上，计算偏距和方向</p>
   </div>
-  <div class="tool-card" onclick="location='distance-intersection.html'">
+  <div class="tool-card" onclick="location='distance-intersection.html'" data-category="intersect">
     <div class="icon">🎯</div>
     <h2>前方距离交会</h2>
     <p>已知两已知点和距离，求交会点坐标（两解可视化）</p>
   </div>
-  <div class="tool-card" onclick="location='chord-offset.html'">
+  <div class="tool-card" onclick="location='polar-coordinate.html'" data-category="coord">
+    <div class="icon">🧭</div>
+    <h2>极坐标放样计算</h2>
+    <p>测站+后视+待放样点，计算放样方位角和水平距离，图形预览</p>
+  </div>
+  <div class="tool-card" onclick="location='chord-offset.html'" data-category="curve">
     <div class="icon">🌉</div>
     <h2>弦长支距</h2>
     <p>已知圆弧半径和弦长，计算任意位置的拱高（滑块实时）</p>
   </div>
-  <div class="tool-card" onclick="location='compass.html'">
+  <div class="tool-card" onclick="location='compass.html'" data-category="other">
     <div class="icon">🧭</div>
     <h2>罗盘定向</h2>
     <p>二十四山罗盘，输入度数测算正山正向或兼向，可视化方位</p>
   </div>
-  <div class="tool-card" onclick="location='arc-radius-chord.html'">
+  <div class="tool-card" onclick="location='arc-radius-chord.html'" data-category="curve">
     <div class="icon">🔄</div>
     <h2>弦长拱高求半径</h2>
     <p>已知弦长和拱高，计算圆弧半径、圆心角、弧长，带可视化绘图</p>
   </div>
-  <div class="tool-card" onclick="location='circle-three-points.html'">
+  <div class="tool-card" onclick="location='circle-three-points.html'" data-category="curve">
     <div class="icon">🎯</div>
     <h2>弧上三点求半径和圆心</h2>
     <p>输入弧上任意三点坐标，计算圆半径和圆心坐标，5800P程序可视化版</p>
   </div>
-  <div class="tool-card" onclick="location='arc-alignment.html'">
+  <div class="tool-card" onclick="location='arc-alignment.html'" data-category="curve">
     <div class="icon">🛤️</div>
     <h2>圆弧放样坐标</h2>
     <p>已知起点、终点和半径，计算弧长、圆心坐标，按里程偏距逐点放样</p>
   </div>
-  <div class="tool-card" onclick="location='traverse-adjust.html'">
+  <div class="tool-card" onclick="location='traverse-adjust.html'" data-category="other">
     <div class="icon">📐</div>
     <h2>导线平差</h2>
     <p>闭合/附合导线平差计算，左角/右角可选，显示改正后角度和坐标成果</p>
   </div>
-  <div class="tool-card" onclick="location='angle-convert.html'">
+  <div class="tool-card" onclick="location='angle-convert.html'" data-category="other">
     <div class="icon">🔄</div>
     <h2>角度换算</h2>
     <p>度分秒与十进制度双向换算，实时计算，一键复制结果</p>
   </div>
-  <div class="tool-card" onclick="location='resection.html'">
+  <div class="tool-card" onclick="location='elevation-setting-out.html'" data-category="elev">
+    <div class="icon">📏</div>
+    <h2>高程放样计算</h2>
+    <p>视线高法正算反算、多站水准路线高差累计与高程传递</p>
+  </div>
+  <div class="tool-card" onclick="location='resection.html'" data-category="intersect">
     <div class="icon">🎯</div>
     <h2>测角后方交会</h2>
     <p>已知三点坐标和两个水平角，反算待定点坐标，含点位图示</p>
   </div>
-  <div class="tool-card" onclick="location='line-element-calc.html'">
+  <div class="tool-card" onclick="location='line-element-calc.html'" data-category="coord">
     <div class="icon">📐</div>
     <h2>万能线元法坐标计算</h2>
     <p>支持直线、圆曲线、缓和曲线，表格化数据管理，正算反算、CSV导入导出、曲线预览</p>
   </div>
-  <div class="tool-card" onclick="location='jiaodian-calc.html'">
+  <div class="tool-card" onclick="location='jiaodian-calc.html'" data-category="coord">
     <div class="icon">🛤️</div>
     <h2>交点法坐标计算</h2>
     <p>道路曲线交点法，计算曲线要素、主点里程坐标、逐桩坐标表、边桩，导出CSV和CAD脚本</p>
   </div>
-  <div class="tool-card" onclick="location='unit-convert.html'">
+  <div class="tool-card" onclick="location='unit-convert.html'" data-category="other">
     <div class="icon">📊</div>
     <h2>单位换算</h2>
     <p>长度/面积/体积/重量/时间/温度 单位换算，温度公式转换，快捷按钮</p>
   </div>
-  <div class="tool-card" onclick="location='materials-calc.html'">
+  <div class="tool-card" onclick="location='materials-calc.html'" data-category="other">
     <div class="icon">🧱</div>
     <h2>工程材算</h2>
     <p>混凝土/钢筋/钢板/型钢/通用材料重量计算，钢筋重量表，计算记录</p>
   </div>
-  <div class="tool-card" onclick="location='construction-log.html'">
+  <div class="tool-card" onclick="location='construction-log.html'" data-category="other">
     <div class="icon">📋</div>
     <h2>施工日志</h2>
     <p>每日施工日志记录，天气/人员/设备/材料/模板/搜索/导出</p>
   </div>
-  <div class="tool-card" onclick="location='tunnel-over-under.html'">
+  <div class="tool-card" onclick="location='tunnel-over-under.html'" data-category="other">
     <div class="icon">🚇</div>
     <h2>隧道超欠挖计算</h2>
     <p>标准马蹄形/圆形/蛋形/矩形断面，直线/曲线中线，超挖欠挖自动判定，Canvas可视化</p>
   </div>
-  <div class="tool-card" onclick="location='coord-convert.html'">
+  <div class="tool-card" onclick="location='coord-convert.html'" data-category="coord">
     <div class="icon">🔄</div>
     <h2>坐标转换（四参数/高斯投影）</h2>
     <p>四参数解算、高斯正反算、换带计算，支持批量转换和残差分析</p>
   </div>
-  <div class="tool-card" onclick="location='leveling-adjust.html'">
+  <div class="tool-card" onclick="location='leveling-adjust.html'" data-category="elev">
     <div class="icon">📏</div>
     <h2>水准平差</h2>
     <p>闭合/附合/支水准平差计算，按距离定权，限差自动检核，导出平差报告和剖面图</p>
   </div>
+  <div class="tool-card" onclick="location='gantt.html'" data-category="other">
+    <div class="icon">📊</div>
+    <h2>工程工期横道图</h2>
+    <p>项目进度可视化甘特图，支持新增/编辑/删除任务、状态筛选和搜索</p>
+  </div>
+</div>
 </div>
 </div>
 <footer class="footer">
@@ -185,6 +225,34 @@
 </footer>
 <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
 <script>
+// 分类过滤
+function filterTag(tag) {
+  document.querySelectorAll('.tag-btn').forEach(function(b) { b.classList.toggle('active', b.dataset.tag === tag); });
+  document.querySelectorAll('.tool-card').forEach(function(card) {
+    card.style.display = (tag === 'all' || card.dataset.category === tag) ? '' : 'none';
+  });
+}
+// 工具搜索
+document.getElementById('searchInput').addEventListener('input', function() {
+  var q = this.value.toLowerCase().trim();
+  var visible = 0;
+  document.querySelectorAll('.tool-card').forEach(function(card) {
+    var text = card.textContent.toLowerCase();
+    var match = !q || text.indexOf(q) >= 0;
+    card.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+  var empty = document.getElementById('emptyState');
+  if (!empty) {
+    empty = document.createElement('div');
+    empty.id = 'emptyState';
+    empty.style.cssText = 'text-align:center;padding:4rem;color:#999;font-size:1.1rem';
+    empty.textContent = '🔍 没有找到相关工具';
+    document.querySelector('.tool-grid').after(empty);
+  }
+  empty.style.display = visible === 0 && q ? 'block' : 'none';
+});
+// 粒子动画
 const c=document.getElementById('particleCanvas'),x=c.getContext('2d');
 let W,H,ps=[],m={x:-9999,y:-9999};
 const CF={count:120,speed:0.25,cDist:110,mR:160};
@@ -211,6 +279,13 @@ window.addEventListener('scroll',function(){if(navBar){if(window.scrollY>navTop)
 addEventListener('touchmove',e=>{const t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
 addEventListener('touchend',()=>{m.x=-9999;m.y=-9999});
 an();
+
+    function filterTag(tag) {
+      document.querySelectorAll('.tag-btn').forEach(b => b.classList.toggle('active', b.dataset.tag === tag));
+      document.querySelectorAll('.tool-card').forEach(card => {
+        card.style.display = (tag === 'all' || card.dataset.category === tag) ? '' : 'none';
+      });
+    }
 </script>
 </body>
 </html>
