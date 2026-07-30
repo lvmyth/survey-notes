@@ -6,10 +6,11 @@
 <link rel="icon" type="image/png" href="J.png">
 <link rel="alternate" type="application/rss+xml" title="测量工程笔记 RSS" href="feed.xml">
 <title>测量工程笔记</title>
+<link rel="preload" href="Lvmyth_AI_Logo.gif" as="image">
 <style>
 :root{--primary:#2c6e49;--primary-light:#4c956c;--primary-dark:#1b4d2e;--accent:#d68c45;--bg:#f5f7f0;--bg-card:#fff;--bg-nav:#1a2f24;--text:#2d3436;--text-light:#636e72;--text-on-dark:#ecf0f1;--border:#dde1d6;--tag-bg:#e8f5e9;--tag-text:#2c6e49;--shadow:0 2px 12px rgba(0,0,0,0.08);--shadow-hover:0 4px 20px rgba(0,0,0,0.14);--radius:12px;--radius-sm:6px;--max-width:1200px;--font-sans:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;--font-mono:'Consolas','Courier New',monospace}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.7;min-height:100vh;display:flex;flex-direction:column}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.7;min-height:100vh;display:flex;flex-direction:column;padding-top:64px}
 .navbar{background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
 .navbar-inner{max-width:var(--max-width);margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
 .navbar .logo{font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
@@ -197,22 +198,14 @@ var _hmt = _hmt || [];
 </div>
 <canvas id="particleCanvas"></canvas>
 
-<nav class="navbar"><div class="navbar-inner">
-<a class="logo" onclick="showHome()" style="cursor:pointer"><img src="J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
-<ul class="nav-links">
-<li><a onclick="showHome()" id="navHome">📋 文章</a></li>
-<li><a href="column.html" id="navColumn">🤖 AI</a></li>
-<li><a href="tools/index.html" id="navTools">🛠️ 工具</a></li>
-<li><a onclick="showAbout()" id="navAbout">👤 关于</a></li>
-</ul>
-</div></nav>
+<script src="navbar.js"></script>
 
 <div class="container" id="mainContent">
 <div class="loading">📐 加载中...</div>
 </div>
 
 <footer class="footer">
-<p>© 2026 <a onclick="showAbout()" style="cursor:pointer">测量工程笔记</a> · 用知识和数据丈量世界 🌍</p>
+<p>© 2026 <a href="about.html" style="cursor:pointer">测量工程笔记</a> · 用知识和数据丈量世界 🌍</p>
 <p style="margin-top:6px;font-size:12px;opacity:0.7">
  👁️访问量<span id="busuanzi_value_site_pv">--</span> 次 ·
  👤访客数<span id="busuanzi_value_site_uv">--</span> 人
@@ -475,34 +468,6 @@ function buildTOC() {
   headings.forEach(function(h){ if(h.id) observer.observe(h); });
 }
 
-function showAbout() {
-  document.getElementById('navHome').className = '';
-  document.getElementById('navColumn').className = '';
-  document.getElementById('navAbout').className = 'active';
-  document.getElementById('mainContent').innerHTML =
-    '<div class="page-header"><h1>👤 关于我</h1><p>一个用全站仪丈量世界、用代码解决问题的测量员</p></div>'+
-    '<div class="about-page"><div class="about-card">'+
-    '<div class="about-avatar"><img src="测量员.jpg" style="width:120px;height:120px;border-radius:50%;object-fit:cover"></div>'+
-    '<h2>郑杰明</h2>'+
-    '<p class="about-subtitle">测量员 · 全栈学习者</p>'+
-    '<div class="about-section"><h3>📌 关于本站</h3><p>这个博客记录了我从事测量工程工作以来积累的实用经验和心得，从全站仪操作到导线计算，从坐标解算到 BIM 建模，以及我自学 Python 编程过程中开发的各种测量辅助工具。希望能为同行提供一些有价值的参考。</p></div>'+
-    '<div class="about-section"><h3>🛠️ 专业技能</h3><div class="skill-tags">'+
-    ['全站仪操作','导线测量','坐标解算','水准测量','CAD 制图','BIM / Revit','Python','工程测量规范','施工放样']
-    .map(function(s){return '<span class="skill-tag">'+s+'</span>';}).join('')+
-    '</div></div>'+
-    '<div class="about-section"><h3>📱 测量员的工具箱</h3><p>微信扫码或点击二维码，了解小程序全部功能：坐标正反算、垂足公式、前方交会、多边形面积、圆弧计算、罗盘定向等。</p><a href="articles/survey-tools-intro.html"><img src="images/qr-code.jpg" style="width:180px;height:180px;display:block;margin:10px auto;border-radius:8px;cursor:pointer"></a><p style="text-align:center;font-size:.8rem;color:#888;margin:6px 0 0">点击二维码进入介绍页面</p></div>'+
-    '<div class="about-section"><h3>🏗️ 我的 BIM 族库</h3><p>个人 Revit 族文件分享站，持续更新：<br><a href="https://www.hwzuku.com/shop/HW977447" target="_blank" style="color:var(--primary);font-weight:600">https://www.hwzuku.com/shop/HW977447</a></p></div>'+
-    '<div class="about-section"><h3>📮 联系我</h3><ul class="about-contact">'+
-    '<li>📧 邮箱：<a href="mailto:lvmyth@qq.com" style="color:var(--primary);text-decoration:none">lvmyth@qq.com</a></li>'+
-    '<li>💬 微信：Lvmyth</li></ul></div>'+
-    '<div class="about-section"><h3>📡 订阅更新</h3><p>使用 Feedly、Inoreader 等 RSS 阅读器订阅博客更新：</p>'+
-    '<div style="margin-top:8px">'+
-    '<a href="feed.xml" target="_blank" style="display:inline-flex;align-items:center;gap:6px;padding:8px 20px;background:var(--primary);color:#fff;border-radius:20px;text-decoration:none;font-size:0.9rem;font-weight:500">📡 RSS 订阅</a>'+
-    '</div></div>'+
-    '<div class="about-section"><h3>🌱 博客寄语</h3><p style="font-style:italic;color:var(--primary)">"测量是工程的眼睛，数据是决策的基石。用精确丈量世界，用代码提高效率。"</p></div>'+
-    '</div></div>';
-}
-
 // ===== 测量+AI专栏 =====
 function showColumn() {
   inColumn = true;
@@ -593,75 +558,30 @@ function toggleLike(id){
 
 // ===== 启动 =====
 
-// 固定导航栏（兼容微信浏览器）
-var navBar = document.querySelector('.navbar');
-var navTop = navBar ? navBar.offsetTop : 0;
-window.addEventListener('scroll', function() {
-  if (navBar) {
-    if (window.scrollY > navTop) {
-      if (navBar.style.position !== 'fixed') {
-        navBar.style.position = 'fixed';
-        navBar.style.top = '0';
-        navBar.style.left = '0';
-        navBar.style.right = '0';
-        navBar.style.zIndex = '100';
-        document.body.style.paddingTop = navBar.offsetHeight + 'px';
-      }
-    } else {
-      if (navBar.style.position === 'fixed') {
-        navBar.style.position = '';
-        navBar.style.top = '';
-        navBar.style.left = '';
-        navBar.style.right = '';
-        document.body.style.paddingTop = '';
-      }
-    }
-  }
-});
+// 导航栏由 navbar.js 注入，已是 fixed 定位，无需滚动切换
 
 var articleId = getParam('id');
 var viewPage = getParam('view');
-if(viewPage==='about'){ showAbout(); }
-else if(viewPage==='column' && articleId){ inColumn = true; showArticle(articleId); }
+if(viewPage==='column' && articleId){ inColumn = true; showArticle(articleId); }
 else if(viewPage==='column'){ showColumn(); }
 else if(articleId){ showArticle(articleId); }
 else { showHome(); }
 </script>
-<script>
-const c=document.getElementById('particleCanvas'),x=c.getContext('2d');
-let W,H,ps=[],m={x:-9999,y:-9999};
-const CF={count:120,speed:0.25,cDist:110,mR:160};
-function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
-class P{
-  constructor(){this.rr()}
-  rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}
-  up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}
-  dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}
-}
-function ln(){
-  const dS=CF.cDist*CF.cDist;
-  for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){const dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){const a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}
-  if(m.x>0){const mR2=CF.mR*CF.mR;for(const p of ps){const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){const a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(p.x,p.y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}
-}
-function an(){x.clearRect(0,0,W,H);for(const p of ps){p.up();p.dr()}ln();requestAnimationFrame(an)}
-rs();ps=[];for(let i=0;i<CF.count;i++)ps.push(new P());
-addEventListener('resize',()=>{rs();for(const p of ps)p.rr()});
-addEventListener('mousemove',e=>{m.x=e.clientX;m.y=e.clientY});
-addEventListener('mouseleave',()=>{m.x=-9999;m.y=-9999});
-addEventListener('touchmove',e=>{const t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
-addEventListener('touchend',()=>{m.x=-9999;m.y=-9999});
-an();
-</script>
+<script src="particles.js"></script>
 
 <script>
-// 开场过渡控制
+// 开场过渡控制 — 首次加载播放一次后不再播放
 (function(){
   var overlay = document.getElementById('bootOverlay');
   if(!overlay) return;
+  if (localStorage.getItem('boot_shown')) {
+    overlay.style.display = 'none'; return;
+  }
   function dismiss(){
     if(overlay.dataset.dismissed === '1') return;
     overlay.dataset.dismissed = '1';
     overlay.classList.add('hide');
+    localStorage.setItem('boot_shown', '1');
     setTimeout(function(){
       if(overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
     }, 900);

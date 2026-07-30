@@ -305,15 +305,7 @@
 </head>
 <body>
   <canvas id="particleCanvas"></canvas>
-<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
-<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
-<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
-<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
-<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
-<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
-<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
-</ul>
-</div></nav>
+
 
   <div id="app" class="p-4 md:p-6 lg:p-8" style="max-width:1400px;margin:0 auto">
     
@@ -508,6 +500,7 @@
   </div>
 
   <script>
+
     // ====== 数据定义（基于 Excel 模板）======
     let projectStart = new Date('2026-06-01');
     let projectEnd = new Date('2026-07-31');
@@ -973,18 +966,9 @@
     init();
 
     // ===== 粒子效果 =====
-    var pc=document.getElementById('particleCanvas'),px=pc.getContext('2d');var PW,PH,pps=[],pm={x:-9999,y:-9999};var PCF={count:100,speed:0.25,cDist:100,mR:150};
-    function prs(){PW=pc.width=innerWidth;PH=pc.height=innerHeight}
-    class PP{constructor(){this.rr()}rr(){this.x=Math.random()*PW;this.y=Math.random()*PH;this.vx=(Math.random()-0.5)*PCF.speed*2;this.vy=(Math.random()-0.5)*PCF.speed*2;this.r=Math.random()*1.8+0.6}up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>PW)this.vx*=-1;if(this.y<0||this.y>PH)this.vy*=-1}dr(){px.beginPath();px.arc(this.x,this.y,this.r,0,Math.PI*2);px.fillStyle='rgba(44,110,73,0.3)';px.fill()}}
-    function pln(){var dS=PCF.cDist*PCF.cDist;for(var i=0;i<pps.length;i++)for(var j=i+1;j<pps.length;j++){var dx=pps[i].x-pps[j].x,dy=pps[i].y-pps[j].y,d2=dx*dx+dy*dy;if(d2<dS){var a=(1-d2/dS)*0.35;px.beginPath();px.moveTo(pps[i].x,pps[i].y);px.lineTo(pps[j].x,pps[j].y);px.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';px.lineWidth=0.5;px.stroke()}}if(pm.x>0){var mR2=PCF.mR*PCF.mR;for(var i=0;i<pps.length;i++){var dx=pps[i].x-pm.x,dy=pps[i].y-pm.y,d2=dx*dx+dy*dy;if(d2<mR2){var a=(1-d2/mR2)*0.6;px.beginPath();px.moveTo(pps[i].x,pps[i].y);px.lineTo(pm.x,pm.y);px.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';px.lineWidth=1;px.stroke()}}}}
-    function pan(){px.clearRect(0,0,PW,PH);for(var i=0;i<pps.length;i++){pps[i].up();pps[i].dr()}pln();requestAnimationFrame(pan)}
-    prs();for(var i=0;i<PCF.count;i++)pps.push(new PP());
-    addEventListener('resize',function(){prs();for(var i=0;i<pps.length;i++){pps[i].x=Math.random()*PW;pps[i].y=Math.random()*PH}});
-    addEventListener('mousemove',function(e){pm.x=e.clientX;pm.y=e.clientY});
-    addEventListener('mouseleave',function(){pm.x=-9999;pm.y=-9999});
-    addEventListener('touchmove',function(e){var t=e.touches[0];if(t){pm.x=t.clientX;pm.y=t.clientY}},{passive:true});
-    addEventListener('touchend',function(){pm.x=-9999;pm.y=-9999});
-    pan();
-  </script>
+    
+</script>
+<script src="../navbar.js"></script>
+<script src="../particles.js"></script>
 </body>
 </html>

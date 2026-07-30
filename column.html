@@ -8,7 +8,7 @@
 <style>
 :root{--primary:#2c6e49;--primary-light:#4c956c;--primary-dark:#1b4d2e;--accent:#d68c45;--bg:#f5f7f0;--bg-card:#fff;--bg-nav:#1a2f24;--text:#2d3436;--text-light:#636e72;--text-on-dark:#ecf0f1;--border:#dde1d6;--tag-bg:#e8f5e9;--tag-text:#2c6e49;--shadow:0 2px 12px rgba(0,0,0,0.08);--shadow-hover:0 4px 20px rgba(0,0,0,0.14);--radius:12px;--radius-sm:6px;--max-width:1200px;--font-sans:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;--font-mono:'Consolas','Courier New',monospace}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.7;min-height:100vh;display:flex;flex-direction:column}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.7;min-height:100vh;display:flex;flex-direction:column;padding-top:64px}
 .navbar{background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
 .navbar-inner{max-width:var(--max-width);margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
 .navbar .logo{font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
@@ -77,15 +77,7 @@ body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-he
 <body>
 <canvas id="particleCanvas"></canvas>
 
-<nav class="navbar"><div class="navbar-inner">
-<a class="logo" href="index.html" style="cursor:pointer"><img src="J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
-<ul class="nav-links">
-<li><a href="index.html">📋 文章</a></li>
-<li><a href="column.html" class="active">🤖 AI</a></li>
-<li><a href="tools/index.html">🛠️ 工具</a></li>
-<li><a href="index.html?view=about">👤 关于</a></li>
-</ul>
-</div></nav>
+<script src="navbar.js"></script>
 
 <div class="container" id="mainContent">
 <div class="page-header">
@@ -109,7 +101,7 @@ body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-he
 </div>
 
 <footer class="footer">
-<p>© 2026 <a href="index.html?view=about" style="cursor:pointer;color:var(--accent);text-decoration:none">测量工程笔记</a> · 用知识和数据丈量世界 🌍</p>
+<p>© 2026 <a href="about.html" style="cursor:pointer;color:var(--accent);text-decoration:none">测量工程笔记</a> · 用知识和数据丈量世界 🌍</p>
 <p style="margin-top:6px;font-size:0.82rem">👁️ 访问量 <span id="busuanzi_value_site_pv">--</span> 次 · 👤 访客数 <span id="busuanzi_value_site_uv">--</span> 人</p>
 </footer>
 
@@ -179,31 +171,6 @@ function colLike(id){
   if(btn){ btn.style.transform='scale(1.3)'; setTimeout(function(){btn.style.transform='scale(1)';},200); }
 }
 </script>
-<script>
-// 粒子动画
-const c=document.getElementById('particleCanvas'),x=c.getContext('2d');
-let W,H,ps=[],m={x:-9999,y:-9999};
-const CF={count:120,speed:0.25,cDist:110,mR:160};
-function rs(){W=c.width=innerWidth;H=c.height=innerHeight}
-class P{
-  constructor(){this.rr()}
-  rr(){this.x=Math.random()*W;this.y=Math.random()*H;this.vx=(Math.random()-0.5)*CF.speed*2;this.vy=(Math.random()-0.5)*CF.speed*2;this.r=Math.random()*1.8+0.6}
-  up(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>W)this.vx*=-1;if(this.y<0||this.y>H)this.vy*=-1}
-  dr(){x.beginPath();x.arc(this.x,this.y,this.r,0,Math.PI*2);x.fillStyle='rgba(44,110,73,0.35)';x.fill()}
-}
-function ln(){
-  const dS=CF.cDist*CF.cDist;
-  for(let i=0;i<ps.length;i++)for(let j=i+1;j<ps.length;j++){const dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d2=dx*dx+dy*dy;if(d2<dS){const a=(1-d2/dS)*0.4;x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(44,110,73,'+a.toFixed(3)+')';x.lineWidth=0.5;x.stroke()}}
-  if(m.x>0){const mR2=CF.mR*CF.mR;for(const p of ps){const dx=p.x-m.x,dy=p.y-m.y,d2=dx*dx+dy*dy;if(d2<mR2){const a=(1-d2/mR2)*0.7;x.beginPath();x.moveTo(p.x,p.y);x.lineTo(m.x,m.y);x.strokeStyle='rgba(76,150,108,'+a.toFixed(3)+')';x.lineWidth=1;x.stroke()}}}
-}
-function an(){x.clearRect(0,0,W,H);for(const p of ps){p.up();p.dr()}ln();requestAnimationFrame(an)}
-rs();ps=[];for(let i=0;i<CF.count;i++)ps.push(new P());
-addEventListener('resize',()=>{rs();for(const p of ps)p.rr()});
-addEventListener('mousemove',e=>{m.x=e.clientX;m.y=e.clientY});
-addEventListener('mouseleave',()=>{m.x=-9999;m.y=-9999});
-addEventListener('touchmove',e=>{const t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
-addEventListener('touchend',()=>{m.x=-9999;m.y=-9999});
-an();
-</script>
+<script src="particles.js"></script>
 </body>
 </html>

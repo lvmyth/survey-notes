@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>桥台锥坡放样计算器</title>
+<style>
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+:root {
+  --primary: #2c6e49; --primary-dark: #1b4d2e; --primary-light: #4c956c;
+  --accent: #e65100; --bg: #f4f7f5; --bg-card: #ffffff; --text: #333333;
+  --text-light: #666666; --border: #dce3e0; --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --bg-nav: #1a2f24; --text-on-dark: #ecf0f1; --accent-light: #6fb98a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { padding: 64px 20px 20px; font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+.container { max-width: 1300px; margin: 0 auto; position: relative; z-index: 1; }
+.header { display: none; }
+.panel { display: flex; gap: 20px; min-height: 600px; }
+.panel-left { flex: 0 0 380px; overflow-y: auto; padding-right: 5px; }
+.panel-right { flex: 1; min-width: 0; overflow-y: auto; padding-left: 5px; }
+.card { background: var(--bg-card); border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+.card h3 { font-size: 15px; color: var(--primary-dark); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--bg); display: flex; justify-content: space-between; align-items: center; }
+.input-card { background: #fdfdfd; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin-bottom: 10px; }
+.field-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.field-row:last-child { margin-bottom: 0; }
+.field-row label { font-size: 13px; color: var(--text); min-width: 80px; flex-shrink: 0; }
+.field-row input, .field-row select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: Consolas,monospace; outline: none; background: white; flex: 1; min-width: 60px; max-width: 140px; }
+.hint { font-size: 11px; color: var(--text-light); }
+.toggle-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 13px; background: var(--bg); padding: 6px 10px; border-radius: 4px; }
+.toggle-row input[type="checkbox"] { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+.btn { padding: 8px 16px; border: none; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-primary { background: var(--primary); color: white; width: 100%; margin-bottom: 8px; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-group-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-example { background: #e9ecef; color: var(--text); font-size: 12px; flex: 1; }
+.btn-success { background: #28a745; color: white; font-size: 12px; flex: 1; }
+.btn-secondary { background: #6c757d; color: white; font-size: 12px; flex: 1; }
+.summary-box { background: #f8fbfa; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-family: Consolas,monospace; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
+.canvas-container { background: white; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; position: relative; }
+#planCanvas { display: block; width: 100%; height: 450px; }
+#sideCanvas { display: block; width: 100%; height: 220px; }
+.result-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 600px; }
+th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: center; white-space: nowrap; }
+th { background: var(--primary-dark); color: white; font-weight: 600; position: sticky; top: 0; }
+tr:nth-child(even) { background: #f8fbfa; }
+.tag-normal { background: #e8f5e9; color: #2c6e49; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.tag-variable { background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+@media (max-width: 900px) { .panel { flex-direction: column; } .panel-left, .panel-right { flex: 1 1 100%; } }
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<script src="../navbar.js"></script>
+<script src="../particles.js"></script>
+<div class="container">
+  <div class="header">
+    <h1>🏗️ 桥台锥坡放样计算器</h1>
+    <p>正交/斜交仿射变换 · 变坡直纹面约束 · 弧长均匀采样</p>
+  </div>
+  <div class="panel">
+    <!-- 左侧输入面板 -->
+    <div class="panel-left">
+      <div class="card">
+        <h3>📐 基本参数</h3>
+        <div class="input-card">
+          <div class="field-row">
+            <label>锥顶标高</label><input id="hTop" value="13.60"><span class="hint">m</span>
+          </div>
+          <div class="field-row">
+            <label>地面标高</label><input id="hGround" value="5.50"><span class="hint">m</span>
+          </div>
+          <div class="field-row">
+            <label>高差 H</label><span id="hDiff" style="font-family:Consolas;font-weight:bold;color:var(--primary);">8.10 m</span>
+            <span id="slopeTag" class="tag-variable">变坡</span>
+          </div>
+          <div class="field-row">
+            <label>变坡阈值</label><input id="varHeight" value="6.00" style="max-width:80px;"><span class="hint">m</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🔵 顶面椭圆参数</h3>
+        <div class="input-card">
+          <div class="toggle-row"><input type="checkbox" id="calcFromRoad" onchange="toggleRoadInput()"><label for="calcFromRoad">从路基/桥台宽度计算 a'</label></div>
+          <div class="toggle-row"><input type="checkbox" id="forceRuled" checked><label for="forceRuled">强制直纹面 (全段约束轴比)</label></div>
+          <div id="directInput">
+            <div class="field-row"><label>长半轴 a'</label><input id="aTop" value="3.60"><span class="hint">m</span></div>
+            <div class="field-row"><label>短半轴 b'</label><input id="bTop" value="0.75"><span class="hint">m</span></div>
+          </div>
+          <div id="roadInput" style="display:none">
+            <div class="field-row"><label>路基半宽</label><input id="roadHalfW" value="12.25"><span class="hint">m</span></div>
+            <div class="field-row"><label>桥台半宽</label><input id="bridgeHalfW" value="10.25"><span class="hint">m</span></div>
+            <div class="field-row"><label>短半轴 b'</label><input id="bTop2" value="2.00"><span class="hint">m</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📏 坡率参数</h3>
+        <div class="input-card">
+          <div class="field-row"><label>纵向坡率 1:n</label><input id="n1" value="1.50"><span class="hint">(平行路线)</span></div>
+          <div class="field-row"><label>横向坡率 1:m</label><input id="m1" value="1.25"><span class="hint">(垂直路线)</span></div>
+          <div id="varSlopeSection">
+            <div style="font-size:12px;color:#e65100;font-weight:bold;margin:8px 0 4px;border-top:1px dashed var(--border);padding-top:8px;">⚡ 变坡段参数 (下半段)</div>
+            <div class="field-row"><label>纵向坡率2 1:n₂</label><input id="n2" value="1.75"></div>
+            <div class="field-row"><label>横向坡率2 1:m₂</label><input id="m2" value="1.50"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>🔄 斜交与坐标参数</h3>
+        <div class="input-card">
+          <div class="field-row">
+            <label>斜交角 θ</label><input id="skewAngle" value="0.0"><span class="hint">°</span>
+            <select id="skewDir" style="max-width:110px;"><option value="left-skew">左斜</option><option value="right-skew">右斜</option></select>
+          </div>
+          <div class="field-row"><label>锥坡位置</label><select id="coneSide"><option value="left">左侧 (路线左方)</option><option value="right">右侧 (路线右方)</option></select></div>
+          <div class="field-row">
+            <label>采样方式</label>
+            <select id="sampleMode"><option value="angle">按角度均匀</option><option value="arc" selected>按弧长均匀 (推荐)</option></select>
+          </div>
+          <hr style="border:0;border-top:1px dashed var(--border);margin:10px 0;">
+          <div class="field-row"><label>锥顶 X</label><input id="x0" value="500000.000"></div>
+          <div class="field-row"><label>锥顶 Y</label><input id="y0" value="3000000.000"></div>
+          <div class="field-row"><label>路线方位角</label><input id="az" value="90"><span class="hint">° (空格=度分秒)</span></div>
+          <div class="field-row"><label>分段数 N</label><input id="segments" value="10" type="number" min="3" max="200"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <button class="btn btn-primary" onclick="calculate()">▶ 执行计算</button>
+        <div class="btn-group-row">
+          <button class="btn btn-example" onclick="loadExample('ortho')">示例①正交</button>
+          <button class="btn btn-example" onclick="loadExample('var')">示例②变坡</button>
+          <button class="btn btn-example" onclick="loadExample('skew')">示例③斜交</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧结果面板 -->
+    <div class="panel-right">
+      <div class="card" id="summaryCard" style="display:none">
+        <h3>📊 计算结果摘要 <span id="precisionTag" style="font-size:11px;color:#28a745;font-weight:bold;">✅ 精度正常</span></h3>
+        <div id="summaryBox" class="summary-box"></div>
+      </div>
+      <div class="card" id="planCard" style="display:none">
+        <h3>🗺️ 锥坡平面图 <span style="font-size:12px;color:var(--text-light);">含路线与桥台参考线</span></h3>
+        <div class="canvas-container"><canvas id="planCanvas"></canvas></div>
+      </div>
+      <div class="card" id="sideCard" style="display:none">
+        <h3>📐 锥坡纵横双向剖面图</h3>
+        <div class="canvas-container"><canvas id="sideCanvas"></canvas></div>
+      </div>
+      <div class="card" id="tableCard" style="display:none">
+        <h3 onclick="toggleCoordTable()" style="cursor:pointer;user-select:none">📋 坡脚椭圆曲线坐标表 <span id="toggleIcon" style="font-size:12px;color:var(--text-light)">▶ 展开</span></h3>
+        <div class="result-table-wrap" id="coordTableWrap" style="display:none"></div>
+        <div class="btn-group-row" style="margin-top:12px;">
+          <button class="btn btn-success" onclick="exportCSV()">📥 导出CSV</button>
+          <button class="btn btn-secondary" onclick="copyCoords()">📋 复制坐标</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============ 核心数学与计算逻辑 ============
+
+function parseAngle(val) {
+  val = val.trim();
+  if (val.includes(' ') || val.includes('°') || val.includes('′') || val.includes('″')) {
+    var parts = val.replace(/[°′″']/g, ' ').split(/\s+/).filter(s => s.length > 0);
+    var d = parseFloat(parts[0]) || 0;
+    var m = parseFloat(parts[1]) || 0;
+    var s = parseFloat(parts[2]) || 0;
+    return d + m / 60 + s / 3600;
+  }
+  return parseFloat(val) || 0;
+}
+function normAng(a) { a = a % 360; if (a < 0) a += 360; return a; }
+function fmtAng(deg) {
+  var d = Math.floor(deg);
+  var mf = (deg - d) * 60;
+  var m = Math.floor(mf);
+  var s = (mf - m) * 60;
+  return d + '°' + m + '′' + s.toFixed(1) + '″';
+}
+
+// 椭圆弧长计算与均匀采样
+function getEllipsePoints(a, b, N, mode) {
+  if (mode === 'angle') {
+    var pts = [];
+    for (var i = 0; i <= N; i++) {
+      var alpha = (i / N) * Math.PI / 2;
+      pts.push({ alpha: alpha, u: b * Math.cos(alpha), v: a * Math.sin(alpha) });
+    }
+    return pts;
+  } else {
+    var steps = 1000;
+    var dAlpha = (Math.PI / 2) / steps;
+    var cumArcs = [0];
+    var alphas = [0];
+    var totalLen = 0;
+    
+    for (var i = 0; i < steps; i++) {
+      var a1 = i * dAlpha;
+      var a2 = (i + 1) * dAlpha;
+      var f1 = Math.sqrt(b * b * Math.sin(a1) * Math.sin(a1) + a * a * Math.cos(a1) * Math.cos(a1));
+      var f2 = Math.sqrt(b * b * Math.sin(a2) * Math.sin(a2) + a * a * Math.cos(a2) * Math.cos(a2));
+      totalLen += (f1 + f2) / 2 * dAlpha;
+      cumArcs.push(totalLen);
+      alphas.push(a2);
+    }
+    
+    var segLen = totalLen / N;
+    var pts = [];
+    for (var j = 0; j <= N; j++) {
+      var targetArc = j * segLen;
+      var lo = 0, hi = cumArcs.length - 1;
+      while (lo < hi) {
+        var mid = Math.floor((lo + hi) / 2);
+        if (cumArcs[mid] < targetArc) lo = mid + 1;
+        else hi = mid;
+      }
+      var alpha = alphas[lo];
+      pts.push({ alpha: alpha, u: b * Math.cos(alpha), v: a * Math.sin(alpha) });
+    }
+    return pts;
+  }
+}
+
+function toggleRoadInput() {
+  var useRoad = document.getElementById('calcFromRoad').checked;
+  document.getElementById('directInput').style.display = useRoad ? 'none' : '';
+  document.getElementById('roadInput').style.display = useRoad ? '' : 'none';
+}
+
+function updateHeight() {
+  var hTop = parseFloat(document.getElementById('hTop').value) || 0;
+  var hGround = parseFloat(document.getElementById('hGround').value) || 0;
+  var H = hTop - hGround;
+  var varH = parseFloat(document.getElementById('varHeight').value) || 6;
+  document.getElementById('hDiff').textContent = H.toFixed(2) + ' m';
+  var tag = document.getElementById('slopeTag');
+  if (H > varH) {
+    tag.className = 'tag-variable';
+    tag.textContent = '变坡(H>' + varH + 'm)';
+    document.getElementById('varSlopeSection').style.display = '';
+  } else {
+    tag.className = 'tag-normal';
+    tag.textContent = '单坡';
+    document.getElementById('varSlopeSection').style.display = 'none';
+  }
+}
+
+function setVals(obj) { for (var id in obj) { var el = document.getElementById(id); if (el) el.value = obj[id]; } }
+
+function loadExample(type) {
+  if (type === 'ortho') {
+    setVals({hTop:'10.50', hGround:'5.50', varHeight:'6.00', aTop:'3.00', bTop:'0.75', n1:'1.50', m1:'1.25', skewAngle:'0', coneSide:'left', sampleMode:'arc', x0:'500000', y0:'3000000', az:'90', segments:'10'});
+  } else if (type === 'var') {
+    setVals({hTop:'13.60', hGround:'5.50', varHeight:'6.00', aTop:'3.60', bTop:'0.75', n1:'1.50', m1:'1.25', n2:'1.75', m2:'1.50', skewAngle:'0', coneSide:'left', sampleMode:'arc', x0:'500000', y0:'3000000', az:'90', segments:'12'});
+  } else if (type === 'skew') {
+    setVals({hTop:'10.50', hGround:'5.50', varHeight:'6.00', aTop:'3.00', bTop:'0.75', n1:'1.50', m1:'1.25', skewAngle:'30', skewDir:'left-skew', coneSide:'left', sampleMode:'arc', x0:'500000', y0:'3000000', az:'90', segments:'10'});
+  }
+  document.getElementById('calcFromRoad').checked = false;
+  toggleRoadInput();
+  updateHeight();
+  calculate();
+}
+
+var calcResult = null;
+
+function calculate() {
+  var hTop = parseFloat(document.getElementById('hTop').value) || 0;
+  var hGround = parseFloat(document.getElementById('hGround').value) || 0;
+  var H = hTop - hGround;
+  if (H <= 0) { alert('高差H必须大于0！'); return; }
+
+  var varH = parseFloat(document.getElementById('varHeight').value) || 6;
+  var useRoad = document.getElementById('calcFromRoad').checked;
+  var forceRuled = document.getElementById('forceRuled').checked;
+  var n1 = parseFloat(document.getElementById('n1').value) || 1;
+  var m1 = parseFloat(document.getElementById('m1').value) || 1.5;
+  var n2 = parseFloat(document.getElementById('n2').value) || 1.75;
+  var m2 = parseFloat(document.getElementById('m2').value) || 1.5;
+  
+  var aTop, bTop;
+  if (useRoad) {
+    var roadHW = parseFloat(document.getElementById('roadHalfW').value) || 12.25;
+    var bridgeHW = parseFloat(document.getElementById('bridgeHalfW').value) || 10.25;
+    bTop = Math.max(0.75, parseFloat(document.getElementById('bTop2').value) || 0.75);
+    aTop = roadHW - bridgeHW;  // a' = 路基半宽 - 桥台半宽
+    if (forceRuled) { aTop = bTop * (n1 / m1); }  // 直纹面约束时用比例覆盖
+  } else {
+    bTop = parseFloat(document.getElementById('bTop').value) || 0.75;
+    if (bTop < 0.75) bTop = 0.75;
+    aTop = parseFloat(document.getElementById('aTop').value) || 0;
+    if (forceRuled) {
+      aTop = bTop * (n1 / m1);
+      document.getElementById('aTop').value = aTop.toFixed(2);
+    }
+  }
+
+  var skewDeg = parseFloat(document.getElementById('skewAngle').value) || 0;
+  var side = document.getElementById('coneSide').value;
+  var skewDir = document.getElementById('skewDir').value;
+  var sampleMode = document.getElementById('sampleMode').value;
+  var N = Math.min(200, Math.max(3, parseInt(document.getElementById('segments').value) || 10));
+  var X0 = parseFloat(document.getElementById('x0').value) || 0;
+  var Y0 = parseFloat(document.getElementById('y0').value) || 0;
+  var azDeg = parseAngle(document.getElementById('az').value);
+
+  var isVarSlope = H > varH;
+  var aBot, bBot, aMid = 0, bMid = 0;
+  
+  if (!isVarSlope) {
+    aBot = aTop + n1 * H;
+    bBot = bTop + m1 * H;
+  } else {
+    aMid = aTop + n1 * varH;
+    bMid = bTop + m1 * varH;
+    if (forceRuled) {
+      var bBot_calc = bMid + m2 * (H - varH);
+      var aBot_calc = bBot_calc * (n2 / m2);
+      aBot = aBot_calc;
+      bBot = bBot_calc;
+    } else {
+      aBot = aMid + n2 * (H - varH);
+      bBot = bMid + m2 * (H - varH);
+    }
+  }
+
+  var rawPoints = getEllipsePoints(aBot, bBot, N, sampleMode);
+  var points = [];
+  var skewRad = skewDeg * Math.PI / 180;
+  var sign = (skewDir === 'left-skew') ? 1 : -1;
+  var dirX_deg = (side === 'left') ? normAng(azDeg - 90) : normAng(azDeg + 90);
+  var dirY_deg = normAng(azDeg + 180);
+  var dirX_rad = dirX_deg * Math.PI / 180;
+  var dirY_rad = dirY_deg * Math.PI / 180;
+
+  for (var i = 0; i < rawPoints.length; i++) {
+    var p = rawPoints[i];
+    var x_route, y_route;
+    if (skewDeg === 0) {
+      x_route = p.u; y_route = p.v;
+    } else {
+      x_route = p.u * Math.cos(sign * skewRad) - p.v * Math.sin(sign * skewRad);
+      y_route = p.u * Math.sin(sign * skewRad) + p.v * Math.cos(sign * skewRad);
+    }
+    var Xf = X0 + x_route * Math.cos(dirX_rad) + y_route * Math.cos(dirY_rad);
+    var Yf = Y0 + x_route * Math.sin(dirX_rad) + y_route * Math.sin(dirY_rad);
+    points.push({
+      idx: i, alphaDeg: (p.alpha * 180 / Math.PI).toFixed(2),
+      u: p.u, v: p.v, x_route: x_route, y_route: y_route,
+      X: Xf.toFixed(3), Y: Yf.toFixed(3), dist: Math.sqrt(p.u*p.u + p.v*p.v).toFixed(3)
+    });
+  }
+
+  calcResult = {
+    H, hTop, hGround, varH, isVarSlope, forceRuled,
+    aTop, bTop, aBot, bBot, aMid, bMid, n1, m1, n2, m2,
+    skewDeg, side, skewDir, sampleMode, azDeg, X0, Y0, points, N,
+    dirX_deg, dirY_deg
+  };
+
+  showSummary();
+  showPlanView();
+  showSideView();
+  showCoordTable();
+}
+
+function showSummary() {
+  var r = calcResult;
+  var s = '━━━ 锥坡几何参数 ━━━\n';
+  s += '高差 H = ' + r.H.toFixed(2) + ' m  [' + (r.isVarSlope ? '变坡>H=' + r.varH + 'm' : '单坡') + ']\n';
+  s += "顶面 a' = " + r.aTop.toFixed(3) + "m,  b' = " + r.bTop.toFixed(3) + "m\n";
+  if (r.isVarSlope) {
+    s += '变坡点 a_m = ' + r.aMid.toFixed(3) + 'm,  b_m = ' + r.bMid.toFixed(3) + 'm\n';
+    s += '  (上半 ' + r.varH + 'm: 1:' + r.n1 + '/1:' + r.m1 + ' | 下半 ' + (r.H - r.varH).toFixed(2) + 'm: 1:' + r.n2 + '/1:' + r.m2 + ')\n';
+  } else {
+    s += '  (坡率 1:' + r.n1 + '(纵) / 1:' + r.m1 + '(横))\n';
+  }
+  s += '底面 a = ' + r.aBot.toFixed(3) + 'm,  b = ' + r.bBot.toFixed(3) + 'm\n';
+  if (r.forceRuled) s += '✅ 已全段强制直纹面约束\n\n'; else s += '\n';
+  s += '━━━ 坐标转换参数 ━━━\n';
+  s += '锥顶坐标 X = ' + r.X0.toFixed(3) + ', Y = ' + r.Y0.toFixed(3) + '\n';
+  s += '路线方位角 = ' + fmtAng(r.azDeg) + '\n';
+  s += '采样方式 = ' + (r.sampleMode === 'arc' ? '按弧长均匀 (高精度)' : '按角度均匀') + '\n';
+  if (r.skewDeg > 0) s += '斜交角 θ = ' + r.skewDeg + '° (仿射变换生效)\n';
+  document.getElementById('summaryBox').textContent = s;
+  document.getElementById('summaryCard').style.display = '';
+  // 精度标签：检查直纹面约束一致性
+  var tag = document.getElementById('precisionTag');
+  if (r.isVarSlope && !r.forceRuled) {
+    var ratioTop = r.aTop / r.bTop, ratioBot = r.aBot / r.bBot;
+    if (Math.abs(ratioTop - ratioBot) > 0.05) {
+      tag.textContent = '⚠️ 变坡非直纹面，轴比不一致';
+      tag.style.color = '#e65100';
+    } else {
+      tag.textContent = '✅ 精度正常';
+      tag.style.color = '#28a745';
+    }
+  } else {
+    tag.textContent = r.forceRuled ? '✅ 直纹面约束，轴比一致' : '✅ 精度正常';
+    tag.style.color = '#28a745';
+  }
+}
+
+function showPlanView() {
+  var r = calcResult;
+  document.getElementById('planCard').style.display = '';
+  var canvas = document.getElementById('planCanvas');
+  var w = canvas.parentElement.clientWidth - 2;
+  if (w < 100) w = 600;
+  var h = 450;
+  canvas.width = w * 2; canvas.height = h * 2; canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  var ctx = canvas.getContext('2d'); ctx.scale(2, 2); ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fafafa'; ctx.fillRect(0, 0, w, h);
+
+  var cosSk = Math.abs(Math.cos(r.skewDeg * Math.PI / 180));
+  var sinSk = Math.abs(Math.sin(r.skewDeg * Math.PI / 180));
+  var maxX = Math.max(r.bBot * cosSk + r.aBot * sinSk, r.aBot, r.bBot);
+  var maxY = Math.max(r.bBot * sinSk + r.aBot * cosSk, r.aBot, r.bBot);
+
+  var margin = 60;
+  var scale = Math.min((w - margin * 2) / (maxX * 1.2), (h - margin * 2) / (maxY * 1.2));
+  var ox = margin + 30, oy = h - margin - 20;
+
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1; ctx.setLineDash([6, 4]);
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox, margin); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(w - margin, oy); ctx.stroke();
+  if (r.skewDeg > 0) {
+    var sign = (r.skewDir === 'left-skew') ? 1 : -1;
+    var ang = -sign * r.skewDeg * Math.PI / 180;
+    ctx.strokeStyle = '#e65100'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + Math.cos(ang) * (w-margin-ox) * 0.8, oy + Math.sin(ang) * (w-margin-ox) * 0.8); ctx.stroke();
+    ctx.beginPath(); ctx.arc(ox, oy, 30, 0, ang, ang > 0); ctx.stroke();
+    ctx.fillStyle = '#e65100'; ctx.font = '12px sans-serif'; ctx.fillText('θ=' + r.skewDeg + '°', ox + 35, oy - 8);
+  }
+  ctx.setLineDash([]);
+
+  function drawEllipse(a, b, color, dash, width, fill) {
+    ctx.strokeStyle = color; ctx.lineWidth = width || 1; ctx.setLineDash(dash || []);
+    ctx.beginPath();
+    for (var t = 0; t <= Math.PI / 2 + 0.01; t += 0.02) {
+      var u = b * Math.cos(t), v = a * Math.sin(t);
+      var x_r = u, y_r = v;
+      if (r.skewDeg > 0) {
+        var s = (r.skewDir === 'left-skew') ? 1 : -1;
+        var rad = s * r.skewDeg * Math.PI / 180;
+        x_r = u * Math.cos(rad) - v * Math.sin(rad);
+        y_r = u * Math.sin(rad) + v * Math.cos(rad);
+      }
+      var px = ox + x_r * scale, py = oy - y_r * scale;
+      if (t === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+
+  drawEllipse(r.aTop, r.bTop, '#4c956c', [3, 3], 1);
+  if (r.isVarSlope) drawEllipse(r.aMid, r.bMid, '#e65100', [5, 3], 1);
+  drawEllipse(r.aBot, r.bBot, '#2c6e49', [], 2, 'rgba(44,110,73,0.06)');
+
+  ctx.fillStyle = '#2c6e49';
+  for (var i = 0; i < r.points.length; i++) {
+    var p = r.points[i];
+    var px = ox + p.x_route * scale, py = oy - p.y_route * scale;
+    ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI * 2); ctx.fill();
+    if (i % Math.ceil(r.N / 8) === 0 || i === r.points.length - 1) {
+      ctx.fillStyle = '#1b4d2e'; ctx.font = '11px Consolas'; ctx.textAlign = 'left';
+      ctx.fillText(i, px + 6, py - 6); ctx.fillStyle = '#2c6e49';
+    }
+  }
+  
+  ctx.fillStyle = '#d32f2f'; ctx.beginPath(); ctx.arc(ox, oy, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.font = '12px sans-serif'; ctx.fillStyle = '#d32f2f'; ctx.fillText('锥顶(0,0)', ox + 8, oy + 4);
+  
+  ctx.font = '11px sans-serif'; ctx.fillStyle = '#555';
+  ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(15, 20); ctx.lineTo(35, 20); ctx.stroke();
+  ctx.fillText('━ 坡脚', 40, 24);
+  ctx.strokeStyle = '#4c956c'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(15, 36); ctx.lineTo(35, 36); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillText('┄ 顶面', 40, 40);
+  ctx.fillStyle = '#999'; ctx.fillText('比例 1:' + (1 / scale).toFixed(2), ox, h - 8);
+}
+
+function showSideView() {
+  var r = calcResult;
+  document.getElementById('sideCard').style.display = '';
+  var canvas = document.getElementById('sideCanvas');
+  var w = canvas.parentElement.clientWidth - 2;
+  if (w < 100) w = 600;
+  var h = 220;
+  canvas.width = w * 2; canvas.height = h * 2; canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+  var ctx = canvas.getContext('2d'); ctx.scale(2, 2); ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#fafafa'; ctx.fillRect(0, 0, w, h);
+
+  var margin = 35, groundY = h - 35, halfW = w / 2, plotH = groundY - margin, plotW = halfW - margin * 2;
+  
+  function drawProfile(ox, maxW, aTop, aMid, aBot, H, varH, n1, n2, title) {
+    var scaleX = plotW / (maxW * 1.15), scaleY = plotH / (H * 1.15), scale = Math.min(scaleX, scaleY);
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(ox, groundY); ctx.lineTo(ox + plotW, groundY); ctx.stroke(); ctx.setLineDash([]);
+
+    var topX = ox + aTop * scale, topY = groundY - H * scale;
+    var footX = ox + aBot * scale;
+    
+    if (r.isVarSlope) {
+      var midX = ox + aMid * scale, midY = groundY - varH * scale;
+      ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(topX, topY); ctx.lineTo(midX, midY); ctx.stroke();
+      ctx.strokeStyle = '#e65100'; ctx.beginPath(); ctx.moveTo(midX, midY); ctx.lineTo(footX, groundY); ctx.stroke();
+      ctx.fillStyle = '#e65100'; ctx.beginPath(); ctx.arc(midX, midY, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.font = '10px sans-serif'; ctx.fillStyle = '#e65100'; ctx.fillText('变坡', midX + 5, midY - 5);
+      ctx.fillStyle = '#2c6e49'; ctx.fillText('1:' + n1, (topX + midX) / 2, (topY + midY) / 2 - 8);
+      ctx.fillStyle = '#e65100'; ctx.fillText('1:' + n2, (midX + footX) / 2, (midY + groundY) / 2 - 8);
+    } else {
+      ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(topX, topY); ctx.lineTo(footX, groundY); ctx.stroke();
+      ctx.font = '11px sans-serif'; ctx.fillStyle = '#2c6e49'; ctx.fillText('1:' + n1, (topX + footX) / 2 + 10, (topY + groundY) / 2 - 8);
+    }
+    ctx.fillStyle = '#d32f2f'; ctx.beginPath(); ctx.arc(topX, topY, 4, 0, Math.PI * 2); ctx.fill();
+    ctx.font = '12px sans-serif'; ctx.fillStyle = '#333'; ctx.textAlign = 'center'; ctx.fillText(title, (ox + footX) / 2, 18);
+    ctx.font = '10px Consolas'; ctx.fillStyle = '#666'; ctx.textAlign = 'right'; ctx.fillText('H=' + H.toFixed(1) + 'm', ox - 3, (topY + groundY) / 2);
+  }
+
+  drawProfile(margin, r.aBot, r.aTop, r.aMid, r.aBot, r.H, r.varH, r.n1, r.n2, '纵向剖面 (1:n)');
+  ctx.strokeStyle = '#ddd'; ctx.lineWidth = 1; ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(halfW, margin); ctx.lineTo(halfW, groundY); ctx.stroke(); ctx.setLineDash([]);
+  drawProfile(halfW + margin, r.bBot, r.bTop, r.bMid, r.bBot, r.H, r.varH, r.m1, r.m2, '横向剖面 (1:m)');
+}
+
+function showCoordTable() {
+  var r = calcResult;
+  var html = '<table><tr><th>点号</th><th>角度α°</th><th>局部u(横)</th><th>局部v(纵)</th><th>全局X(北)</th><th>全局Y(东)</th><th>距锥顶</th></tr>';
+  for (var i = 0; i < r.points.length; i++) {
+    var p = r.points[i];
+    html += '<tr><td>' + i + '</td><td>' + p.alphaDeg + '</td><td>' + p.u.toFixed(3) + '</td><td>' + p.v.toFixed(3) + '</td><td>' + p.X + '</td><td>' + p.Y + '</td><td>' + p.dist + '</td></tr>';
+  }
+  html += '</table>';
+  document.getElementById('coordTableWrap').innerHTML = html;
+  document.getElementById('tableCard').style.display = '';
+  toggleCoordTable(false);
+}
+
+function toggleCoordTable(forceShow) {
+  var wrap = document.getElementById('coordTableWrap');
+  var icon = document.getElementById('toggleIcon');
+  if (!wrap || !icon) return;
+  var show = (forceShow !== undefined) ? forceShow : (wrap.style.display !== 'block');
+  wrap.style.display = show ? 'block' : 'none';
+  icon.textContent = show ? '▼ 收起' : '▶ 展开';
+}
+function exportCSV() {
+  if (!calcResult) return;
+  var r = calcResult;
+  var lines = ['\uFEFF点号,椭圆角α(度),局部u(横向),局部v(纵向),全局X(北),全局Y(东),距锥顶'];
+  for (var i = 0; i < r.points.length; i++) {
+    var p = r.points[i];
+    lines.push([i, p.alphaDeg, p.u.toFixed(3), p.v.toFixed(3), p.X, p.Y, p.dist].join(','));
+  }
+  var blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = '锥坡放样坐标表.csv';
+  link.click();
+}
+
+function copyCoords() {
+  if (!calcResult) return;
+  var r = calcResult;
+  var text = '';
+  for (var i = 0; i < r.points.length; i++) {
+    var p = r.points[i];
+    text += i + '  X=' + p.X + '  Y=' + p.Y + '  α=' + p.alphaDeg + '°\n';
+  }
+  navigator.clipboard.writeText(text).then(() => alert('坐标已复制!')).catch(() => {
+    var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); alert('坐标已复制!');
+  });
+}
+
+['hTop', 'hGround', 'varHeight'].forEach(id => document.getElementById(id).addEventListener('input', updateHeight));
+window.addEventListener('resize', function() { if (calcResult) { showPlanView(); showSideView(); } });
+
+updateHeight();
+calculate();
+</script>
+
+</div>  <!-- right panel -->
+    </div>  <!-- panel -->
+  </div>  <!-- container -->
+<div style="text-align:center;padding:12px 0 2rem;border-top:1px solid var(--border);margin-top:1rem;color:var(--text-light);font-size:0.85rem;position:relative;z-index:1">
+  <a href="mailto:lvmyth@qq.com" style="color:var(--text-light);text-decoration:none">By Lvmyth AI</a>
+</div>
+
+</body>
+</html>

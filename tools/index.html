@@ -21,7 +21,7 @@
 .tool-card h2 { font-size: 16px; color: var(--primary-dark); margin-bottom: 6px; }
 .tool-card p { font-size: 13px; color: var(--text-light); line-height: 1.5; }
 .tool-card .icon { font-size: 28px; margin-bottom: 8px; }
-.page-header { text-align: center; padding: 3rem 0 2rem; }
+.page-header { text-align: center; padding: 0.5rem 0 1.5rem; }
 .page-header h1 { font-size: 2.2rem; color: var(--primary-dark); margin-bottom: 0.5rem; }
 .page-header p { color: var(--text-light); font-size: 1.05rem; max-width: 600px; margin: 0 auto; }
 .navbar{background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
@@ -35,7 +35,7 @@
 #particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
 .navbar,.page-header,.search-box,.container,.footer{position:relative;z-index:1}
 .container{margin-bottom:4rem}
-body{margin:0;min-height:100vh;display:flex;flex-direction:column}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;padding-top:64px}
 .main-wrap{flex:1;position:relative;z-index:1}
 @media(max-width:768px){
 .navbar-inner{height:54px}
@@ -67,16 +67,9 @@ body{margin:0;min-height:100vh;display:flex;flex-direction:column}
 </style>
 </head>
 <body>
+<script src="../navbar.js"></script>
 <canvas id="particleCanvas"></canvas>
-<nav class="navbar"><div class="navbar-inner">
-<a class="logo" href="../index.html" style="cursor:pointer"><img src="J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
-<ul class="nav-links">
-<li><a href="../index.html">📋 文章</a></li>
-<li><a href="../column.html">🤖 AI</a></li>
-<li><a href="../tools/index.html" class="active">🛠️ 工具</a></li>
-<li><a href="../index.html?view=about">👤 关于</a></li>
-</ul>
-</div></nav>
+
 <div class="main-wrap">
 <div class="page-header">
   <h1>测量员在线工具箱</h1>
@@ -213,6 +206,11 @@ body{margin:0;min-height:100vh;display:flex;flex-direction:column}
     <h2>工程工期横道图</h2>
     <p>项目进度可视化甘特图，支持新增/编辑/删除任务、状态筛选和搜索</p>
   </div>
+  <div class="tool-card" onclick="location='cone-slope-layout.html'" data-category="curve">
+    <div class="icon">⬡</div>
+    <h2>锥坡放样计算</h2>
+    <p>桥台锥坡放样：长轴/短轴/级数参数，椭圆坡脚坐标计算，含平面和立面示意图</p>
+  </div>
 </div>
 </div>
 </div>
@@ -273,9 +271,6 @@ rs();ps=[];for(let i=0;i<CF.count;i++)ps.push(new P());
 addEventListener('resize',()=>{rs();for(const p of ps)p.rr()});
 addEventListener('mousemove',e=>{m.x=e.clientX;m.y=e.clientY});
 addEventListener('mouseleave',()=>{m.x=-9999;m.y=-9999});
-// 固定导航栏
-var navBar=document.querySelector('.navbar'),navTop=navBar?navBar.offsetTop:0;
-window.addEventListener('scroll',function(){if(navBar){if(window.scrollY>navTop){if(navBar.style.position!=='fixed'){navBar.style.position='fixed';navBar.style.top='0';navBar.style.left='0';navBar.style.right='0';navBar.style.zIndex='100';document.body.style.paddingTop=navBar.offsetHeight+'px'}}else{if(navBar.style.position==='fixed'){navBar.style.position='';navBar.style.top='';navBar.style.left='';navBar.style.right='';document.body.style.paddingTop=''}}}});
 addEventListener('touchmove',e=>{const t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
 addEventListener('touchend',()=>{m.x=-9999;m.y=-9999});
 an();
@@ -286,6 +281,8 @@ an();
         card.style.display = (tag === 'all' || card.dataset.category === tag) ? '' : 'none';
       });
     }
+
 </script>
+<script src="../particles.js"></script>
 </body>
 </html>

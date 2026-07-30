@@ -58,15 +58,7 @@ body{padding-top:64px;font-family:'Segoe UI','PingFang SC','Microsoft YaHei',san
 </head>
 <body>
 <canvas id="particleCanvas"></canvas>
-<nav class="navbar" style="background:var(--bg-nav);color:var(--text-on-dark);padding:0 2rem;position:fixed;top:0;left:0;right:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
-<div class="navbar-inner" style="max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px">
-<a class="logo" href="../index.html" style="cursor:pointer;font-size:1.4rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px"><img src="../J.png" style="height:32px;vertical-align:middle;margin-right:6px">测量工程笔记</a>
-<ul class="nav-links" style="display:flex;gap:4px;list-style:none">
-<li><a href="../index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">📋 文章</a></li>
-<li><a href="index.html" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">🛠️ 工具</a></li>
-<li><a href="../index.html?view=about" style="color:rgba(255,255,255,0.8);text-decoration:none;padding:8px 16px;border-radius:6px;font-size:0.95rem">👤 关于</a></li>
-</ul>
-</div></nav>
+
 <div class="container">
 <div class="card">
   <h3>度分秒 → 十进制度</h3>
@@ -156,6 +148,9 @@ addEventListener('mouseleave',function(){m.x=-9999;m.y=-9999});
 addEventListener('touchmove',function(e){var t=e.touches[0];if(t){m.x=t.clientX;m.y=t.clientY}},{passive:true});
 addEventListener('touchend',function(){m.x=-9999;m.y=-9999});
 an();
+
 </script>
+<script src="../navbar.js"></script>
+<script src="../particles.js"></script>
 </body>
 </html>
