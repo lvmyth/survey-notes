@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lvmyth.github.io/survey-notes/sitemap.xml
