@@ -82,7 +82,20 @@ rssLines.push('  <link>https://www.axureshow.com/project/snUNZfl9/</link>');
 rssLines.push('  <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>');
 rssLines.push('  <language>zh-CN</language>');
 rssLines.push('  <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>');
+rssLines.push('  <lastBuildDate>' + new Date().toUTCString() + '</lastBuildDate>');
 rssLines.push('');
+
+// 将 YYYY-MM-DD 转为 RSS 规范的 RFC 822 格式（部分阅读器对裸日期不兼容）
+function toRfc822Date(s) {
+  var m = String(s).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return String(s);
+  var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var mons = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  // 用 UTC 构造仅用于算星期几，避免部署环境时区干扰
+  var t = Date.UTC(+m[1], +m[2] - 1, +m[3]);
+  var d = new Date(t);
+  return days[d.getUTCDay()] + ', ' + m[3] + ' ' + mons[+m[2] - 1] + ' ' + m[1] + ' 00:00:00 +0800';
+}
 
 for (var i = 0; i < articles.length; i++) {
   var a = articles[i];
@@ -90,7 +103,7 @@ for (var i = 0; i < articles.length; i++) {
   rssLines.push('    <title>' + escapeXml(a.title) + '</title>');
   rssLines.push('    <link>https://www.axureshow.com/project/snUNZfl9/?id=' + a.id + '</link>');
   rssLines.push('    <guid>https://www.axureshow.com/project/snUNZfl9/?id=' + a.id + '</guid>');
-  rssLines.push('    <pubDate>' + a.date + '</pubDate>');
+  rssLines.push('    <pubDate>' + toRfc822Date(a.date) + '</pubDate>');
   rssLines.push('    <description>' + escapeXml(a.excerpt) + '</description>');
   for (var j = 0; j < a.tags.length; j++) {
     rssLines.push('    <category>' + escapeXml(a.tags[j]) + '</category>');
