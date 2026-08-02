@@ -56,7 +56,7 @@
       var newNav = document.querySelector('.navbar');
       if (newNav) {
         var backBar = '<div id="backBar" class="no-print" style="position:relative;z-index:2;padding:0;background:var(--bg)">'
-          + '<div style="max-width:1200px;margin:0 auto;padding:0 1rem">'
+          + '<div style="max-width:1200px;margin:0 auto;padding:8px 1rem 12px">'
           + '<a href="' + base + 'tools/index.html" style="color:var(--primary);text-decoration:none;font-size:0.9rem;font-weight:500">&larr; 返回工具箱</a>'
           + '</div></div>';
         newNav.insertAdjacentHTML('afterend', backBar);

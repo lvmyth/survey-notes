@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>弧垂测控（计算与观测） - 测量员在线工具箱</title>
+<meta name="description" content="架空输电线路弧垂测控：弧垂正算、等长/异长/角度法观测反算、温度-应力状态方程换算">
+<meta name="keywords" content="测量,工程测量,弧垂,驰度,架空线路,导线,弧垂观测,角度法">
+<meta name="author" content="郑杰明 (Lvmyth AI)">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://lvmyth.github.io/survey-notes/tools/sag-calc.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="弧垂测控（计算与观测）">
+<meta property="og:description" content="架空输电线路弧垂测控：弧垂正算、等长/异长/角度法观测反算、温度-应力换算">
+<meta property="og:url" content="https://lvmyth.github.io/survey-notes/tools/sag-calc.html">
+<meta property="og:image" content="https://lvmyth.github.io/survey-notes/images/logo.jpg">
+<meta property="og:site_name" content="测量工程笔记">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="弧垂测控（计算与观测）">
+<meta name="twitter:description" content="架空输电线路弧垂测控：弧垂正算、等长/异长/角度法观测反算、温度-应力换算">
+<meta name="twitter:image" content="https://lvmyth.github.io/survey-notes/images/logo.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"弧垂测控（计算与观测）","url":"https://lvmyth.github.io/survey-notes/tools/sag-calc.html","image":"https://lvmyth.github.io/survey-notes/images/logo.jpg","description":"架空输电线路弧垂测控：弧垂正算、等长/异长/角度法观测反算、温度-应力换算","publisher":{"@type":"Organization","name":"测量工程笔记","url":"https://lvmyth.github.io/survey-notes"},"applicationCategory":"UtilityApplication","operatingSystem":"Web"}
+</script>
+<style>
+  :root {
+    --primary: #2c6e49;
+    --primary-dark: #1b4d2e;
+    --primary-light: #4c956c;
+    --bg: #f4f7f5;
+    --bg-card: #ffffff;
+    --text: #333333;
+    --text-light: #666666;
+    --border: #dce3e0;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+    --radius: 8px;
+    --danger: #dc3545;
+    --warning: #e65100;
+    --success: #28a745;
+    --bg-nav: #1a2f24; --text-on-dark: #ecf0f1; --accent-light: #6fb98a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  #particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+  body { padding: 64px 16px 16px; font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+  header { display: none; }
+  header h1 { font-size: 1.6rem; color: var(--primary-dark); }
+  header .subtitle { color: var(--text-light); font-size: 0.9rem; }
+  .panel { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+  .panel-left { flex: 0 0 380px; min-width: 300px; max-height: 90vh; overflow-y: auto; padding-right: 4px; }
+  .panel-right { flex: 1; min-width: 320px; }
+  .panel-left::-webkit-scrollbar { width: 4px; }
+  .panel-left::-webkit-scrollbar-thumb { background: var(--primary-light); border-radius: 2px; }
+  .card { background: var(--bg-card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px; margin-bottom: 12px; border: 1px solid var(--border); }
+  .card h3 { font-size: 14px; color: var(--primary-dark); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .field-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .field-row label { font-size: 12px; font-weight: 600; width: 90px; flex-shrink: 0; color: var(--text); }
+  .field-row input, .field-row select { flex: 1; padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: 'Consolas',monospace; min-width: 50px; background: white; }
+  .field-row input:focus, .field-row select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 2px rgba(44,110,73,0.15); }
+  .field-row .unit { font-size: 11px; color: var(--text-light); width: 50px; flex-shrink: 0; }
+  .btn { padding: 7px 16px; border: none; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; background: var(--primary); color: #fff; }
+  .btn:hover { opacity: 0.85; }
+  .btn-block { display: block; width: 100%; margin: 6px 0; padding: 9px; }
+  .btn-sm { padding: 4px 12px; font-size: 12px; }
+  .btn-success { background: var(--success); }
+  .btn-warning { background: var(--warning); }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn-group .btn { flex: 1; min-width: 60px; text-align: center; }
+  .result-box { background: #f8faf5; border-radius: 6px; padding: 12px 14px; font-family: 'Consolas',monospace; font-size: 13px; line-height: 1.8; min-height: 80px; white-space: pre-wrap; max-height: 400px; overflow-y: auto; border: 1px solid #e9ecef; }
+  .result-box .big { font-size: 20px; font-weight: 700; color: var(--primary); }
+  .result-box .k { color: var(--text-light); font-weight: 600; }
+  .result-box .v { color: var(--text); font-weight: 600; }
+  .result-box .warn { color: var(--danger); font-weight: 600; }
+  .result-box .success { color: var(--success); font-weight: 600; }
+  .tabs { display: flex; gap: 2px; margin-bottom: 12px; flex-wrap: wrap; }
+  .tab-btn { padding: 7px 16px; border: 1px solid var(--border); border-radius: 6px 6px 0 0; background: var(--bg-card); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-light); transition: all 0.2s; }
+  .tab-btn:hover { background: #e8f5e9; }
+  .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  .info-tip { background: #f1f8e9; border-left: 4px solid var(--primary-light); padding: 8px 12px; border-radius: 4px; font-size: 12px; color: #2e7d32; margin-bottom: 10px; line-height: 1.6; }
+  .info-tip strong { display: block; margin-bottom: 2px; color: var(--primary-dark); }
+  .formula-box { background: #f8faf5; border-left: 4px solid var(--primary); padding: 10px 14px; border-radius: 6px; font-family: 'Consolas',monospace; font-size: 12px; color: #555; line-height: 1.9; max-height: 300px; overflow-y: auto; }
+  .sub-title { font-size: 12px; font-weight: 700; color: var(--primary-dark); margin: 10px 0 6px; padding-left: 8px; border-left: 3px solid var(--primary); }
+  .radio-row { display: flex; gap: 14px; margin-bottom: 8px; flex-wrap: wrap; }
+  .radio-row label { font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .muted { color: var(--text-light); font-size: 11px; margin-top: 4px; display: block; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+  .badge-success { background: #d4edda; color: #155724; }
+  .badge-danger { background: #f8d7da; color: #721c24; }
+  .badge-warning { background: #fff3cd; color: #856404; }
+  .badge-info { background: #d1ecf1; color: #0c5460; }
+  .stakeout-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 4px; margin: 6px 0; }
+  .stakeout-item { background: white; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); text-align: center; }
+  .stakeout-item .label { font-size: 9px; color: #999; text-transform: uppercase; letter-spacing: 0.3px; }
+  .stakeout-item .value { font-size: 13px; font-weight: 700; font-family: Consolas,monospace; color: var(--primary); }
+  .canvas-container { background: #fff; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  #sagCanvas { display: block; width: 100%; height: 280px; background: #fff; }
+  .footer { text-align: center; padding: 1.2rem 0 1.5rem; border-top: 1px solid var(--border); margin-top: 1rem; color: var(--text-light); font-size: 0.8rem; }
+  .footer a { color: var(--text-light); text-decoration: none; }
+  /* 平板 */
+  @media (max-width: 1024px) {
+    .panel-left { flex: 0 0 340px; }
+  }
+  /* 手机 */
+  @media (max-width: 768px) {
+    .panel-left, .panel-right { flex: 1 1 100%; max-height: none; }
+    .field-row label { width: 76px; }
+    .field-row .unit { width: 40px; }
+    .tab-btn { flex: 1; text-align: center; padding: 9px 8px; font-size: 12px; }
+    #sagCanvas { height: 220px; }
+    .formula-box { overflow-x: auto; }
+    .panel-left { min-width: 0; }
+    .panel-right { min-width: 0; }
+    .container { padding: 0 8px; }
+  }
+  /* 小屏手机 */
+  @media (max-width: 480px) {
+    body { padding: 64px 8px 8px; }
+    .field-row label { width: 68px; font-size: 11px; }
+    .field-row .unit { width: 34px; }
+    .card { padding: 12px; }
+    .info-tip, .formula-box { font-size: 11px; }
+    .radio-row { gap: 10px; }
+    .radio-row label { font-size: 12px; }
+  }
+</style>
+<link rel="stylesheet" href="tools-common.css">
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<script src="../navbar.js"></script>
+<script src="../particles.js"></script>
+
+<div class="container">
+  <header>
+    <h1>⚡ 弧垂测控（计算与观测）<span style="font-size:0.8rem;color:var(--primary-light);font-weight:400;">v1.1</span></h1>
+    <div class="subtitle">架空输电线路弧垂计算 · 等长/异长/角度法观测 · 温度-应力换算</div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('calc')">① 弧垂正算</button>
+    <button class="tab-btn" onclick="switchTab('observe')">② 观测反算</button>
+    <button class="tab-btn" onclick="switchTab('temp')">③ 温度-应力换算</button>
+  </div>
+
+  <div class="panel">
+
+    <!-- ================= 左侧：输入 ================= -->
+    <div class="panel-left">
+
+      <!-- Tab1 弧垂正算 -->
+      <div class="tab-content active" id="tab-calc">
+        <div class="card">
+          <h3>📐 弧垂正算</h3>
+          <div class="field-row">
+            <label>档距 l</label>
+            <input id="c_l" type="number" value="300" step="0.5" min="1">
+            <span class="unit">m</span>
+          </div>
+          <div class="field-row">
+            <label>比载 g</label>
+            <input id="c_g" type="number" value="0.035" step="0.0001" min="0.0001">
+            <span class="unit">N/(m·mm²)</span>
+          </div>
+          <div class="field-row">
+            <label>水平应力 σ</label>
+            <input id="c_s" type="number" value="80" step="0.5" min="0.5">
+            <span class="unit">N/mm²</span>
+          </div>
+          <div class="field-row">
+            <label>高差 h</label>
+            <input id="c_h" type="number" value="0" step="0.1">
+            <span class="unit">m (B−A)</span>
+          </div>
+          <div class="field-row">
+            <label>计算模式</label>
+            <select id="c_mode">
+              <option value="para">抛物线（常用）</option>
+              <option value="chain">悬链线（等高）</option>
+              <option value="auto" selected>自动选择</option>
+            </select>
+          </div>
+          <button class="btn btn-block" onclick="calcSag()">计算弧垂</button>
+          <span class="muted">💡 比载 g = 单位长度重量 ÷ 截面积。钢芯铝绞线典型值 0.03~0.04 N/(m·mm²)。</span>
+        </div>
+      </div>
+
+      <!-- Tab2 观测反算 -->
+      <div class="tab-content" id="tab-observe">
+        <div class="card">
+          <h3>🔭 观测方法</h3>
+          <div class="radio-row">
+            <label><input type="radio" name="obsm" value="equal" checked onchange="switchObs('equal')">等长法</label>
+            <label><input type="radio" name="obsm" value="unequal" onchange="switchObs('unequal')">异长法</label>
+            <label><input type="radio" name="obsm" value="angle" onchange="switchObs('angle')">角度法</label>
+          </div>
+
+          <!-- 等长法 -->
+          <div id="obs-equal">
+            <div class="info-tip"><strong>等长法（平行四边形法）</strong>两端各垂直向下量取等于弧垂 f 的距离绑弛度板，视线与导线最低点相切即达标。</div>
+            <div class="field-row">
+              <label>设计弧垂 f</label>
+              <input id="o_f_eq" type="number" value="8" step="0.1" min="0.1">
+              <span class="unit">m</span>
+            </div>
+            <button class="btn btn-block" onclick="obsEqual()">求两端量距</button>
+          </div>
+
+          <!-- 异长法 -->
+          <div id="obs-unequal" style="display:none">
+            <div class="info-tip"><strong>异长法</strong>两端量距 a≠b，视线相切时 f=(√a+√b)²/4；已知 f 与 a 可反求 b。</div>
+            <div class="field-row">
+              <label>量距 a (A端)</label>
+              <input id="o_a" type="number" value="8" step="0.1" min="0.1">
+              <span class="unit">m</span>
+            </div>
+            <div class="field-row">
+              <label>量距 b (B端)</label>
+              <input id="o_b" type="number" value="" step="0.1" placeholder="留空自动计算">
+              <span class="unit">m</span>
+            </div>
+            <div class="field-row">
+              <label>弧垂 f</label>
+              <input id="o_f_un" type="number" value="" step="0.1" placeholder="a,b填则留空">
+              <span class="unit">m</span>
+            </div>
+            <button class="btn btn-block" onclick="obsUnequal()">计算</button>
+            <span class="muted">规则：填 a、b 求 f；或填 f、a 求 b（b 留空）。</span>
+          </div>
+
+          <!-- 角度法 -->
+          <div id="obs-angle" style="display:none">
+            <div class="info-tip"><strong>档端角度法</strong>仪器架于 A 杆、与导线悬挂点同高。测 B 悬挂点竖直角 α 校准，测导线最低点竖直角 β 控制弧垂。</div>
+            <div class="field-row">
+              <label>档距 l</label>
+              <input id="o_l" type="number" value="300" step="0.5" min="1">
+              <span class="unit">m</span>
+            </div>
+            <div class="field-row">
+              <label>高差 h</label>
+              <input id="o_h" type="number" value="0" step="0.1">
+              <span class="unit">m (B−A)</span>
+            </div>
+            <div class="field-row">
+              <label>设计弧垂 f</label>
+              <input id="o_f_an" type="number" value="8" step="0.1" min="0.1">
+              <span class="unit">m</span>
+            </div>
+            <button class="btn btn-block" onclick="obsAngle()">求观测竖直角</button>
+            <span class="muted" id="angleWarning" style="color:var(--warning);display:none;">⚠️ 高差较大(>5%)，最低点偏移，建议用异长法复核。</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab3 温度-应力换算 -->
+      <div class="tab-content" id="tab-temp">
+        <div class="card">
+          <h3>🌡️ 状态方程</h3>
+          <div class="field-row">
+            <label>代表档距 l</label>
+            <input id="t_l" type="number" value="300" step="0.5" min="1">
+            <span class="unit">m</span>
+          </div>
+          <div class="field-row">
+            <label>弹性模量 E</label>
+            <input id="t_e" type="number" value="73000" step="100" min="100">
+            <span class="unit">N/mm²</span>
+          </div>
+          <div class="field-row">
+            <label>膨胀系数 α</label>
+            <input id="t_a" type="number" value="19e-6" step="0.5e-6">
+            <span class="unit">1/℃</span>
+          </div>
+          <div class="sub-title">已知工况（基准）</div>
+          <div class="field-row">
+            <label>温度 t₀</label>
+            <input id="t_t0" type="number" value="15" step="1">
+            <span class="unit">℃</span>
+          </div>
+          <div class="field-row">
+            <label>应力 σ₀</label>
+            <input id="t_s0" type="number" value="80" step="0.5" min="0.5">
+            <span class="unit">N/mm²</span>
+          </div>
+          <div class="field-row">
+            <label>比载 g₀</label>
+            <input id="t_g0" type="number" value="0.035" step="0.0001" min="0.0001">
+            <span class="unit">N/(m·mm²)</span>
+          </div>
+          <div class="sub-title">目标工况</div>
+          <div class="field-row">
+            <label>温度 t₁</label>
+            <input id="t_t1" type="number" value="40" step="1">
+            <span class="unit">℃</span>
+          </div>
+          <div class="field-row">
+            <label>比载 g₁</label>
+            <input id="t_g1" type="number" value="0.035" step="0.0001" min="0.0001">
+            <span class="unit">N/(m·mm²)</span>
+          </div>
+          <button class="btn btn-block" onclick="tempConvert()">求解目标应力与弧垂</button>
+          <span class="muted">💡 钢芯铝绞线 E≈73000、α≈19×10⁻⁶/℃；钢≈200000、≈12×10⁻⁶/℃。</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ================= 右侧：结果 ================= -->
+    <div class="panel-right">
+
+      <!-- 结果卡片 -->
+      <div class="card">
+        <h3>📊 计算结果 <span id="resultBadge" class="badge badge-info" style="font-size:10px;">就绪</span></h3>
+        <div class="result-box" id="result">请选择上方功能并输入参数后点击「计算」。</div>
+      </div>
+
+      <!-- 放样数据（动态显示） -->
+      <div class="card" id="stakeoutCard" style="display:none;">
+        <h3>📋 现场放样数据 <span class="badge badge-info" style="font-size:10px;">可直接使用</span></h3>
+        <div id="stakeoutResults" class="result-box" style="min-height:40px;"></div>
+      </div>
+
+      <!-- 弧垂曲线 -->
+      <div class="card">
+        <h3>📐 弧垂曲线示意</h3>
+        <div class="canvas-container">
+          <canvas id="sagCanvas"></canvas>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#999;padding:4px 4px 0;">
+          <span>— 导线曲线 (绿)</span>
+          <span>┄ 挂点连线 (灰)</span>
+          <span>● 悬挂点 (深绿)</span>
+        </div>
+      </div>
+
+      <!-- 公式与说明 -->
+      <div class="card">
+        <h3>📖 公式与说明</h3>
+        <div class="formula-box" id="formulaText">
+<span class="k">① 弧垂正算</span>
+抛物线：  f = g·l² / (8·σ)                (等高)
+高差修正：f = g·l² / (8·σ·cosβ)，β=atan(h/l)
+悬链线：  f = (σ/g)·[cosh(g·l/(2σ)) − 1]  (等高)
+<span class="k">② 观测反算</span>
+等长法：  a = b = f
+异长法：  f = (√a + √b)² / 4
+角度法：  β = atan( (h − 2f) / l )
+<span class="k">③ 温度-应力</span>
+状态方程：σ₁ − E·g₁²·l²/(24σ₁²)
+        = σ₀ − E·g₀²·l²/(24σ₀²) − α·E·(t₁−t₀)
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer">
+    <a href="mailto:lvmyth@qq.com">By Lvmyth AI</a>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 工具函数
+// ============================================================
+function num(id){ var v=parseFloat(document.getElementById(id).value); return isNaN(v)?NaN:v; }
+function setResult(html){ document.getElementById('result').innerHTML = html; }
+function setBadge(text, cls){ var el=document.getElementById('resultBadge'); el.textContent=text; el.className='badge '+cls; }
+
+// ============================================================
+// Tab切换
+// ============================================================
+function switchTab(name){
+  document.querySelectorAll('.tab-btn').forEach(function(b){
+    var isActive = (b.textContent.indexOf('①')>=0 && name==='calc') ||
+                   (b.textContent.indexOf('②')>=0 && name==='observe') ||
+                   (b.textContent.indexOf('③')>=0 && name==='temp');
+    b.classList.toggle('active', isActive);
+  });
+  document.getElementById('tab-calc').classList.toggle('active', name==='calc');
+  document.getElementById('tab-observe').classList.toggle('active', name==='observe');
+  document.getElementById('tab-temp').classList.toggle('active', name==='temp');
+}
+
+// ============================================================
+// 观测方法切换
+// ============================================================
+function switchObs(type){
+  document.getElementById('obs-equal').style.display   = type==='equal'   ? '' : 'none';
+  document.getElementById('obs-unequal').style.display = type==='unequal' ? '' : 'none';
+  document.getElementById('obs-angle').style.display   = type==='angle'   ? '' : 'none';
+}
+
+// ============================================================
+// 弧垂曲线绘制（修复：高清屏适配）
+// ============================================================
+function drawSag(L, H, F, note, showLbl){
+  var cv=document.getElementById('sagCanvas');
+  if(!cv) return;
+  var rect=cv.parentElement.getBoundingClientRect();
+  var W=rect.width-2 || 560, Hc=(innerWidth<480)?200:280;
+  var dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=Hc*dpr;
+  cv.style.width=W+'px'; cv.style.height=Hc+'px';
+  var ctx=cv.getContext('2d');
+  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,W,Hc);
+
+  var xmin=0,xmax=L;
+  var ymax=Math.max(0,H), ymin=Math.min(0,H-F*1.2);
+  if(ymax-ymin<1e-6){ ymin=-1; ymax=1; }
+  var padL=48,padR=20,padT=20,padB=40;
+  var pw=W-padL-padR, ph=Hc-padT-padB;
+  function px(x){ return padL+(x-xmin)/(xmax-xmin)*pw; }
+  function py(y){ return padT+(ymax-y)/(ymax-ymin)*ph; }
+
+  // 背景网格
+  ctx.strokeStyle='#f0f0f0'; ctx.lineWidth=0.5;
+  for(var i=0;i<=10;i++){ var xp=padL+i*pw/10; ctx.beginPath(); ctx.moveTo(xp,padT); ctx.lineTo(xp,padT+ph); ctx.stroke(); }
+  for(var j=0;j<=5;j++){ var yp=padT+j*ph/5; ctx.beginPath(); ctx.moveTo(padL,yp); ctx.lineTo(padL+pw,yp); ctx.stroke(); }
+
+  // 挂点连线（虚线）
+  ctx.strokeStyle='#c9d3c9'; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+  ctx.beginPath(); ctx.moveTo(px(0),py(0)); ctx.lineTo(px(L),py(H)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 导线曲线
+  ctx.strokeStyle='#2c6e49'; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  var N=140;
+  for(var i=0;i<=N;i++){
+    var x=L*i/N;
+    var y=(H/L)*x - (4*F/(L*L))*x*(L-x);
+    if(i===0) ctx.moveTo(px(x),py(y)); else ctx.lineTo(px(x),py(y));
+  }
+  ctx.stroke();
+
+  // 悬挂点
+  function dot(x,y,label){
+    ctx.fillStyle='#1b4d2e';
+    ctx.beginPath(); ctx.arc(px(x),py(y),5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#333'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(label,px(x),py(y)-10);
+  }
+  dot(0,0,'A'); dot(L,H,'B');
+
+  // 最低点 + 弧垂标注
+  var xm=L/2, ym=(H/L)*xm-F;
+  ctx.fillStyle='#d68c45';
+  ctx.beginPath(); ctx.arc(px(xm),py(ym),4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#d68c45'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+  ctx.beginPath(); ctx.moveTo(px(xm),py(H/2)); ctx.lineTo(px(xm),py(ym)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#d68c45'; ctx.font='bold 12px sans-serif'; ctx.textAlign='left';
+  ctx.fillText('f='+F.toFixed(2)+'m', px(xm)+6, (py(H/2)+py(ym))/2+4);
+
+  // 档距标注（等长法/异长法为示意图，不显示具体档距）
+  if(showLbl !== false){
+    ctx.fillStyle='#555'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('档距 l='+L.toFixed(1)+'m', (px(0)+px(L))/2, Hc-6);
+  }
+
+  // 高差标注
+  if(Math.abs(H)>0.01){
+    ctx.fillStyle='#2980b9'; ctx.textAlign='left';
+    ctx.fillText('h='+H.toFixed(1)+'m', px(L)+6, py(H)+4);
+  }
+
+  if(note){ ctx.fillStyle='#999'; ctx.font='10px sans-serif'; ctx.textAlign='left'; ctx.fillText(note, padL, Hc-4); }
+}
+
+// ============================================================
+// ① 弧垂正算（修复：悬链线高差处理）
+// ============================================================
+function calcSag(){
+  var l=num('c_l'), g=num('c_g'), s=num('c_s'), h=num('c_h'), mode=document.getElementById('c_mode').value;
+  if([l,g,s].some(function(v){return isNaN(v)||v<=0;})){ setResult('<span class="warn">⚠️ 档距/比载/应力必须为正数</span>'); return; }
+  if(isNaN(h)) h=0;
+
+  var f, methodLabel, warning='';
+  var beta = Math.atan(h/l);
+  var cosBeta = Math.cos(beta);
+  var absRatio = Math.abs(h/l);
+
+  if(mode==='chain'){
+    if(absRatio < 0.005){
+      // 等高：精确悬链线
+      f = (s/g)*(Math.cosh(g*l/(2*s))-1);
+      methodLabel = '悬链线精确解（等高）';
+    } else {
+      // 有高差：使用斜抛物线近似（工程常用）
+      f = g*l*l/(8*s*cosBeta);
+      methodLabel = '斜抛物线近似（高差≥0.5%）';
+      warning = '\n<span class="warn">⚠️ 高差 '+(h).toFixed(2)+'m，悬链线精确解需迭代求解，此处采用斜抛物线近似。</span>';
+    }
+  } else if(mode==='auto'){
+    // 自动选择：等高用悬链线，有高差用斜抛物线
+    if(absRatio < 0.005){
+      f = (s/g)*(Math.cosh(g*l/(2*s))-1);
+      methodLabel = '自动→悬链线精确解（等高）';
+    } else {
+      f = g*l*l/(8*s*cosBeta);
+      methodLabel = '自动→斜抛物线近似（高差≥0.5%）';
+    }
+  } else {
+    // 抛物线
+    f = g*l*l/(8*s*cosBeta);
+    methodLabel = '抛物线近似（含高差修正）';
+  }
+
+  var extra = (Math.abs(h)>0.001) ? ('高差 h = '+h.toFixed(2)+' m，倾角 β = '+(beta*180/Math.PI).toFixed(2)+'°\n') : '';
+  var fLratio = (f/l*100);
+
+  setResult(
+    '<span class="k">'+methodLabel+'</span>\n'+
+    extra+
+    '弧垂 <span class="big">f = '+f.toFixed(4)+' m</span>\n'+
+    'f/L = '+fLratio.toFixed(2)+' %\n'+
+    '<span class="k">每档导线长度增量 ≈ </span>'+( (8*f*f/(3*l))*1000 ).toFixed(1)+' mm'+
+    warning
+  );
+  setBadge('✅ 完成', 'badge-success');
+  document.getElementById('stakeoutCard').style.display='none';
+  drawSag(l,h,f, methodLabel);
+}
+
+// ============================================================
+// ② 等长法
+// ============================================================
+function obsEqual(){
+  var f=num('o_f_eq');
+  if(isNaN(f)||f<=0){ setResult('<span class="warn">⚠️ 弧垂 f 必须为正数</span>'); return; }
+  setResult(
+    '<span class="k">等长法</span>\n'+
+    'A 端量距 a = <span class="big">'+f.toFixed(3)+' m</span>\n'+
+    'B 端量距 b = <span class="big">'+f.toFixed(3)+' m</span>\n'+
+    '<span class="k">两端各垂直向下量取 '+f.toFixed(2)+'m 绑弛度板，视线相切即达标。</span>'
+  );
+  setBadge('✅ 完成', 'badge-success');
+  showStakeout('equal', {f:f, a:f, b:f});
+  drawSag(300,0,f,'等长法 a=b='+f.toFixed(2)+'m（示意图）',false);
+}
+
+// ============================================================
+// ③ 异长法
+// ============================================================
+function obsUnequal(){
+  var a=num('o_a'), b=num('o_b'), f=num('o_f_un');
+  if(isNaN(a)||a<=0){ setResult('<span class="warn">⚠️ 量距 a 必须为正数</span>'); return; }
+
+  // 已知 a,b 求 f
+  if(!isNaN(b)&&b>0 && (isNaN(f)||f===0 || document.getElementById('o_f_un').value==='')){
+    var ff = Math.pow(Math.sqrt(a)+Math.sqrt(b),2)/4;
+    setResult('<span class="k">异长法（已知 a、b 求 f）</span>\n弧垂 <span class="big">f = '+ff.toFixed(4)+' m</span>');
+    setBadge('✅ 完成', 'badge-success');
+    showStakeout('unequal', {a:a, b:b, f:ff});
+    drawSag(300,0,ff,'异长法 a='+a.toFixed(2)+' b='+b.toFixed(2)+'（示意图）',false);
+    return;
+  }
+
+  // 已知 f,a 求 b
+  if(!isNaN(f)&&f>0 && (isNaN(b)||b===0 || document.getElementById('o_b').value==='')){
+    var sqrtB = 2*Math.sqrt(f)-Math.sqrt(a);
+    if(sqrtB < 0){
+      setResult('<span class="warn">⚠️ a 值过大，无法观测（需 a < 4f）</span>');
+      setBadge('❌ 不可行', 'badge-danger');
+      return;
+    }
+    var bb = Math.pow(sqrtB,2);
+    setResult('<span class="k">异长法（已知 f、a 求 b）</span>\nB 端量距 <span class="big">b = '+bb.toFixed(4)+' m</span>');
+    setBadge('✅ 完成', 'badge-success');
+    showStakeout('unequal', {a:a, b:bb, f:f});
+    drawSag(300,0,f,'异长法 a='+a.toFixed(2)+' b='+bb.toFixed(2)+'（示意图）',false);
+    return;
+  }
+
+  setResult('<span class="warn">⚠️ 请填 a、b 求 f，或填 f、a 求 b（b 留空）</span>');
+  setBadge('⚠️ 输入不完整', 'badge-warning');
+}
+
+// ============================================================
+// ④ 角度法（修复：大高差提示）
+// ============================================================
+function obsAngle(){
+  var l=num('o_l'), h=num('o_h'), f=num('o_f_an');
+  if([l,f].some(function(v){return isNaN(v)||v<=0;})){ setResult('<span class="warn">⚠️ 档距/弧垂必须为正数</span>'); return; }
+  if(isNaN(h)) h=0;
+
+  var beta = Math.atan((h - 2*f)/l);
+  var betaDeg = Math.abs(beta)*180/Math.PI;
+  var alphaDeg = (Math.abs(h)<0.001)?0:(Math.atan(h/l)*180/Math.PI);
+
+  var warnMsg = '';
+  var warnEl = document.getElementById('angleWarning');
+  if(Math.abs(h/l) > 0.05){
+    warnMsg = '\n<span class="warn">⚠️ 高差较大(>5%)，最低点偏移显著，建议用异长法或等长法复核。</span>';
+    warnEl.style.display='block';
+  } else {
+    warnEl.style.display='none';
+  }
+
+  setResult(
+    '<span class="k">档端角度法（仪器与 A 悬挂点同高）</span>\n'+
+    '看导线最低点竖直角 β = <span class="big">'+betaDeg.toFixed(3)+'°</span>（俯角）\n'+
+    (Math.abs(h)>0.001 ? '校准：看 B 悬挂点仰角 α = '+alphaDeg.toFixed(3)+'°\n' : '')+
+    '<span class="k">'+ (Math.abs(h/l)<0.05 ? '✅ 小高差，角度法适用' : '⚠️ 大高差，建议复核') +'</span>'+
+    warnMsg
+  );
+  setBadge('✅ 完成', 'badge-success');
+  showStakeout('angle', {l:l, h:h, f:f, beta:betaDeg});
+  drawSag(l,h,f,'角度法 β='+betaDeg.toFixed(2)+'°');
+}
+
+// ============================================================
+// ⑤ 温度-应力换算（状态方程）
+// ============================================================
+function tempConvert(){
+  var l=num('t_l'), E=num('t_e'), al=num('t_a');
+  var t0=num('t_t0'), s0=num('t_s0'), g0=num('t_g0');
+  var t1=num('t_t1'), g1=num('t_g1');
+  if([l,E,al,t0,s0,g0,t1,g1].some(function(v){return isNaN(v);})){ setResult('<span class="warn">⚠️ 请完整填写所有参数</span>'); return; }
+  if(l<=0||E<=0||s0<=0){ setResult('<span class="warn">⚠️ 档距/弹模/基准应力须为正</span>'); return; }
+
+  // 状态方程：σ³ − K·σ² − C = 0，牛顿迭代
+  var K = s0 - E*g0*g0*l*l/(24*s0*s0) - al*E*(t1-t0);
+  var C = E*g1*g1*l*l/24;
+  var s1 = s0;
+  var converged = false;
+  for(var i=0;i<100;i++){
+    var fv = s1*s1*s1 - K*s1*s1 - C;
+    var fp = 3*s1*s1 - 2*K*s1;
+    if(Math.abs(fp) < 1e-15) break;
+    var sn = s1 - fv/fp;
+    if(!(sn > 0)) break;
+    if(Math.abs(sn - s1) < 1e-9) { s1 = sn; converged=true; break; }
+    s1 = sn;
+  }
+  if(!(s1>0) || !converged){
+    setResult('<span class="warn">⚠️ 状态方程迭代未收敛，请检查参数（可能应力接近零或参数异常）</span>');
+    setBadge('❌ 未收敛', 'badge-danger');
+    return;
+  }
+
+  var f0 = g0*l*l/(8*s0);
+  var f1 = g1*l*l/(8*s1);
+  var deltaF = f1 - f0;
+  var deltaF_pct = (deltaF/f0*100);
+
+  var status = '';
+  var statusCls = 'badge-success';
+  if(deltaF > 0.1){
+    status = '弧垂增大，注意限距与交叉跨越';
+    statusCls = 'badge-warning';
+  } else if(deltaF < -0.1){
+    status = '弧垂减小，注意导线应力';
+    statusCls = 'badge-info';
+  } else {
+    status = '弧垂变化较小';
+  }
+
+  setResult(
+    '<span class="k">导线状态方程求解</span>\n'+
+    '温度 '+t0+'℃ → '+t1+'℃\n'+
+    '目标应力 <span class="big">σ₁ = '+s1.toFixed(3)+' N/mm²</span>\n'+
+    '基准弧垂 f₀ = '+f0.toFixed(4)+' m\n'+
+    '目标弧垂 f₁ = '+f1.toFixed(4)+' m\n'+
+    'Δf = '+(deltaF>0?'+':'')+deltaF.toFixed(4)+' m  ('+(deltaF_pct>0?'+':'')+deltaF_pct.toFixed(1)+'%)\n'+
+    '<span class="k">状态：'+status+'</span>'
+  );
+  setBadge('✅ 求解完成', statusCls);
+  document.getElementById('stakeoutCard').style.display='none';
+  drawSag(l,0,f1,'状态方程: t='+t1+'℃');
+}
+
+// ============================================================
+// 放样数据面板
+// ============================================================
+function showStakeout(type, p){
+  var card=document.getElementById('stakeoutCard');
+  var box=document.getElementById('stakeoutResults');
+  card.style.display='';
+
+  var html='<div class="stakeout-grid">';
+  if(type==='equal'){
+    html+='<div class="stakeout-item"><div class="label">方法</div><div class="value">等长法</div></div>';
+    html+='<div class="stakeout-item"><div class="label">弧垂 f</div><div class="value">'+p.f.toFixed(2)+' m</div></div>';
+    html+='<div class="stakeout-item"><div class="label">A端 a</div><div class="value">'+p.a.toFixed(2)+' m</div></div>';
+    html+='<div class="stakeout-item"><div class="label">B端 b</div><div class="value">'+p.b.toFixed(2)+' m</div></div>';
+  } else if(type==='unequal'){
+    html+='<div class="stakeout-item"><div class="label">方法</div><div class="value">异长法</div></div>';
+    html+='<div class="stakeout-item"><div class="label">弧垂 f</div><div class="value">'+p.f.toFixed(2)+' m</div></div>';
+    html+='<div class="stakeout-item"><div class="label">A端 a</div><div class="value">'+p.a.toFixed(2)+' m</div></div>';
+    html+='<div class="stakeout-item"><div class="label">B端 b</div><div class="value">'+p.b.toFixed(2)+' m</div></div>';
+  } else if(type==='angle'){
+    html+='<div class="stakeout-item"><div class="label">方法</div><div class="value">角度法</div></div>';
+    html+='<div class="stakeout-item"><div class="label">弧垂 f</div><div class="value">'+p.f.toFixed(2)+' m</div></div>';
+    html+='<div class="stakeout-item"><div class="label">垂直角 β</div><div class="value">'+p.beta.toFixed(2)+'°</div></div>';
+    if(Math.abs(p.h)>0.01){
+      html+='<div class="stakeout-item"><div class="label">高差 h</div><div class="value">'+p.h.toFixed(2)+' m</div></div>';
+    }
+  }
+  html+='</div>';
+  html+='<div style="font-size:10px;color:#999;margin-top:4px;">💡 数据可直接用于现场放样</div>';
+  box.innerHTML=html;
+}
+
+// ============================================================
+// 初始化
+// ============================================================
+window.addEventListener('load', function(){
+  calcSag();
+});
+
+// 窗口resize重绘
+var resizeTimer;
+window.addEventListener('resize', function(){
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function(){
+    var L=num('c_l')||300, h=num('c_h')||0, f=num('c_s') ? num('c_g')*L*L/(8*num('c_s')) : 8;
+    if(!isNaN(L)&&L>0) drawSag(L,h,f,'');
+  }, 300);
+});
+</script>
+</body>
+</html>

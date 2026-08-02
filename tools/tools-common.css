@@ -1,0 +1,50 @@
+/* ============================================================
+   tools-common.css — 测量员在线工具箱 · 统一响应式
+   公共保底适配：手机/平板自动生效，页面专属样式优先
+   ============================================================ */
+
+/* ---------- 平板 ≤1024px ---------- */
+@media (max-width: 1024px) {
+  /* 双栏布局收窄 */
+  .panel-left { flex: 0 0 340px !important; }
+}
+
+/* ---------- 手机 ≤768px ---------- */
+@media (max-width: 768px) {
+  /* 双栏 → 单栏 */
+  .panel { flex-direction: column !important; }
+  .panel-left,
+  .panel-right { flex: 1 1 100% !important; min-width: 0 !important; max-height: none !important; overflow-y: visible !important; padding: 0 !important; }
+
+  /* 容器贴边 */
+  .container { padding-left: 10px !important; padding-right: 10px !important; }
+
+  /* 卡片内边距收紧 */
+  .card { padding: 12px !important; }
+
+  /* 表格横向滚动防溢出 */
+  table { display: block !important; overflow-x: auto !important; white-space: nowrap !important; -webkit-overflow-scrolling: touch; }
+
+  /* 输入行换行保护 */
+  .field-row { flex-wrap: wrap !important; }
+  .field-row label { min-width: 72px !important; }
+
+  /* Tab 按钮等宽易点按 */
+  .tab-btn, .tab-button, .nav-tab { flex: 1 !important; text-align: center !important; padding: 9px 6px !important; font-size: 12px !important; }
+  .tabs { flex-wrap: wrap !important; }
+
+  /* 画布自适应宽度 */
+  canvas { max-width: 100% !important; height: auto !important; }
+
+  /* 结果框高度限制 */
+  .result-box, .result, .result-panel { max-height: 50vh !important; overflow-y: auto !important; }
+}
+
+/* ---------- 小屏手机 ≤480px ---------- */
+@media (max-width: 480px) {
+  body { padding-left: 8px !important; padding-right: 8px !important; }
+  .field-row label { min-width: 64px !important; font-size: 12px !important; }
+  .card h3, .card-header { font-size: 14px !important; }
+  .btn { padding: 8px 10px !important; font-size: 13px !important; }
+  input[type="number"], input[type="text"], select { font-size: 14px !important; } /* 防 iOS 聚焦缩放 */
+}

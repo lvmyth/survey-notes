@@ -271,8 +271,8 @@ function simpleMarkdown(text) {
   html = html.replace(/^---$/gm, '<hr>');
   html = html.replace(/^___$/gm, '<hr>');
   
-  // 引用
-  html = html.replace(/^> (.+)$/gm, '<blockquote>$1</blockquote>');
+  // 引用（转义后 > 已变为 &gt;，此处匹配转义形式）
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>');
   
   // 表格
   html = html.replace(/\|(.+)\|\n\|[-| :]+\|\n((?:\|.+\|\n?)*)/g, function(m, header, rows) {
