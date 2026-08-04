@@ -6,7 +6,17 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Sun, 02 Aug 2026 04:56:52 GMT</lastBuildDate>
+  <lastBuildDate>Tue, 04 Aug 2026 04:21:55 GMT</lastBuildDate>
+
+  <item>
+    <title>本地部署RAG测量助手：把规范和博客变成私人AI知识库</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=rag-assistant</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=rag-assistant</guid>
+    <pubDate>Tue, 04 Aug 2026 00:00:00 +0800</pubDate>
+    <description>你写了几十篇博客、收藏了一堆规范PDF、积攒了多年笔记——但每次遇到问题还得翻书。本文用 Python + FAISS + Ollama 在本地搭一个测量知识库，数据不出门，条文可溯源。从知识提取、文本切分、向量化到检索生成，完整跑通一个RAG案例。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
+  </item>
 
   <item>
     <title>从博客到工具：我做了一个测量+AI小程序</title>
