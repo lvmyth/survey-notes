@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>贯通测量计算器（现场增强版）</title>
+<meta name="description" content="贯通测量在线计算器（矿山巷道/地铁隧道/公路隧道等地下工程通用）——贯通几何要素计算与贯通误差预计，支持CSV批量导入、成果一键复制。">
+<meta name="keywords" content="贯通测量,贯通误差预计,巷道贯通,中线方位角,指向角,腰线坡度,横向贯通误差,竖向贯通误差,矿山测量">
+<meta name="author" content="郑杰明 (Lvmyth AI)">
+<link rel="canonical" href="https://lvmyth.github.io/survey-notes/tools/penetration-survey.html">
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="贯通测量计算器（现场增强版）">
+<meta property="og:description" content="贯通测量在线计算器（矿山巷道/地铁隧道/公路隧道等地下工程通用）——贯通几何要素计算与贯通误差预计，支持CSV批量导入、成果一键复制。">
+<meta property="og:url" content="https://lvmyth.github.io/survey-notes/tools/penetration-survey.html">
+<meta property="og:image" content="https://lvmyth.github.io/survey-notes/images/logo.jpg">
+<meta property="og:site_name" content="测量工程笔记">
+<meta property="og:locale" content="zh_CN">
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="贯通测量计算器（现场增强版）">
+<meta name="twitter:description" content="贯通测量在线计算器——贯通几何要素计算与贯通误差预计，支持CSV批量导入、成果一键复制。">
+<meta name="twitter:image" content="https://lvmyth.github.io/survey-notes/images/logo.jpg">
+<!-- Structured Data -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"贯通测量计算器（现场增强版）","url":"https://lvmyth.github.io/survey-notes/tools/penetration-survey.html","image":"https://lvmyth.github.io/survey-notes/images/logo.jpg","description":"贯通测量在线计算器——贯通几何要素计算与贯通误差预计，支持CSV批量导入、成果一键复制。","publisher":{"@type":"Organization","name":"测量工程笔记","url":"https://lvmyth.github.io/survey-notes"}, "applicationCategory": "UtilityApplication", "operatingSystem": "Web"}
+</script>
+
+<link rel="stylesheet" href="tools-common.css">
+<style>
+:root {
+  --primary: #2c6e49; --primary-dark: #1b4d2e; --primary-light: #4c956c;
+  --accent: #e65100; --bg: #f4f7f5; --bg-card: #ffffff; --text: #333333;
+  --text-light: #666666; --border: #dce3e0; --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --bg-nav: #1a2f24; --text-on-dark: #ecf0f1; --accent-light: #6fb98a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+body { padding: 64px 20px 20px; font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+.container { max-width: 1300px; margin: 0 auto; position: relative; z-index: 1; }
+.panel { display: flex; gap: 20px; align-items: flex-start; }
+.panel-left { flex: 0 0 400px; }
+.panel-right { flex: 1; min-width: 0; }
+.card { background: var(--bg-card); border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+.card h3 { font-size: 15px; color: var(--primary-dark); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--bg); }
+.card h3 .badge { float: right; font-size: 11px; font-weight: normal; background: var(--bg); color: var(--text-light); padding: 2px 8px; border-radius: 10px; }
+.field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.field-row label { font-size: 13px; color: var(--text); min-width: 90px; flex-shrink: 0; }
+.field-row input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: Consolas,monospace; outline: none; background: white; flex: 0 1 auto; width: 150px; min-width: 60px; }
+.field-row select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: Consolas,monospace; outline: none; background: white; flex: 1; min-width: 60px; }
+.field-row input:focus { border-color: var(--primary); }
+.hint { font-size: 11px; color: var(--text-light); }
+.section-title { font-size: 13px; font-weight: 600; color: var(--primary-dark); margin: 12px 0 8px; padding-left: 8px; border-left: 3px solid var(--primary); }
+.btn { padding: 8px 16px; border: none; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-primary { background: var(--primary); color: white; width: 100%; margin-bottom: 8px; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-group-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-example { background: #e9ecef; color: var(--text); font-size: 12px; flex: 1; }
+.btn-danger { background: #dc3545; color: white; font-size: 12px; flex: 1; }
+.btn-success { background: #28a745; color: white; font-size: 12px; flex: 1; }
+.summary-box { background: #f8fbfa; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px; font-family: Consolas,monospace; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
+.result-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px dashed var(--border); font-size: 13px; }
+.result-item:last-child { border-bottom: none; }
+.result-item .label { color: var(--text-light); }
+.result-item .value { font-family: Consolas,monospace; font-weight: 600; color: var(--primary-dark); }
+.result-item .value.warn { color: #e65100; }
+.result-item .value.ok { color: var(--primary); }
+.result-item .value.bad { color: #dc3545; }
+.verdict-box { padding: 12px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; text-align: center; margin-top: 8px; }
+.verdict-ok { background: #e8f5e9; color: var(--primary-dark); border: 1px solid #a5d6a7; }
+.verdict-warn { background: #fff3e0; color: #e65100; border: 1px solid #ffcc80; }
+.verdict-bad { background: #fdecea; color: #c62828; border: 1px solid #ef9a9a; }
+.canvas-container { background: white; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+#planCanvas { display: block; width: 100%; height: 380px; }
+.dyn-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.dyn-row input { padding: 5px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: Consolas,monospace; outline: none; width: 90px; }
+.dyn-row .del { color: #dc3545; cursor: pointer; font-size: 14px; padding: 0 4px; user-select: none; }
+.dyn-row .idx { font-size: 12px; color: var(--text-light); width: 18px; text-align: right; }
+.legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-light); padding: 8px 4px; flex-wrap: wrap; }
+.legend span i { display: inline-block; width: 14px; height: 3px; margin-right: 4px; vertical-align: middle; border-radius: 2px; }
+.csv-box { background: #f8fbfa; border: 1px solid var(--border); border-radius: 4px; padding: 8px; margin-bottom: 8px; }
+.csv-box textarea { width: 100%; padding: 6px; font-size: 11px; font-family: Consolas,monospace; border: 1px solid var(--border); border-radius: 3px; resize: vertical; background: white; }
+.csv-box .btn { margin-top: 4px; }
+@media (max-width: 900px) { .panel { flex-direction: column; } .panel-left { flex: 1; width: 100%; } }
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<div class="container">
+    <div class="panel">
+    <!-- ========== 左侧输入面板 ========== -->
+    <div class="panel-left">
+      <!-- 工程类型 -->
+      <div class="card">
+        <h3>🏗️ 工程类型 <span class="badge">自动匹配容许偏差</span></h3>
+        <div class="field-row">
+          <label>工程类型</label>
+          <select id="engType" onchange="onTypeChange()">
+            <option value="mine">矿山巷道（横向±0.3m 竖向±0.2m）</option>
+            <option value="metro">地铁/铁路隧道（横向±0.05m 竖向±0.025m）</option>
+            <option value="highway">公路/水利隧道（横向±0.1m 竖向±0.05m）</option>
+          </select>
+        </div>
+        <div class="hint">选择工程类型后自动填入对应容许偏差，可手动修改</div>
+      </div>
+
+      <!-- 模块一：几何要素 -->
+      <div class="card">
+        <h3>📐 贯通几何要素计算 <span class="badge">模块一</span></h3>
+        <div class="section-title">A 点（贯通工程一端）</div>
+        <div class="field-row"><label>X (m)</label><input id="gxA" type="number" value="500.000" step="0.001"></div>
+        <div class="field-row"><label>Y (m)</label><input id="gyA" type="number" value="500.000" step="0.001"></div>
+        <div class="field-row"><label>H (m)</label><input id="ghA" type="number" value="100.000" step="0.001"></div>
+        <div class="field-row"><label>α_AC (°′″)</label><input id="gaAC" type="text" value="350 00 00"><span class="hint">（空格=度分秒）</span></div>
+        <div class="hint">A点后视边（已知导线边）坐标方位角</div>
+
+        <div class="section-title">B 点（贯通工程另一端）</div>
+        <div class="field-row"><label>X (m)</label><input id="gxB" type="number" value="560.000" step="0.001"></div>
+        <div class="field-row"><label>Y (m)</label><input id="gyB" type="number" value="520.000" step="0.001"></div>
+        <div class="field-row"><label>H (m)</label><input id="ghB" type="number" value="103.000" step="0.001"></div>
+        <div class="field-row"><label>α_BD (°′″)</label><input id="gaBD" type="text" value="180 00 00"><span class="hint">（空格=度分秒）</span></div>
+        <div class="hint">B点后视边坐标方位角</div>
+
+        <div class="field-row"><label>容许偏差Δx′</label><input id="gLimit" type="number" value="0.300" step="0.01"></div>
+        <div class="hint">水平方向（中线）容许偏差，m，随工程类型自动匹配</div>
+
+        <button class="btn btn-primary" onclick="calcGeometry()">计算几何要素</button>
+        <div class="btn-group-row">
+          <button class="btn btn-example" onclick="loadGeoExample()">载入示例</button>
+        </div>
+      </div>
+
+      <!-- 模块二：误差预计 -->
+      <div class="card">
+        <h3>📊 贯通误差预计 <span class="badge">模块二</span></h3>
+
+        <!-- 输入模式切换 -->
+        <div class="toggle-row" style="display:flex;gap:8px;margin-bottom:12px">
+          <button id="modeCoordBtn" class="btn btn-primary" style="flex:1;margin-bottom:0" onclick="switchMode('coord')">📍 坐标模式</button>
+          <button id="modeManualBtn" class="btn btn-example" style="flex:1;margin-bottom:0" onclick="switchMode('manual')">✍️ 手动模式</button>
+        </div>
+        <div class="hint" style="margin-bottom:12px">坐标模式：输入导线点坐标，自动计算 R_x 与 d_y；手动模式：直接填写量取的 R_x、d_y</div>
+
+        <!-- 坐标模式输入 -->
+        <div id="coordModeBox">
+          <div class="section-title">贯通面设置</div>
+          <div class="field-row"><label>贯通方向方位角</label><input id="eAz" type="text" value="18 26 06"><span class="hint">（空格=度分秒）</span></div>
+          <div class="field-row"><label>贯通面参考点 KX</label><input id="eKX" type="number" value="500.000" step="0.001"></div>
+          <div class="field-row"><label>贯通面参考点 KY</label><input id="eKY" type="number" value="500.000" step="0.001"></div>
+          <div class="hint" style="margin-bottom:8px">K 为贯通面上一点（通常取贯通相遇点坐标）</div>
+
+          <div class="section-title">导线点坐标 (X, Y) m</div>
+          <!-- 坐标录入：文本框直接编辑 -->
+          <div class="csv-box">
+            <div class="field-row" style="margin-bottom:6px">
+              <button class="btn btn-example" style="flex:1;margin:0" onclick="document.getElementById('csvFile').click()">📂 选择CSV文件</button>
+              <input type="file" id="csvFile" accept=".csv,.txt" style="display:none" onchange="importFile()">
+            </div>
+            <textarea id="csvInput" rows="5" placeholder="每行一个导线点，两种格式：&#10;① 点名,X,Y  例：ZD1,594.868,531.623&#10;② X,Y       例：594.868,531.623" oninput="drawCoordPreview()"></textarea>
+            <div class="hint" style="margin:4px 0">直接在上框内编辑坐标（可带点名），点「解析导入」或「选择CSV文件」批量录入</div>
+            <button class="btn btn-example" style="width:100%;margin-top:4px" onclick="importPts()">📥 解析导入</button>
+          </div>
+          <div class="hint" style="margin-bottom:8px">按掘进顺序逐行录入，工具自动计算各点到贯通面的垂距 R_x 和各边在贯通面投影 d_y</div>
+        </div>
+
+        <!-- 手动模式输入 -->
+        <div id="manualModeBox" style="display:none">
+          <div class="section-title">导线点至贯通面垂距 R_x (m)</div>
+          <div id="rxList"></div>
+          <button class="btn btn-example" style="width:100%;margin-bottom:8px" onclick="addRxRow()">＋ 添加导线点</button>
+
+          <div class="section-title">导线边在贯通面投影 d_y (m)</div>
+          <div id="dyList"></div>
+          <button class="btn btn-example" style="width:100%;margin-bottom:8px" onclick="addDyRow()">＋ 添加导线边</button>
+        </div>
+
+        <div class="section-title">测量参数</div>
+        <div class="field-row"><label>测角中误差 mβ</label><input id="emBeta" type="number" value="15" step="1"><span class="hint">″</span></div>
+        <div class="field-row"><label>边长相对中误差</label><input id="eml" type="text" value="1/5000"></div>
+        <div class="field-row"><label>水准中误差 mh</label><input id="emh" type="number" value="10" step="1"><span class="hint">mm/√km</span></div>
+        <div class="field-row"><label>高程路线长</label><input id="ehL" type="number" value="0.8" step="0.1"><span class="hint">km</span></div>
+        <div class="field-row"><label>容许偏差Δx′</label><input id="eLimit" type="number" value="0.300" step="0.01"><span class="hint">m</span></div>
+        <div class="field-row"><label>容许偏差Δh</label><input id="eLimitH" type="number" value="0.200" step="0.01"><span class="hint">m</span></div>
+
+        <button class="btn btn-primary" onclick="calcError()">误差预计</button>
+        <div class="btn-group-row">
+          <button class="btn btn-example" onclick="loadErrExample()">载入示例</button>
+          <button class="btn btn-danger" onclick="clearErrInputs()">清空</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 右侧结果面板 ========== -->
+    <div class="panel-right">
+      <div class="card">
+        <h3>🗺️ 贯通示意图</h3>
+        <div class="canvas-container"><canvas id="planCanvas"></canvas></div>
+        <div class="legend">
+          <span><i style="background:#2c6e49"></i>A点</span>
+          <span><i style="background:#e65100"></i>B点</span>
+          <span><i style="background:#1565c0"></i>贯通方向线</span>
+          <span><i style="background:#999"></i>导线点Rx</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📐 几何要素计算结果</h3>
+        <div id="geoResult">
+          <div class="hint" style="padding:12px">输入 A、B 点坐标与后视方位角，点击"计算几何要素"查看结果。</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📊 误差预计结果</h3>
+        <div id="errResult">
+          <div class="hint" style="padding:12px">输入测量参数与导线数据，点击"误差预计"查看结果。</div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-success" style="flex:1" onclick="copyResults()">📋 复制成果报告</button>
+          <button class="btn btn-example" style="flex:1" onclick="exportResults()">📄 导出文本</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 工具函数 ==========
+var RHO = 206265;
+
+// 工程类型对应的默认容许偏差
+var TYPE_LIMITS = {
+  mine:    { x: 0.300, h: 0.200 },
+  metro:   { x: 0.050, h: 0.025 },
+  highway: { x: 0.100, h: 0.050 }
+};
+
+function onTypeChange() {
+  var t = document.getElementById('engType').value;
+  var lim = TYPE_LIMITS[t] || TYPE_LIMITS.mine;
+  document.getElementById('gLimit').value = lim.x;
+  document.getElementById('eLimit').value = lim.x;
+  document.getElementById('eLimitH').value = lim.h;
+  calcGeometry();
+  calcError();
+}
+
+function dmsToDeg(str) {
+  var parts = String(str).trim().split(/[\s,，:]+/);
+  if (parts.length < 3) return parseFloat(str) || 0;
+  var d = parseFloat(parts[0]) || 0;
+  var m = parseFloat(parts[1]) || 0;
+  var s = parseFloat(parts[2]) || 0;
+  var sign = d < 0 ? -1 : 1;
+  return sign * (Math.abs(d) + m / 60 + s / 3600);
+}
+
+function degToDms(deg) {
+  var sign = deg < 0 ? '-' : '';
+  deg = Math.abs(deg);
+  var d = Math.floor(deg);
+  var mFloat = (deg - d) * 60;
+  var m = Math.floor(mFloat);
+  var s = Math.round((mFloat - m) * 60);
+  if (s >= 60) { s = 0; m += 1; }
+  if (m >= 60) { m = 0; d += 1; }
+  return sign + d + '°' + String(m).padStart(2, '0') + '′' + String(s).padStart(2, '0') + '″';
+}
+
+function parseRatio(str) {
+  var parts = String(str).trim().split('/');
+  if (parts.length === 2) {
+    var n = parseFloat(parts[0]), d = parseFloat(parts[1]);
+    if (d > 0) return n / d;
+  }
+  return 1 / (parseFloat(str) || 5000);
+}
+
+function normAz(az) {
+  az = az % 360;
+  if (az < 0) az += 360;
+  return az;
+}
+
+// ========== Canvas 绘制 ==========
+function drawPlan(ax, ay, bx, by, rxList) {
+  var canvas = document.getElementById('planCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width = canvas.offsetWidth || 800;
+  var H = canvas.height = 380;
+  ctx.clearRect(0, 0, W, H);
+
+  var allX = [ax, bx], allY = [ay, by];
+  rxList.forEach(function(r) { allX.push(r.x); allY.push(r.y); });
+  var minX = Math.min.apply(null, allX), maxX = Math.max.apply(null, allX);
+  var minY = Math.min.apply(null, allY), maxY = Math.max.apply(null, allY);
+  var spanX = maxX - minX || 1, spanY = maxY - minY || 1;
+  var pad = 60;
+  var scale = Math.min((W - pad * 2) / spanX, (H - pad * 2) / spanY);
+  function px(x) { return (W - (maxX - x) * scale) - pad + (pad * 0.5); }
+  function py(y) { return (H - (maxY - y) * scale) - pad + (pad * 0.5); }
+  px = function(x) { return pad + (x - minX) * (W - pad * 2) / spanX; };
+  py = function(y) { return H - pad - (y - minY) * (H - pad * 2) / spanY; };
+
+  // 网格
+  ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
+  for (var i = 0; i < W; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke(); }
+  for (var j = 0; j < H; j += 40) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke(); }
+
+  // 贯通方向线
+  ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 2.5; ctx.setLineDash([8, 4]);
+  ctx.beginPath(); ctx.moveTo(px(ax), py(ay)); ctx.lineTo(px(bx), py(by)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 导线点Rx（垂直于贯通线的垂线）
+  rxList.forEach(function(r, idx) {
+    var dx = bx - ax, dy = by - ay;
+    var len2 = dx * dx + dy * dy || 1;
+    var t = ((r.x - ax) * dx + (r.y - ay) * dy) / len2;
+    var fx = ax + t * dx, fy = ay + t * dy;
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 1; ctx.setLineDash([2, 3]);
+    ctx.beginPath(); ctx.moveTo(px(r.x), py(r.y)); ctx.lineTo(px(fx), py(fy)); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#999';
+    ctx.beginPath(); ctx.arc(px(r.x), py(r.y), 3.5, 0, Math.PI * 2); ctx.fill();
+    // 点名标注
+    ctx.fillStyle = '#666'; ctx.font = '10px sans-serif';
+    ctx.fillText(r.name || ('P' + (idx + 1)), px(r.x) + 6, py(r.y) - 6);
+  });
+
+  // A点
+  ctx.fillStyle = '#2c6e49';
+  ctx.beginPath(); ctx.arc(px(ax), py(ay), 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#2c6e49'; ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('A', px(ax) - 20, py(ay) - 10);
+
+  // B点
+  ctx.fillStyle = '#e65100';
+  ctx.beginPath(); ctx.arc(px(bx), py(by), 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#e65100'; ctx.font = 'bold 13px sans-serif';
+  ctx.fillText('B', px(bx) + 10, py(by) - 10);
+
+  // 标注方位角
+  var midX = (px(ax) + px(bx)) / 2, midY = (py(ay) + py(by)) / 2;
+  ctx.fillStyle = '#1565c0'; ctx.font = '12px sans-serif';
+  ctx.fillText('贯通方向', midX + 10, midY - 10);
+}
+
+// ========== 模块一：几何要素 ==========
+function loadGeoExample() {
+  document.getElementById('gxA').value = '500.000';
+  document.getElementById('gyA').value = '500.000';
+  document.getElementById('ghA').value = '100.000';
+  document.getElementById('gaAC').value = '350 00 00';
+  document.getElementById('gxB').value = '560.000';
+  document.getElementById('gyB').value = '520.000';
+  document.getElementById('ghB').value = '103.000';
+  document.getElementById('gaBD').value = '180 00 00';
+  document.getElementById('gLimit').value = '0.300';
+  calcGeometry();
+}
+
+function calcGeometry() {
+  var xA = parseFloat(document.getElementById('gxA').value);
+  var yA = parseFloat(document.getElementById('gyA').value);
+  var hA = parseFloat(document.getElementById('ghA').value);
+  var xB = parseFloat(document.getElementById('gxB').value);
+  var yB = parseFloat(document.getElementById('gyB').value);
+  var hB = parseFloat(document.getElementById('ghB').value);
+  var aAC = dmsToDeg(document.getElementById('gaAC').value);
+  var aBD = dmsToDeg(document.getElementById('gaBD').value);
+  var limit = parseFloat(document.getElementById('gLimit').value) || 0.3;
+
+  if (isNaN(xA) || isNaN(yA) || isNaN(xB) || isNaN(yB)) {
+    alert('请填写有效的坐标值');
+    return;
+  }
+
+  var dx = xB - xA, dy = yB - yA;
+  var alphaAB = normAz(Math.atan2(dy, dx) * 180 / Math.PI);
+  var lAB = Math.sqrt(dx * dx + dy * dy);
+
+  var betaA = normAz(alphaAB - aAC);
+  var alphaBA = normAz(alphaAB + 180);
+  var betaB = normAz(alphaBA - aBD);
+
+  var i = (hB - hA) / lAB;
+  var delta = Math.atan(i) * 180 / Math.PI;
+  var LAB = Math.sqrt((hB - hA) * (hB - hA) + lAB * lAB);
+
+  // 画图
+  var rxDemo = [];
+  var pts = collectPts();
+  if (pts.length >= 2) {
+    pts.forEach(function(p) {
+      rxDemo.push({ x: p.x, y: p.y, name: p.name });
+    });
+  } else {
+    rxDemo = [{x: xA + dx * 0.3 + 5, y: yA + dy * 0.3 - 3, name: 'P1'}];
+  }
+  drawPlan(xA, yA, xB, yB, rxDemo);
+
+  // 输出
+  var html = '';
+  html += resultRow('中线方位角 α_AB', degToDms(alphaAB));
+  html += resultRow('水平距离 l_AB', lAB.toFixed(3) + ' m');
+  html += resultRow('A 点指向角 β_A', degToDms(betaA));
+  html += resultRow('B 点指向角 β_B', degToDms(betaB));
+  html += resultRow('线路坡度 i', (i * 100).toFixed(2) + '%');
+  html += resultRow('倾角 δ', degToDms(delta));
+  html += resultRow('斜长 L_AB', LAB.toFixed(3) + ' m');
+  document.getElementById('geoResult').innerHTML = html;
+}
+
+function resultRow(label, value, cls) {
+  return '<div class="result-item"><span class="label">' + label + '</span>' +
+    '<span class="value ' + (cls || '') + '">' + value + '</span></div>';
+}
+
+// ========== 模块二：误差预计 ==========
+var currentMode = 'coord';
+
+function switchMode(mode) {
+  currentMode = mode;
+  var coordBox = document.getElementById('coordModeBox');
+  var manualBox = document.getElementById('manualModeBox');
+  var coordBtn = document.getElementById('modeCoordBtn');
+  var manualBtn = document.getElementById('modeManualBtn');
+  if (mode === 'coord') {
+    coordBox.style.display = 'block';
+    manualBox.style.display = 'none';
+    coordBtn.className = 'btn btn-primary';
+    manualBtn.className = 'btn btn-example';
+  } else {
+    coordBox.style.display = 'none';
+    manualBox.style.display = 'block';
+    coordBtn.className = 'btn btn-example';
+    manualBtn.className = 'btn btn-primary';
+  }
+  saveState();
+}
+
+// 坐标模式：从文本框解析导线点
+// 支持两种格式（每行一个点）：
+//   ① 点名,X,Y   例：ZD1,594.868,531.623
+//   ② X,Y        例：594.868,531.623（自动编号 P1,P2,...）
+function parseCsvPts(text) {
+  var pts = [];
+  if (!text) return pts;
+  var lines = text.split('\n');
+  var autoIdx = 0;
+  lines.forEach(function(line) {
+    var parts = line.trim().split(/[,，\t]+/);
+    if (parts.length >= 2) {
+      var x, y, name = '';
+      // 三段：点名,X,Y；两段：X,Y
+      if (parts.length >= 3) {
+        name = parts[0].trim();
+        x = parseFloat(parts[1].trim());
+        y = parseFloat(parts[2].trim());
+      } else {
+        autoIdx++;
+        name = 'P' + autoIdx;
+        x = parseFloat(parts[0].trim());
+        y = parseFloat(parts[1].trim());
+      }
+      if (!isNaN(x) && !isNaN(y)) pts.push({ name: name, x: x, y: y });
+    }
+  });
+  return pts;
+}
+
+function collectPts() {
+  return parseCsvPts(document.getElementById('csvInput').value);
+}
+
+// 文本框实时预览示意图
+function drawCoordPreview() {
+  var pts = collectPts();
+  if (pts.length >= 2) drawCoordMap(pts);
+}
+
+// 绘制导线点示意图（坐标模式）
+function drawCoordMap(pts) {
+  var canvas = document.getElementById('planCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width = canvas.offsetWidth || 800;
+  var H = canvas.height = 380;
+  ctx.clearRect(0, 0, W, H);
+
+  var aK = dmsToDeg(document.getElementById('eAz').value);
+  var kx = parseFloat(document.getElementById('eKX').value);
+  var ky = parseFloat(document.getElementById('eKY').value);
+
+  var allX = pts.map(function(p) { return p.x; });
+  var allY = pts.map(function(p) { return p.y; });
+  if (!isNaN(kx)) allX.push(kx);
+  if (!isNaN(ky)) allY.push(ky);
+  var minX = Math.min.apply(null, allX), maxX = Math.max.apply(null, allX);
+  var minY = Math.min.apply(null, allY), maxY = Math.max.apply(null, allY);
+  var spanX = maxX - minX || 1, spanY = maxY - minY || 1;
+  var pad = 70;
+  function px(x) { return pad + (x - minX) * (W - pad * 2) / spanX; }
+  function py(y) { return H - pad - (y - minY) * (H - pad * 2) / spanY; }
+
+  // 网格
+  ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
+  for (var i = 0; i < W; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke(); }
+  for (var j = 0; j < H; j += 40) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke(); }
+
+  // 贯通面（过K点、垂直于贯通方向的直线）
+  if (!isNaN(aK) && !isNaN(kx) && !isNaN(ky)) {
+    var aRad = aK * Math.PI / 180;
+    var len = 200;
+    // 贯通面沿横向延伸：方向 (sinα, -cosα)
+    ctx.setLineDash([6, 5]);
+    ctx.strokeStyle = '#e65100'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px(kx - len * Math.sin(aRad)), py(ky + len * Math.cos(aRad)));
+    ctx.lineTo(px(kx + len * Math.sin(aRad)), py(ky - len * Math.cos(aRad)));
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#e65100'; ctx.font = '12px sans-serif';
+    ctx.fillText('贯通面', px(kx) + 10, py(ky) - 10);
+  }
+
+  // 导线
+  ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  pts.forEach(function(p, i) {
+    var cx = px(p.x), cy = py(p.y);
+    if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+  });
+  ctx.stroke();
+
+  // 导线点
+  pts.forEach(function(p, i) {
+    var cx = px(p.x), cy = py(p.y);
+    ctx.fillStyle = '#2c6e49';
+    ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#333'; ctx.font = '11px sans-serif';
+    ctx.fillText(p.name || ('P' + (i + 1)), cx + 8, cy - 8);
+  });
+
+  // 贯通方向箭头
+  if (!isNaN(aK)) {
+    var aRad = aK * Math.PI / 180;
+    var midX = 0, midY = 0;
+    pts.forEach(function(p) { midX += p.x; midY += p.y; });
+    midX /= pts.length; midY /= pts.length;
+    var cmx = px(midX), cmy = py(midY);
+    ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(cmx - 40 * Math.cos(aRad), cmy + 40 * Math.sin(aRad));
+    ctx.lineTo(cmx + 40 * Math.cos(aRad), cmy - 40 * Math.sin(aRad));
+    ctx.stroke();
+    // 箭头
+    var tipX = cmx + 40 * Math.cos(aRad), tipY = cmy - 40 * Math.sin(aRad);
+    ctx.beginPath();
+    ctx.moveTo(tipX, tipY);
+    ctx.lineTo(tipX - 8 * Math.cos(aRad) - 6 * Math.sin(aRad), tipY + 8 * Math.sin(aRad) - 6 * Math.cos(aRad));
+    ctx.lineTo(tipX - 8 * Math.cos(aRad) + 6 * Math.sin(aRad), tipY + 8 * Math.sin(aRad) + 6 * Math.cos(aRad));
+    ctx.closePath();
+    ctx.fillStyle = '#1565c0'; ctx.fill();
+    ctx.font = '12px sans-serif';
+    ctx.fillText('贯通方向 α=' + degToDms(aK), tipX - 30, tipY - 14);
+  }
+}
+
+// CSV文件导入
+function importFile() {
+  var file = document.getElementById('csvFile').files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('csvInput').value = e.target.result;
+    importPts();
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function importPts() {
+  var text = document.getElementById('csvInput').value.trim();
+  if (!text) { alert('请粘贴坐标数据，每行格式：X,Y 或 点名,X,Y'); return; }
+  var lines = text.split('\n');
+  var count = 0;
+
+  // 解析验证
+  lines.forEach(function(line) {
+    var parts = line.trim().split(/[,，\t]+/);
+    if (parts.length >= 2) {
+      var x, y;
+      if (parts.length >= 3) { x = parseFloat(parts[1].trim()); y = parseFloat(parts[2].trim()); }
+      else { x = parseFloat(parts[0].trim()); y = parseFloat(parts[1].trim()); }
+      if (!isNaN(x) && !isNaN(y)) count++;
+    }
+  });
+  if (count === 0) { alert('未解析到有效坐标，请检查格式（每行：X,Y 或 点名,X,Y）'); return; }
+
+  // 归一化格式：点名,X,Y 每行一个点
+  var pts = parseCsvPts(text);
+  document.getElementById('csvInput').value = pts.map(function(p) {
+    return p.name + ',' + p.x.toFixed(3) + ',' + p.y.toFixed(3);
+  }).join('\n');
+  alert('✅ 成功导入 ' + count + ' 个导线点');
+  saveState();
+  calcError();
+}
+
+// 由导线点坐标计算 R_x 与 d_y
+function calcRxDy(pts, azDeg, kx, ky) {
+  var azRad = azDeg * Math.PI / 180;
+  var ex = Math.cos(azRad), ey = Math.sin(azRad);
+  var nx = -Math.sin(azRad), ny = Math.cos(azRad);
+  var rx = [], dy = [];
+  pts.forEach(function(p) {
+    var vx = p.x - kx, vy = p.y - ky;
+    var proj = vx * ex + vy * ey;
+    rx.push({ name: p.name, val: Math.abs(proj) });
+  });
+  for (var i = 0; i < pts.length - 1; i++) {
+    var vx = pts[i + 1].x - pts[i].x, vy = pts[i + 1].y - pts[i].y;
+    dy.push(Math.abs(vx * nx + vy * ny));
+  }
+  return { rx: rx, dy: dy };
+}
+
+// ========== 导线点录入 ==========
+function addRxRow(v) {
+  var div = document.createElement('div');
+  div.className = 'dyn-row';
+  var idx = document.querySelectorAll('#rxList .dyn-row').length + 1;
+  div.innerHTML = '<span class="idx">' + idx + '</span>' +
+    '<input type="number" value="' + (v !== undefined ? v : '') + '" placeholder="R_x" step="1" oninput="saveState()">' +
+    '<span class="del" onclick="this.parentNode.remove();saveState()">✕</span>';
+  document.getElementById('rxList').appendChild(div);
+}
+
+function addDyRow(v) {
+  var div = document.createElement('div');
+  div.className = 'dyn-row';
+  var idx = document.querySelectorAll('#dyList .dyn-row').length + 1;
+  div.innerHTML = '<span class="idx">' + idx + '</span>' +
+    '<input type="number" value="' + (v !== undefined ? v : '') + '" placeholder="d_y" step="1" oninput="saveState()">' +
+    '<span class="del" onclick="this.parentNode.remove();saveState()">✕</span>';
+  document.getElementById('dyList').appendChild(div);
+}
+
+function loadErrExample() {
+  document.getElementById('emBeta').value = '15';
+  document.getElementById('eml').value = '1/5000';
+  document.getElementById('emh').value = '10';
+  document.getElementById('ehL').value = '0.8';
+  document.getElementById('eLimit').value = '0.300';
+  document.getElementById('eLimitH').value = '0.200';
+
+  document.getElementById('eAz').value = '18 26 06';
+  document.getElementById('eKX').value = '500.000';
+  document.getElementById('eKY').value = '500.000';
+  var az = dmsToDeg('18 26 06') * Math.PI / 180;
+  var ex = Math.cos(az), ey = Math.sin(az);
+  var nx = -Math.sin(az), ny = Math.cos(az);
+  var rs = [100, 300, 550, 600, 400];
+  var ss = [0, 80, 120, 10, 30];
+  var names = ['ZD1', 'ZD2', 'ZD3', 'ZD4', 'ZD5'];
+  var lines = [];
+  for (var i = 0; i < rs.length; i++) {
+    var px = 500 + rs[i] * ex + ss[i] * nx;
+    var py = 500 + rs[i] * ey + ss[i] * ny;
+    lines.push(names[i] + ',' + px.toFixed(3) + ',' + py.toFixed(3));
+  }
+  document.getElementById('csvInput').value = lines.join('\n');
+  switchMode('coord');
+  calcError();
+}
+
+function clearErrInputs() {
+  document.getElementById('rxList').innerHTML = '';
+  document.getElementById('dyList').innerHTML = '';
+  document.getElementById('csvInput').value = '';
+  document.getElementById('errResult').innerHTML = '<div class="hint" style="padding:12px">已清空，请录入导线数据（坐标模式在文本框录入坐标，手动模式录入 R_x/d_y）。</div>';
+  saveState();
+}
+
+function collectRows(containerId) {
+  var vals = [];
+  document.querySelectorAll('#' + containerId + ' .dyn-row input').forEach(function(inp) {
+    var v = parseFloat(inp.value);
+    if (!isNaN(v) && v > 0) vals.push(v);
+  });
+  return vals;
+}
+
+function calcError() {
+  var mBeta = parseFloat(document.getElementById('emBeta').value);
+  var mlOverl = parseRatio(document.getElementById('eml').value);
+  var mh = parseFloat(document.getElementById('emh').value);
+  var hL = parseFloat(document.getElementById('ehL').value);
+  var limitX = parseFloat(document.getElementById('eLimit').value) || 0.3;
+  var limitH = parseFloat(document.getElementById('eLimitH').value) || 0.2;
+
+  var rx = [], dy = [], srcInfo = '';
+
+  if (currentMode === 'coord') {
+    var pts = collectPts();
+    if (pts.length < 2) {
+      alert('坐标模式请至少录入 2 个导线点');
+      return;
+    }
+    var az = dmsToDeg(document.getElementById('eAz').value);
+    var kx = parseFloat(document.getElementById('eKX').value);
+    var ky = parseFloat(document.getElementById('eKY').value);
+    if (isNaN(kx) || isNaN(ky)) { alert('请填写贯通面参考点 K 坐标'); return; }
+    var calc = calcRxDy(pts, az, kx, ky);
+    rx = calc.rx;
+    dy = calc.dy;
+    srcInfo = '（坐标模式自动计算）';
+  } else {
+    rx = collectRows('rxList');
+    dy = collectRows('dyList');
+    srcInfo = '（手动模式）';
+  }
+
+  if (rx.length === 0 && dy.length === 0) {
+    alert('请至少添加一组导线数据（R_x 或 d_y）');
+    return;
+  }
+  if (isNaN(mBeta)) { alert('请填写测角中误差'); return; }
+
+  // rx 可能是数值数组（手动模式）或 {name,val} 对象数组（坐标模式），统一取值
+  var rxVals = rx.map(function(v) { return typeof v === 'object' ? v.val : v; });
+  var rxNames = rx.map(function(v, i) { return typeof v === 'object' ? v.name : 'R' + (i + 1); });
+  var dyVals = dy;
+
+  var Srx2 = rxVals.reduce(function(s, v) { return s + v * v; }, 0);
+  var Sdy2 = dyVals.reduce(function(s, v) { return s + v * v; }, 0);
+
+  var M_beta = (mBeta / RHO) * Math.sqrt(Srx2);
+  var M_l = mlOverl * Math.sqrt(Sdy2);
+  var Mx = Math.sqrt(M_beta * M_beta + M_l * M_l);
+  var MxPred = 2 * Mx;
+
+  var Mh = mh * Math.sqrt(hL || 0);
+  var MhPred = 2 * Mh;
+
+  var xOk = MxPred <= limitX * 1000;
+  var hOk = MhPred <= limitH * 1000;
+
+  var html = '';
+  html += '<div class="hint" style="margin-bottom:8px">输入来源：' + srcInfo + '</div>';
+  if (currentMode === 'coord' && rxVals.length > 0) {
+    html += '<div class="hint" style="margin-bottom:8px">各点垂距 R_x：' + rxNames.map(function(n, i) {
+      return n + '=' + rxVals[i].toFixed(1) + 'm';
+    }).join('，') + '</div>';
+    html += '<div class="hint" style="margin-bottom:8px">各边投影 d_y：' + dyVals.map(function(v) { return v.toFixed(1); }).join('，') + ' m</div>';
+  }
+  html += '<div class="section-title">横向误差（Δx′）</div>';
+  if (rxVals.length > 0) {
+    html += resultRow('ΣR_x²', Srx2.toFixed(0) + ' m²');
+    html += resultRow('测角误差 M_β', (M_beta * 1000).toFixed(1) + ' mm');
+  }
+  if (dyVals.length > 0) {
+    html += resultRow('Σd_y²', Sdy2.toFixed(0) + ' m²');
+    html += resultRow('量边误差 M_l', (M_l * 1000).toFixed(1) + ' mm');
+  }
+  html += resultRow('横向总中误差 M_x', (Mx * 1000).toFixed(1) + ' mm');
+  html += resultRow('预计极限误差 2M_x', (MxPred * 1000).toFixed(1) + ' mm', xOk ? 'ok' : 'bad');
+  html += resultRow('容许偏差 Δx′', (limitX * 1000).toFixed(0) + ' mm');
+  html += '<div class="verdict-box ' + (xOk ? 'verdict-ok' : 'verdict-bad') + '">' +
+    (xOk ? '✅ 横向精度满足要求' : '❌ 横向精度超限，需提高测量等级或加测陀螺定向边') + '</div>';
+
+  html += '<div class="section-title" style="margin-top:12px">竖向误差（Δh）</div>';
+  html += resultRow('高程中误差 M_h', Mh.toFixed(1) + ' mm');
+  html += resultRow('预计极限误差 2M_h', MhPred.toFixed(1) + ' mm', hOk ? 'ok' : 'bad');
+  html += resultRow('容许偏差 Δh', (limitH * 1000).toFixed(0) + ' mm');
+  html += '<div class="verdict-box ' + (hOk ? 'verdict-ok' : 'verdict-bad') + '">' +
+    (hOk ? '✅ 竖向精度满足要求' : '❌ 竖向精度超限，需提高高程测量等级') + '</div>';
+
+  document.getElementById('errResult').innerHTML = html;
+}
+
+// ========== 成果复制/导出 ==========
+function getResultsText() {
+  var geoDiv = document.getElementById('geoResult');
+  var errDiv = document.getElementById('errResult');
+  var geoText = geoDiv ? geoDiv.innerText.replace(/[✅❌⚠️]/g, '').trim() : '';
+  var errText = errDiv ? errDiv.innerText.replace(/[✅❌⚠️]/g, '').trim() : '';
+  var header = '═══════════════════════════════════════\n' +
+               '  贯通测量计算成果报告\n' +
+               '  生成时间：' + new Date().toLocaleString() + '\n' +
+               '═══════════════════════════════════════\n\n';
+  var footer = '\n═══════════════════════════════════════\n' +
+               '  计算人：________  复核人：________\n' +
+               '  日期：________\n';
+  return header + '【贯通几何要素】\n' + geoText + '\n\n【贯通误差预计】\n' + errText + footer;
+}
+
+function copyResults() {
+  var text = getResultsText();
+  navigator.clipboard.writeText(text).then(function() {
+    alert('✅ 成果报告已复制到剪贴板，可直接粘贴到测量日志或Word中。');
+  }).catch(function() {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed'; ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); alert('✅ 成果报告已复制'); } catch(e) { alert('复制失败，请手动全选复制'); }
+    ta.remove();
+  });
+}
+
+function exportResults() {
+  var text = getResultsText();
+  var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '贯通测量成果_' + new Date().toISOString().slice(0,10) + '.txt';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ========== 数据持久化（localStorage） ==========
+var STORE_KEY = 'penetration_survey_state_v1';
+
+function saveState() {
+  try {
+    var state = {
+      engType: document.getElementById('engType').value,
+      gxA: document.getElementById('gxA').value, gyA: document.getElementById('gyA').value,
+      ghA: document.getElementById('ghA').value, gaAC: document.getElementById('gaAC').value,
+      gxB: document.getElementById('gxB').value, gyB: document.getElementById('gyB').value,
+      ghB: document.getElementById('ghB').value, gaBD: document.getElementById('gaBD').value,
+      gLimit: document.getElementById('gLimit').value,
+      eAz: document.getElementById('eAz').value,
+      eKX: document.getElementById('eKX').value, eKY: document.getElementById('eKY').value,
+      csvInput: document.getElementById('csvInput').value,
+      emBeta: document.getElementById('emBeta').value, eml: document.getElementById('eml').value,
+      emh: document.getElementById('emh').value, ehL: document.getElementById('ehL').value,
+      eLimit: document.getElementById('eLimit').value, eLimitH: document.getElementById('eLimitH').value,
+      currentMode: currentMode,
+      rxVals: [], dyVals: []
+    };
+    document.querySelectorAll('#rxList .dyn-row input').forEach(function(inp) {
+      state.rxVals.push(inp.value);
+    });
+    document.querySelectorAll('#dyList .dyn-row input').forEach(function(inp) {
+      state.dyVals.push(inp.value);
+    });
+    localStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch (e) { /* localStorage 不可用时静默忽略 */ }
+}
+
+function loadState() {
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return false;
+    var s = JSON.parse(raw);
+    if (!s || typeof s !== 'object') return false;
+
+    function set(id, v) {
+      if (v !== undefined && v !== null && document.getElementById(id)) {
+        document.getElementById(id).value = v;
+      }
+    }
+    set('engType', s.engType);
+    set('gxA', s.gxA); set('gyA', s.gyA); set('ghA', s.ghA); set('gaAC', s.gaAC);
+    set('gxB', s.gxB); set('gyB', s.gyB); set('ghB', s.ghB); set('gaBD', s.gaBD);
+    set('gLimit', s.gLimit);
+    set('eAz', s.eAz); set('eKX', s.eKX); set('eKY', s.eKY);
+    set('csvInput', s.csvInput);
+    set('emBeta', s.emBeta); set('eml', s.eml); set('emh', s.emh); set('ehL', s.ehL);
+    set('eLimit', s.eLimit); set('eLimitH', s.eLimitH);
+    if (s.currentMode) switchMode(s.currentMode);
+
+    // 恢复手动模式动态行
+    document.getElementById('rxList').innerHTML = '';
+    document.getElementById('dyList').innerHTML = '';
+    (s.rxVals || []).forEach(function(v) { addRxRow(v); });
+    (s.dyVals || []).forEach(function(v) { addDyRow(v); });
+    if (!s.rxVals || s.rxVals.length === 0) { addRxRow(400); addRxRow(600); addRxRow(550); addRxRow(300); addRxRow(100); }
+    if (!s.dyVals || s.dyVals.length === 0) { addDyRow(80); addDyRow(120); addDyRow(150); addDyRow(90); addDyRow(60); }
+    return true;
+  } catch (e) { return false; }
+}
+
+// 自动保存：监听所有输入变化
+function bindAutoSave() {
+  var ids = ['engType', 'gxA', 'gyA', 'ghA', 'gaAC', 'gxB', 'gyB', 'ghB', 'gaBD', 'gLimit',
+             'eAz', 'eKX', 'eKY', 'csvInput', 'emBeta', 'eml', 'emh', 'ehL', 'eLimit', 'eLimitH'];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', saveState);
+  });
+}
+
+// ========== 初始化 ==========
+addRxRow(400); addRxRow(600); addRxRow(550); addRxRow(300); addRxRow(100);
+addDyRow(80); addDyRow(120); addDyRow(150); addDyRow(90); addDyRow(60);
+if (loadState()) {
+  // 有历史数据：恢复后重新计算
+  try { calcGeometry(); } catch (e) {}
+  try { calcError(); } catch (e) {}
+} else {
+  loadGeoExample();
+  loadErrExample();
+}
+switchMode(currentMode);
+bindAutoSave();
+
+</script>
+<div style="text-align:center;padding:12px 0 2rem;border-top:1px solid #dce3e0;margin-top:1rem;color:#666;font-size:0.85rem;position:relative;z-index:1">
+  <a href="mailto:lvmyth@qq.com" style="color:#666;text-decoration:none">By Lvmyth AI</a>
+</div>
+
+<script src="../navbar.js"></script>
+<script src="../particles.js"></script>
+</body>
+</html>

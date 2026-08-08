@@ -6,7 +6,7 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Tue, 04 Aug 2026 04:21:55 GMT</lastBuildDate>
+  <lastBuildDate>Sat, 08 Aug 2026 07:12:15 GMT</lastBuildDate>
 
   <item>
     <title>本地部署RAG测量助手：把规范和博客变成私人AI知识库</title>
@@ -109,6 +109,15 @@
     <pubDate>Tue, 21 Jul 2026 00:00:00 +0800</pubDate>
     <description>AI 看起来离测量很远，但事实上测量是 AI 落地最直接的领域之一。本文从五个层面讲清楚为什么每个测量员都应该开始接触 AI。</description>
     <category>AI前沿</category>
+  </item>
+
+  <item>
+    <title>贯通测量：黑暗里对接的厘米级艺术</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=penetration-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=penetration-survey</guid>
+    <pubDate>Mon, 06 Jul 2026 00:00:00 +0800</pubDate>
+    <description>两拨人从隧道两头相向掘进，最后要在黑暗中精准对接，偏差必须控制在厘米甚至毫米级。本文从贯通类型、容许偏差、几何要素计算到误差预计，配完整算例，系统讲透贯通测量这条地下工程的&apos;生命线&apos;。</description>
+    <category>测量实操</category>
   </item>
 
   <item>
