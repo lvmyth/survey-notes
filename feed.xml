@@ -6,7 +6,7 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Sat, 08 Aug 2026 07:12:15 GMT</lastBuildDate>
+  <lastBuildDate>Sat, 08 Aug 2026 08:48:55 GMT</lastBuildDate>
 
   <item>
     <title>本地部署RAG测量助手：把规范和博客变成私人AI知识库</title>
@@ -112,11 +112,47 @@
   </item>
 
   <item>
+    <title>海底隧道测量技术：毫米级精度的水下工程艺术</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=undersea-tunnel-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=undersea-tunnel-survey</guid>
+    <pubDate>Sun, 12 Jul 2026 00:00:00 +0800</pubDate>
+    <description>海底隧道是最复杂的测量环境——没有地面参照、高水压、独头掘进数公里、多工法对接。本文系统讲解地面控制网、联系测量、洞内导线、盾构自动导向、沉管定位、贯通与竣工测量的完整体系，并给出投点误差、贯通精度等关键算例。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>隧道地质超前预报：给隧道装上透视眼</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=geological-prediction</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=geological-prediction</guid>
+    <pubDate>Thu, 09 Jul 2026 00:00:00 +0800</pubDate>
+    <description>前方50米是断层破碎带、前方200米藏着一处岩溶涌水——这些风险等掘进到跟前才暴露就晚了。本文系统讲解超前地质预报的方法体系（地质调查/物探/钻探三大类）、TSP/地质雷达/瞬变电磁等物探原理与适用条件、长中短组合预报流程与风险分级。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>隧道监控量测：给围岩把脉的动态观测技术</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=tunnel-monitoring</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=tunnel-monitoring</guid>
+    <pubDate>Wed, 08 Jul 2026 00:00:00 +0800</pubDate>
+    <description>隧道施工最怕围岩突然失稳、拱顶塌落，但围岩的&apos;脾气&apos;并非毫无征兆——它会在破坏前持续变形。本文从测点布设、量测频率、位移管理等级到回归分析，配完整算例，系统讲透隧道监控量测这套&apos;从布点到判读&apos;的动态观测体系。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
     <title>贯通测量：黑暗里对接的厘米级艺术</title>
     <link>https://www.axureshow.com/project/snUNZfl9/?id=penetration-survey</link>
     <guid>https://www.axureshow.com/project/snUNZfl9/?id=penetration-survey</guid>
     <pubDate>Mon, 06 Jul 2026 00:00:00 +0800</pubDate>
     <description>两拨人从隧道两头相向掘进，最后要在黑暗中精准对接，偏差必须控制在厘米甚至毫米级。本文从贯通类型、容许偏差、几何要素计算到误差预计，配完整算例，系统讲透贯通测量这条地下工程的&apos;生命线&apos;。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>联系测量：地面与地下的坐标桥梁</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=contact-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=contact-survey</guid>
+    <pubDate>Sun, 05 Jul 2026 00:00:00 +0800</pubDate>
+    <description>地面放样和地下掘进必须用同一坐标系，联系测量就是架在两者之间的坐标桥梁。本文系统讲解一井定向（连接三角形法）、两井定向、陀螺经纬仪定向、高程导入的原理与计算，配投向误差、三角形解算等完整算例。</description>
     <category>测量实操</category>
   </item>
 
