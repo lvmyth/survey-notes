@@ -6,7 +6,7 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Sat, 08 Aug 2026 08:48:55 GMT</lastBuildDate>
+  <lastBuildDate>Sun, 09 Aug 2026 03:31:45 GMT</lastBuildDate>
 
   <item>
     <title>本地部署RAG测量助手：把规范和博客变成私人AI知识库</title>
@@ -112,6 +112,24 @@
   </item>
 
   <item>
+    <title>边坡监测数据回归分析：从位移数据预测滑坡</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=slope-regression</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=slope-regression</guid>
+    <pubDate>Wed, 15 Jul 2026 00:00:00 +0800</pubDate>
+    <description>监测数据杂乱含误差，直接看很难判断边坡是否安全。本文讲解位移-时间曲线类型与判读、指数/对数/双曲线回归模型（含完整算例）、蠕变三阶段理论、斋藤法与速度倒数法预测临滑时间，把一摞监测数据变成可靠的安全评估。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>边坡监测技术：守护边坡安全的体检系统</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=slope-monitoring</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=slope-monitoring</guid>
+    <pubDate>Tue, 14 Jul 2026 00:00:00 +0800</pubDate>
+    <description>滑坡前坡体会经历缓慢变形、加速变形、临滑三个阶段——监测就是抓住这些前兆。本文系统讲解边坡监测的项目组成、测点布设、GNSS/测斜/裂缝计等监测方法与仪器、空天地自动化监测体系、预警判据与三级管理等级。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
     <title>海底隧道测量技术：毫米级精度的水下工程艺术</title>
     <link>https://www.axureshow.com/project/snUNZfl9/?id=undersea-tunnel-survey</link>
     <guid>https://www.axureshow.com/project/snUNZfl9/?id=undersea-tunnel-survey</guid>
@@ -153,6 +171,15 @@
     <guid>https://www.axureshow.com/project/snUNZfl9/?id=contact-survey</guid>
     <pubDate>Sun, 05 Jul 2026 00:00:00 +0800</pubDate>
     <description>地面放样和地下掘进必须用同一坐标系，联系测量就是架在两者之间的坐标桥梁。本文系统讲解一井定向（连接三角形法）、两井定向、陀螺经纬仪定向、高程导入的原理与计算，配投向误差、三角形解算等完整算例。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>陀螺经纬仪定向：不占井筒的高精度定向技术</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=gyro-orientation</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=gyro-orientation</guid>
+    <pubDate>Fri, 03 Jul 2026 00:00:00 +0800</pubDate>
+    <description>不挂钢丝、不占井筒、不受天气限制，陀螺仪利用地球自转自动找北，精度却远高于几何定向。本文系统讲解陀螺定向原理、逆转点法与中天法观测、仪器常数标定、子午线收敛角计算，配摆动中值、完整定向流程等算例。</description>
     <category>测量实操</category>
   </item>
 
