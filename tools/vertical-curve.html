@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>竖曲线计算器 - 测量员在线工具箱</title>
+<meta name="description" content="道路竖曲线在线计算器——单点竖曲线要素计算（坡度差、曲线长、切线长、外距）与逐桩高程计算，支持多变坡点连续纵断面计算，自动判定凸形/凹形竖曲线，Canvas纵断面可视化，支持导出CSV">
+<meta name="keywords" content="竖曲线,竖曲线计算,道路纵断面,变坡点,切线长,外距,竖距,设计高程,凸形竖曲线,凹形竖曲线,多变坡点">
+<meta name="author" content="郑杰明 (Lvmyth AI)">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://lvmyth.github.io/survey-notes/tools/vertical-curve.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="竖曲线计算器">
+<meta property="og:description" content="道路竖曲线在线计算器——单点要素计算与逐桩高程，多变坡点连续纵断面，自动判定凸形/凹形，Canvas可视化">
+<meta property="og:url" content="https://lvmyth.github.io/survey-notes/tools/vertical-curve.html">
+<meta property="og:image" content="https://lvmyth.github.io/survey-notes/images/logo.jpg">
+<meta property="og:site_name" content="测量工程笔记">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="竖曲线计算器">
+<meta name="twitter:description" content="道路竖曲线在线计算器——单点要素计算与逐桩高程，多变坡点连续纵断面">
+<meta name="twitter:image" content="https://lvmyth.github.io/survey-notes/images/logo.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"竖曲线计算器","url":"https://lvmyth.github.io/survey-notes/tools/vertical-curve.html","image":"https://lvmyth.github.io/survey-notes/images/logo.jpg","description":"道路竖曲线在线计算器——竖曲线要素计算与逐桩高程计算，多变坡点连续纵断面，自动判定凸形/凹形竖曲线，Canvas纵断面可视化","applicationCategory":"UtilityApplication","operatingSystem":"Web","publisher":{"@type":"Organization","name":"测量工程笔记","url":"https://lvmyth.github.io/survey-notes"}}
+</script>
+<style>
+:root {
+  --primary: #2c6e49; --primary-dark: #1b4d2e; --primary-light: #4c956c;
+  --accent: #e65100; --bg: #f4f7f5; --bg-card: #ffffff; --text: #333333;
+  --text-light: #666666; --border: #dce3e0; --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --bg-nav: #1a2f24; --text-on-dark: #ecf0f1; --accent-light: #6fb98a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { padding: 64px 20px 20px; font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+.container { max-width: 1300px; margin: 0 auto; position: relative; z-index: 1; }
+.panel { display: flex; gap: 20px; align-items: flex-start; }
+.panel-left { flex: 0 0 420px; }
+.panel-right { flex: 1; min-width: 0; }
+.card { background: var(--bg-card); border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+.card h3 { font-size: 15px; color: var(--primary-dark); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--bg); }
+.field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.field-row label { font-size: 13px; color: var(--text); min-width: 110px; flex-shrink: 0; }
+.field-row input, .field-row select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; font-family: Consolas,monospace; outline: none; background: white; min-width: 60px; }
+.field-row input { width: 150px; flex: none; }
+.field-row select { flex: 1; }
+.field-row input:focus { border-color: var(--primary); }
+.hint { font-size: 11px; color: var(--text-light); }
+.section-title { font-size: 13px; font-weight: 600; color: var(--primary-dark); margin: 12px 0 8px; padding-left: 8px; border-left: 3px solid var(--primary); }
+.btn { padding: 8px 16px; border: none; border-radius: 5px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-primary { background: var(--primary); color: white; width: 100%; margin-bottom: 8px; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-group-row { display: flex; gap: 8px; }
+.btn-example { background: #e9ecef; color: var(--text); font-size: 12px; flex: 1; }
+.btn-example:hover { background: #dde3e0; }
+.result-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px dashed var(--border); font-size: 13px; }
+.result-item:last-child { border-bottom: none; }
+.result-item .label { color: var(--text-light); }
+.result-item .value { font-family: Consolas,monospace; font-weight: 600; color: var(--primary-dark); }
+.result-item .value.accent { color: var(--accent); }
+.type-badge { display: inline-block; padding: 4px 14px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-top: 8px; }
+.type-convex { background: #e8f5e9; color: var(--primary-dark); border: 1px solid #a5d6a7; }
+.type-concave { background: #e3f2fd; color: #1565c0; border: 1px solid #90caf9; }
+.canvas-container { background: white; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+#curveCanvas { display: block; width: 100%; height: 340px; }
+.result-table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 4px; max-height: 320px; overflow-y: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 520px; }
+th, td { border: 1px solid var(--border); padding: 6px 8px; text-align: center; white-space: nowrap; }
+th { background: var(--primary-dark); color: white; font-weight: 600; position: sticky; top: 0; }
+tr:nth-child(even) { background: #f8fbfa; }
+tr.highlight { background: #fff8e1; font-weight: 600; }
+.legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-light); padding: 8px 4px; flex-wrap: wrap; }
+.legend span i { display: inline-block; width: 14px; height: 3px; margin-right: 4px; vertical-align: middle; border-radius: 2px; }
+/* 多变坡点表格 */
+.vp-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.vp-table th { background: var(--bg); color: var(--text-light); font-weight: 600; }
+.vp-table td { padding: 3px 2px; border-bottom: 1px solid var(--bg); }
+.vp-table input { width: 100%; padding: 5px 4px; border: 1px solid var(--border); border-radius: 4px; font-size: 12px; font-family: Consolas,monospace; text-align: center; }
+.vp-table .rm { color: #c0392b; cursor: pointer; text-align: center; }
+.vp-scroll { max-height: 150px; overflow-y: auto; }
+/* 标签页 */
+.tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+.tab { flex: 1; padding: 9px 12px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px; font-size: 14px; font-weight: 600; color: var(--text-light); cursor: pointer; transition: all 0.2s; }
+.tab:hover { background: #e8f3ec; color: var(--primary-dark); }
+.tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+@media (max-width: 900px) { .panel { flex-direction: column; } .panel-left { flex: 1; width: 100%; } }
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+</style>
+<link rel="stylesheet" href="tools-common.css">
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<div class="container">
+
+  <div class="panel">
+    <!-- ========== 左侧输入面板 ========== -->
+    <div class="panel-left">
+      <div class="card">
+        <div class="tabs">
+          <button class="tab active" id="tabBtnSingle" onclick="switchTab('single')">📐 单点竖曲线</button>
+          <button class="tab" id="tabBtnMulti" onclick="switchTab('multi')">📈 多变坡点</button>
+        </div>
+
+        <div class="tab-panel active" id="panelSingle">
+          <div class="section-title">变坡点数据</div>
+        <div class="field-row"><label>变坡点桩号</label><input id="staP" type="text" value="K1+200" oninput="saveState()"><span class="hint">如 K1+200</span></div>
+        <div class="field-row"><label>变坡点高程 (m)</label><input id="elevP" type="number" value="45.000" step="0.001" oninput="saveState()"><span class="hint">切线交点高程（纵断面图标注值）</span></div>
+        <div class="field-row"><label>前坡 i₁ (%)</label><input id="i1" type="number" value="2.5" step="0.01" oninput="saveState()"><span class="hint">上坡正/下坡负</span></div>
+        <div class="field-row"><label>后坡 i₂ (%)</label><input id="i2" type="number" value="-1.5" step="0.01" oninput="saveState()"><span class="hint">上坡正/下坡负</span></div>
+        <div class="field-row"><label>竖曲线半径 R (m)</label><input id="radius" type="number" value="500" step="1" oninput="saveState()"></div>
+        <div class="field-row"><label>计算桩距 (m)</label><input id="step" type="number" value="5" step="0.1" oninput="saveState()"><span class="hint">逐桩计算间隔</span></div>
+
+        <button class="btn btn-primary" onclick="calcCurve()">计算竖曲线</button>
+        <div class="btn-group-row">
+          <button class="btn btn-example" onclick="loadExample()">载入示例</button>
+        </div>
+
+        <div id="elemResult">
+          <div class="hint" style="padding:12px">输入变坡点数据，点击"计算竖曲线"查看要素。</div>
+        </div>
+
+        <div class="section-title">任意桩号高程查询</div>
+        <div class="field-row">
+          <label>查询桩号</label>
+          <input id="queryStaSingle" type="text" placeholder="如 K1+195" oninput="saveState()" onkeydown="if(event.key==='Enter')queryElevSingle()">
+          <button class="btn btn-example" onclick="queryElevSingle()" style="flex:0 0 auto;padding:7px 14px">查询</button>
+        </div>
+        <div class="hint">查询该桩号设计高程，自动识别竖曲线段/前后坡切线延伸段</div>
+        <div id="queryResultSingle">
+          <div class="hint" style="padding:8px">先计算竖曲线，再输入桩号查询。</div>
+        </div>
+        </div><!-- /panelSingle -->
+
+        <div class="tab-panel" id="panelMulti">
+          <div class="hint" style="margin-bottom:6px">输入全线变坡点（桩号/高程/半径），半径填 0 表示该处不设竖曲线，自动计算连续纵断面设计高程。</div>
+        <div class="vp-scroll">
+          <table class="vp-table">
+            <thead><tr><th style="width:34%">桩号</th><th style="width:30%">高程(m)</th><th style="width:28%">半径R(m)</th><th style="width:8%"></th></tr></thead>
+            <tbody id="vpTbody"></tbody>
+          </table>
+        </div>
+        <div class="btn-group-row" style="margin-top:8px">
+          <button class="btn btn-example" onclick="addVpRow()">＋ 添加变坡点</button>
+          <button class="btn btn-example" onclick="loadMultiExample()">载入示例</button>
+        </div>
+        <div class="field-row" style="margin-top:8px"><label>计算桩距 (m)</label><input id="stepMulti" type="number" value="10" step="0.1" oninput="saveState()"></div>
+        <button class="btn btn-primary" onclick="calcMulti()">计算全线纵断面</button>
+        <div id="multiResult">
+          <div class="hint" style="padding:8px">点击"计算全线纵断面"查看逐桩设计高程。</div>
+        </div>
+
+        <div class="section-title">任意桩号高程查询</div>
+        <div class="field-row">
+          <label>查询桩号</label>
+          <input id="querySta" type="text" placeholder="如 K1+245" oninput="saveState()" onkeydown="if(event.key==='Enter')queryElev()">
+          <button class="btn btn-example" onclick="queryElev()" style="flex:0 0 auto;padding:7px 14px">查询</button>
+        </div>
+        <div class="hint">查询该桩号设计高程，自动识别竖曲线段/直坡段，桩号可任意（不限于计算桩距）</div>
+        <div id="queryResult">
+          <div class="hint" style="padding:8px">先计算全线纵断面，再输入桩号查询。</div>
+        </div>
+        </div><!-- /panelMulti -->
+      </div>
+    </div>
+
+    <!-- ========== 右侧结果面板 ========== -->
+    <div class="panel-right">
+      <div class="card">
+        <h3>🗺️ 纵断面图 <span style="font-size:12px;color:var(--text-light)" id="chartTitle"></span></h3>
+        <div class="canvas-container"><canvas id="curveCanvas"></canvas></div>
+        <div class="legend">
+          <span><i style="background:#1565c0"></i>设计高程线</span>
+          <span><i style="background:#2c6e49"></i>前坡切线</span>
+          <span><i style="background:#e65100"></i>后坡切线</span>
+          <span><i style="background:#999"></i>变坡点</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📊 逐桩高程计算表</h3>
+        <div id="tableWrap">
+          <div class="hint" style="padding:12px">计算后在此显示逐桩高程表。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 数据持久化 ==========
+var STORE_KEY = 'vertical-curve-multi-v1';
+
+function saveState() {
+  try {
+    var st = {
+      tab: document.getElementById('panelSingle').classList.contains('active') ? 'single' : 'multi',
+      lastMode: lastData ? lastData.mode : null,
+      staP: document.getElementById('staP').value,
+      elevP: document.getElementById('elevP').value,
+      i1: document.getElementById('i1').value,
+      i2: document.getElementById('i2').value,
+      radius: document.getElementById('radius').value,
+      step: document.getElementById('step').value,
+      stepMulti: document.getElementById('stepMulti').value,
+      querySta: document.getElementById('querySta').value,
+      queryStaSingle: document.getElementById('queryStaSingle').value,
+      vps: vps
+    };
+    localStorage.setItem(STORE_KEY, JSON.stringify(st));
+  } catch (e) {}
+}
+
+function restoreState() {
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return false;
+    var st = JSON.parse(raw);
+    if (st.staP !== undefined) {
+      document.getElementById('staP').value = st.staP;
+      document.getElementById('elevP').value = st.elevP;
+      document.getElementById('i1').value = st.i1;
+      document.getElementById('i2').value = st.i2;
+      document.getElementById('radius').value = st.radius;
+      document.getElementById('step').value = st.step;
+    }
+    if (st.stepMulti !== undefined) document.getElementById('stepMulti').value = st.stepMulti;
+    if (st.querySta !== undefined) document.getElementById('querySta').value = st.querySta;
+    if (st.queryStaSingle !== undefined) document.getElementById('queryStaSingle').value = st.queryStaSingle;
+    if (st.vps && st.vps.length >= 2) { vps = st.vps; renderVpTable(); }
+    if (st.tab === 'multi') switchTab('multi');
+    if (st.lastMode === 'multi') { calcMulti(); }
+    else if (st.lastMode === 'single') { calcCurve(); }
+    return true;
+  } catch (e) { return false; }
+}
+
+// ========== 工具函数 ==========
+function switchTab(name) {
+  var isSingle = name === 'single';
+  document.getElementById('tabBtnSingle').classList.toggle('active', isSingle);
+  document.getElementById('tabBtnMulti').classList.toggle('active', !isSingle);
+  document.getElementById('panelSingle').classList.toggle('active', isSingle);
+  document.getElementById('panelMulti').classList.toggle('active', !isSingle);
+}
+
+function parseSta(str) {
+  var m = String(str).trim().match(/K?(\d+)([+-])(\d+(?:\.\d+)?)/i);
+  if (m) {
+    var km = parseFloat(m[1]);
+    var dist = parseFloat(m[3]);
+    return km * 1000 + (m[2] === '+' ? dist : -dist);
+  }
+  return parseFloat(str) || 0;
+}
+
+function formatSta(sta) {
+  var km = Math.floor(sta / 1000);
+  var m = sta - km * 1000;
+  var intPart = Math.floor(Math.abs(m));
+  var decPart = Math.abs(m) - intPart;
+  var mStr = String(intPart).padStart(3, '0') + (decPart > 0 ? decPart.toFixed(2).slice(1) : '');
+  return 'K' + km + '+' + mStr;
+}
+
+function roundKey(s, step) { return Math.round(s / step) * step; }
+
+// ========== 单点计算 ==========
+var lastData = null;
+
+function loadExample() {
+  document.getElementById('staP').value = 'K1+200';
+  document.getElementById('elevP').value = '45.000';
+  document.getElementById('i1').value = '2.5';
+  document.getElementById('i2').value = '-1.5';
+  document.getElementById('radius').value = '500';
+  document.getElementById('step').value = '5';
+  calcCurve();
+}
+
+function calcCurve() {
+  var staP = parseSta(document.getElementById('staP').value);
+  var elevP = parseFloat(document.getElementById('elevP').value);
+  var i1 = parseFloat(document.getElementById('i1').value);
+  var i2 = parseFloat(document.getElementById('i2').value);
+  var R = parseFloat(document.getElementById('radius').value);
+  var step = parseFloat(document.getElementById('step').value) || 5;
+
+  if (isNaN(staP) || isNaN(elevP) || isNaN(i1) || isNaN(i2) || isNaN(R) || R <= 0) {
+    alert('请填写完整有效的参数');
+    return;
+  }
+
+  var omega = i1 - i2;
+  if (Math.abs(omega) < 0.0001) {
+    alert('前后坡坡度差接近 0（前后坡平行），无需设置竖曲线');
+    return;
+  }
+  var type = omega > 0 ? 'convex' : 'concave';
+  var L = R * Math.abs(omega) / 100;
+  var T = L / 2;
+  var E = T * T / (2 * R);
+
+  var staStart = staP - T;
+  var staEnd = staP + T;
+  var elevStart = elevP - i1 / 100 * T;
+
+  var rows = [];
+  var sstep = step;
+  if (L < step * 1.5) sstep = L / 6;
+  for (var s = staStart; s <= staEnd + sstep / 2; s += sstep) {
+    var x = s - staStart;
+    var tangElev = elevStart + i1 / 100 * x;
+    var y = x * x / (2 * R);
+    var design = type === 'convex' ? tangElev - y : tangElev + y;
+    var isBP = Math.abs(s - staP) < sstep / 2;
+    rows.push({ sta: s, x: x, tang: tangElev, y: y, design: design, isBP: isBP });
+  }
+  var hasBP = rows.some(function(r) { return r.isBP; });
+  if (!hasBP) {
+    rows.push({ sta: staP, x: T, tang: elevP, y: E, design: type === 'convex' ? elevP - E : elevP + E, isBP: true });
+    rows.sort(function(a, b) { return a.sta - b.sta; });
+  }
+
+  lastData = {
+    mode: 'single',
+    staP: staP, elevP: elevP, i1: i1, i2: i2, R: R,
+    omega: omega, type: type, L: L, T: T, E: E,
+    staStart: staStart, staEnd: staEnd, elevStart: elevStart,
+    rows: rows
+  };
+
+  renderElements();
+  renderTable();
+  drawCurve();
+  saveState();
+}
+
+// ========== 多变坡点（修复版） ==========
+var vps = [
+  { sta: 1100, elev: 40.000, r: 0 },
+  { sta: 1200, elev: 45.000, r: 500 },
+  { sta: 1300, elev: 42.500, r: 400 },
+  { sta: 1400, elev: 46.000, r: 0 }
+];
+
+function renderVpTable() {
+  var tb = document.getElementById('vpTbody');
+  tb.innerHTML = vps.map(function(v, i) {
+    return '<tr>' +
+      '<td><input type="text" value="' + formatSta(v.sta) + '" oninput="onVpCell(' + i + ',0,this.value)"></td>' +
+      '<td><input type="number" step="0.001" value="' + v.elev.toFixed(3) + '" oninput="onVpCell(' + i + ',1,this.value)"></td>' +
+      '<td><input type="number" step="1" min="0" value="' + v.r + '" oninput="onVpCell(' + i + ',2,this.value)"></td>' +
+      '<td class="rm" onclick="removeVpRow(' + i + ')">✕</td></tr>';
+  }).join('');
+}
+
+function onVpCell(i, col, val) {
+  if (col === 0) vps[i].sta = parseSta(val);
+  else if (col === 1) vps[i].elev = parseFloat(val);
+  else vps[i].r = parseFloat(val);
+  if (isNaN(vps[i].sta)) vps[i].sta = 0;
+  if (isNaN(vps[i].elev)) vps[i].elev = 0;
+  if (isNaN(vps[i].r)) vps[i].r = 0;
+  saveState();
+}
+
+function addVpRow() {
+  var last = vps[vps.length - 1];
+  vps.push({ sta: last ? last.sta + 100 : 1000, elev: last ? last.elev : 40, r: 0 });
+  renderVpTable();
+  saveState();
+}
+
+function removeVpRow(i) {
+  if (vps.length <= 2) { alert('至少保留 2 个变坡点'); return; }
+  vps.splice(i, 1);
+  renderVpTable();
+  saveState();
+}
+
+function loadMultiExample() {
+  vps = [
+    { sta: 1100, elev: 40.000, r: 0 },
+    { sta: 1200, elev: 45.000, r: 500 },
+    { sta: 1300, elev: 42.500, r: 400 },
+    { sta: 1400, elev: 46.000, r: 0 }
+  ];
+  document.getElementById('stepMulti').value = '10';
+  renderVpTable();
+  calcMulti();
+}
+
+// ========== 核心修复：calcMulti 函数 ==========
+function calcMulti() {
+  // 数据检查
+  for (var i = 0; i < vps.length; i++) {
+    if (vps[i].sta <= 0 || isNaN(vps[i].elev)) {
+      alert('变坡点 ' + (i + 1) + ' 数据不完整');
+      return;
+    }
+  }
+  for (var i = 1; i < vps.length; i++) {
+    if (vps[i].sta <= vps[i - 1].sta) { alert('变坡点桩号必须递增'); return; }
+  }
+  if (vps.length < 2) { alert('至少输入2个变坡点'); return; }
+  var step = parseFloat(document.getElementById('stepMulti').value) || 10;
+  if (step <= 0) { alert('桩距必须大于0'); return; }
+
+  var n = vps.length;
+  
+  // ═══ 1. 备份原始数据（不修改原对象） ═══
+  var vpsCopy = vps.map(function(v) {
+    return { sta: v.sta, elev: v.elev, r: v.r };
+  });
+
+  // ═══ 2. 计算每个变坡点的前后坡度 ═══
+  var slopes = [];
+  for (var i = 0; i < n; i++) {
+    var i1 = 0, i2 = 0;
+    if (i > 0) i1 = (vpsCopy[i].elev - vpsCopy[i-1].elev) / (vpsCopy[i].sta - vpsCopy[i-1].sta) * 100;
+    if (i < n - 1) i2 = (vpsCopy[i+1].elev - vpsCopy[i].elev) / (vpsCopy[i+1].sta - vpsCopy[i].sta) * 100;
+    slopes.push({ i1: i1, i2: i2 });
+  }
+
+  // ═══ 3. 预先计算所有竖曲线段参数 ═══
+  var curveParams = [];
+  for (var j = 1; j < n - 1; j++) {
+    var vp = vpsCopy[j];
+    if (vp.r <= 0) continue;
+    var omega = slopes[j].i1 - slopes[j].i2;
+    if (Math.abs(omega) < 0.0001) continue;
+    var L = vp.r * Math.abs(omega) / 100;
+    var T = L / 2;
+    var staStart = vp.sta - T;
+    var staEnd = vp.sta + T;
+    var type = omega > 0 ? 'convex' : 'concave';
+    var E = T * T / (2 * vp.r);
+    var elevStart = vp.elev - slopes[j].i1 / 100 * T;
+    // 有效范围受相邻变坡点约束
+    var rangeStart = Math.max(staStart, vpsCopy[j-1].sta);
+    var rangeEnd = Math.min(staEnd, vpsCopy[j+1].sta);
+    curveParams.push({
+      index: j,
+      sta: vp.sta,
+      staStart: staStart,
+      staEnd: staEnd,
+      rangeStart: rangeStart,
+      rangeEnd: rangeEnd,
+      elevStart: elevStart,
+      i1: slopes[j].i1,
+      R: vp.r,
+      type: type,
+      E: E,
+      elevVP: vp.elev,
+      T: T,
+      omega: omega
+    });
+  }
+
+  // ═══ 4. 生成所有候选桩号（起始点 + 整桩距网格 + 所有变坡点 + 终点） ═══
+  var rangeStart = vpsCopy[0].sta;
+  var rangeEnd = vpsCopy[n - 1].sta;
+  var allStations = [];
+
+  // 起始变坡点
+  allStations.push(rangeStart);
+  
+  // 整桩距网格
+  var sStart = Math.ceil(rangeStart / step) * step;
+  for (var s = sStart; s <= rangeEnd + step / 2; s += step) {
+    allStations.push(s);
+  }
+  
+  // 所有中间变坡点
+  for (var i = 1; i < n - 1; i++) {
+    var found = allStations.some(function(st) { return Math.abs(st - vpsCopy[i].sta) < step * 0.001; });
+    if (!found) allStations.push(vpsCopy[i].sta);
+  }
+  
+  // 结束变坡点
+  var foundEnd = allStations.some(function(st) { return Math.abs(st - rangeEnd) < step * 0.001; });
+  if (!foundEnd) allStations.push(rangeEnd);
+
+  // 排序 + 去重
+  allStations.sort(function(a, b) { return a - b; });
+  var uniqueSta = [];
+  for (var i = 0; i < allStations.length; i++) {
+    if (i === 0 || Math.abs(allStations[i] - allStations[i-1]) > step * 0.001) {
+      uniqueSta.push(allStations[i]);
+    }
+  }
+  allStations = uniqueSta;
+
+  // ═══ 5. 逐点计算设计高程 ═══
+  var results = [];
+  var vpStaSet = {};
+  for (var i = 0; i < n; i++) {
+    vpStaSet[Math.round(vpsCopy[i].sta)] = true;
+  }
+
+  for (var idx = 0; idx < allStations.length; idx++) {
+    var sta = allStations[idx];
+    var design = null;
+    var inCurve = false;
+    var curveInfo = null;
+
+    // 5a. 检查是否在某个竖曲线段内
+    for (var c = 0; c < curveParams.length; c++) {
+      var cp = curveParams[c];
+      if (sta >= cp.rangeStart - step * 0.001 && sta <= cp.rangeEnd + step * 0.001) {
+        var x = sta - cp.staStart;
+        var tang = cp.elevStart + cp.i1 / 100 * x;
+        var y = x * x / (2 * cp.R);
+        var elev = cp.type === 'convex' ? tang - y : tang + y;
+        design = elev;
+        inCurve = true;
+        curveInfo = {
+          vpSta: cp.sta,
+          type: cp.type,
+          tang: tang,
+          y: y,
+          staStart: cp.staStart,
+          staEnd: cp.staEnd,
+          rangeStart: cp.rangeStart,
+          rangeEnd: cp.rangeEnd,
+          elevStart: cp.elevStart,
+          R: cp.R,
+          i1: cp.i1,
+          E: cp.E,
+          elevVP: cp.elevVP
+        };
+        break;
+      }
+    }
+
+    // 5b. 不在竖曲线段内 → 直坡段线性插值
+    if (design === null) {
+      var seg = -1;
+      for (var j = 0; j < n - 1; j++) {
+        if (sta >= vpsCopy[j].sta - step * 0.001 && sta <= vpsCopy[j+1].sta + step * 0.001) {
+          seg = j;
+          break;
+        }
+      }
+      if (seg >= 0) {
+        var frac = (sta - vpsCopy[seg].sta) / (vpsCopy[seg+1].sta - vpsCopy[seg].sta);
+        design = vpsCopy[seg].elev + (vpsCopy[seg+1].elev - vpsCopy[seg].elev) * frac;
+      } else if (sta < vpsCopy[0].sta) {
+        // 起点前延伸
+        design = vpsCopy[0].elev - slopes[0].i2 / 100 * (vpsCopy[0].sta - sta);
+      } else {
+        // 终点后延伸
+        var last = n - 1;
+        design = vpsCopy[last].elev + slopes[last].i1 / 100 * (sta - vpsCopy[last].sta);
+      }
+    }
+
+    // 5c. ═══ 关键修复：变坡点处高程一致性 ═══
+    var isVP = vpStaSet[Math.round(sta)] === true;
+    if (isVP) {
+      // 找到对应的原始变坡点高程
+      var origElev = null;
+      for (var k = 0; k < n; k++) {
+        if (Math.abs(vpsCopy[k].sta - sta) < step * 0.001) {
+          origElev = vpsCopy[k].elev;
+          break;
+        }
+      }
+      if (origElev !== null) {
+        // 如果该点在竖曲线段内，使用竖曲线计算的设计高程（含外距修正）
+        // 如果不在竖曲线段内（R=0 或端点），使用原始高程
+        if (!inCurve) {
+          design = origElev;
+        }
+        // 在竖曲线段内：保留竖曲线计算值（含外距修正）
+      }
+    }
+
+    results.push({
+      sta: sta,
+      design: design,
+      isVP: isVP,
+      inCurve: inCurve,
+      curveInfo: curveInfo
+    });
+  }
+
+  // ═══ 6. 存储曲线段信息供查询 ═══
+  var curveSegsForQuery = curveParams.map(function(cp) {
+    return {
+      sta: cp.sta,
+      staStart: cp.staStart,
+      staEnd: cp.staEnd,
+      rangeStart: cp.rangeStart,
+      rangeEnd: cp.rangeEnd,
+      elevStart: cp.elevStart,
+      i1: cp.i1,
+      R: cp.R,
+      type: cp.type,
+      E: cp.E,
+      elevVP: cp.elevVP
+    };
+  });
+
+  lastData = {
+    mode: 'multi',
+    rows: results,
+    vps: vpsCopy.map(function(v, i) {
+      return { sta: v.sta, elev: v.elev, r: v.r, i1: slopes[i].i1, i2: slopes[i].i2 };
+    }),
+    curveSegs: curveSegsForQuery,
+    step: step
+  };
+
+  renderMultiElements();
+  renderTable();
+  drawCurve();
+  saveState();
+}
+
+// ========== 任意桩号高程查询（修复版） ==========
+function elevAtStaSingle(sta) {
+  var d = lastData;
+  if (!d || d.mode !== 'single') return null;
+  if (sta >= d.staStart && sta <= d.staEnd) {
+    var x = sta - d.staStart;
+    var tang = d.elevStart + d.i1 / 100 * x;
+    var y = x * x / (2 * d.R);
+    return { design: d.type === 'convex' ? tang - y : tang + y, inCurve: true, tang: tang, y: y, type: d.type };
+  }
+  if (sta < d.staStart) {
+    return { design: d.elevStart + d.i1 / 100 * (sta - d.staStart), inCurve: false, slope: d.i1, outside: true, part: '前坡切线延伸' };
+  }
+  var elevEnd = d.elevStart + d.i1 / 100 * d.L;
+  return { design: elevEnd + d.i2 / 100 * (sta - d.staEnd), inCurve: false, slope: d.i2, outside: true, part: '后坡切线延伸' };
+}
+
+function queryElevSingle() {
+  var d = lastData;
+  if (!d || d.mode !== 'single') { alert('请先点击"计算竖曲线"'); return; }
+  var sta = parseSta(document.getElementById('queryStaSingle').value);
+  if (isNaN(sta)) { alert('请输入有效桩号，如 K1+195'); return; }
+  var r = elevAtStaSingle(sta);
+  if (!r) { document.getElementById('queryResultSingle').innerHTML = '<div class="hint" style="padding:8px">未找到计算结果</div>'; return; }
+  var html = '<div class="section-title">查询结果</div>';
+  html += resultRow('桩号', formatSta(sta), 'accent');
+  html += resultRow('设计高程', r.design.toFixed(3) + ' m', 'accent');
+  if (r.inCurve) {
+    html += resultRow('所在位置', '竖曲线段（' + (r.type === 'convex' ? '凸形' : '凹形') + '）');
+    html += resultRow('切线高程', r.tang.toFixed(3) + ' m');
+    html += resultRow('竖距 y', r.y.toFixed(3) + ' m');
+  } else {
+    html += resultRow('所在位置', r.part + '（竖曲线外）');
+    html += resultRow('坡度', (r.slope >= 0 ? '+' : '') + r.slope.toFixed(2) + '%');
+  }
+  document.getElementById('queryResultSingle').innerHTML = html;
+}
+
+function elevAtSta(sta) {
+  var d = lastData;
+  if (!d || d.mode !== 'multi' || !d.vps) return null;
+  var vps2 = d.vps;
+  // 1. 竖曲线段内
+  if (d.curveSegs) {
+    for (var i = 0; i < d.curveSegs.length; i++) {
+      var cs = d.curveSegs[i];
+      if (sta >= cs.rangeStart && sta <= cs.rangeEnd) {
+        var x = sta - cs.staStart;
+        var tang = cs.elevStart + cs.i1 / 100 * x;
+        var y = x * x / (2 * cs.R);
+        return {
+          design: cs.type === 'convex' ? tang - y : tang + y,
+          inCurve: true, tang: tang, y: y, type: cs.type, vpSta: cs.sta,
+          isVPPoint: Math.abs(sta - cs.sta) < d.step * 0.001
+        };
+      }
+    }
+  }
+  // 2. 直坡段内
+  for (var j = 0; j < vps2.length - 1; j++) {
+    if (sta >= vps2[j].sta && sta <= vps2[j+1].sta) {
+      var frac = (sta - vps2[j].sta) / (vps2[j+1].sta - vps2[j].sta);
+      return {
+        design: vps2[j].elev + (vps2[j+1].elev - vps2[j].elev) * frac,
+        inCurve: false, slope: vps2[j].i2
+      };
+    }
+  }
+  // 3. 范围外
+  if (sta < vps2[0].sta) {
+    return { design: vps2[0].elev - vps2[0].i2 / 100 * (vps2[0].sta - sta), inCurve: false, slope: vps2[0].i2, outside: true };
+  }
+  var lv = vps2[vps2.length - 1];
+  return { design: lv.elev + lv.i1 / 100 * (sta - lv.sta), inCurve: false, slope: lv.i1, outside: true };
+}
+
+function queryElev() {
+  var d = lastData;
+  if (!d || d.mode !== 'multi') { alert('请先点击"计算全线纵断面"'); return; }
+  var sta = parseSta(document.getElementById('querySta').value);
+  if (isNaN(sta)) { alert('请输入有效桩号，如 K1+245'); return; }
+  var r = elevAtSta(sta);
+  if (!r) { document.getElementById('queryResult').innerHTML = '<div class="hint" style="padding:8px">未找到计算结果</div>'; return; }
+  var html = '<div class="section-title">查询结果</div>';
+  html += resultRow('桩号', formatSta(sta), 'accent');
+  html += resultRow('设计高程', r.design.toFixed(3) + ' m', 'accent');
+  if (r.inCurve) {
+    var vpLabel = r.vpSta ? formatSta(r.vpSta) + ' 变坡点' : '竖曲线段';
+    html += resultRow('所在位置', vpLabel + '（' + (r.type === 'convex' ? '凸形' : '凹形') + '）');
+    html += resultRow('切线高程', r.tang.toFixed(3) + ' m');
+    html += resultRow('竖距 y', r.y.toFixed(3) + ' m');
+    if (r.isVPPoint) {
+      html += resultRow('⚠️ 注意', '此为变坡点，高程已按竖曲线外距修正', 'accent');
+    }
+  } else {
+    html += resultRow('所在位置', r.outside ? '计算范围外（按首末坡延伸）' : '直坡段');
+    html += resultRow('坡度', (r.slope >= 0 ? '+' : '') + r.slope.toFixed(2) + '%');
+  }
+  document.getElementById('queryResult').innerHTML = html;
+}
+
+// ========== 结果渲染 ==========
+function renderElements() {
+  var d = lastData;
+  var html = '';
+  html += '<div class="section-title">曲线要素</div>';
+  html += resultRow('坡度差 ω', d.omega.toFixed(2) + '%');
+  html += resultRow('竖曲线类型', d.type === 'convex' ? '凸形竖曲线' : '凹形竖曲线', 'accent');
+  html += resultRow('曲线长 L', d.L.toFixed(3) + ' m');
+  html += resultRow('切线长 T', d.T.toFixed(3) + ' m');
+  html += resultRow('外距 E', d.E.toFixed(3) + ' m');
+  html += resultRow('起点桩号', formatSta(d.staStart));
+  html += resultRow('终点桩号', formatSta(d.staEnd));
+  html += resultRow('起点高程', d.elevStart.toFixed(3) + ' m');
+  html += '<div class="type-badge ' + (d.type === 'convex' ? 'type-convex' : 'type-concave') + '">' +
+    (d.type === 'convex' ? '⛰️ 凸形：设计高程 = 切线高程 − 竖距' : '🕳️ 凹形：设计高程 = 切线高程 + 竖距') + '</div>';
+  document.getElementById('elemResult').innerHTML = html;
+}
+
+function renderMultiElements() {
+  var d = lastData;
+  var vpCount = d.rows.filter(function(r) { return r.isVP; }).length;
+  var html = '';
+  html += '<div class="section-title">全线结果</div>';
+  html += resultRow('计算范围', formatSta(d.rows[0].sta) + ' → ' + formatSta(d.rows[d.rows.length - 1].sta));
+  html += resultRow('逐桩点数', d.rows.length + ' 个');
+  html += resultRow('变坡点数', vpCount + ' 个');
+  var maxD = -Infinity, minD = Infinity;
+  d.rows.forEach(function(r) { if (r.design > maxD) maxD = r.design; if (r.design < minD) minD = r.design; });
+  html += resultRow('设计高程范围', minD.toFixed(3) + ' ~ ' + maxD.toFixed(3) + ' m', 'accent');
+  document.getElementById('multiResult').innerHTML = html;
+}
+
+function resultRow(label, value, cls) {
+  return '<div class="result-item"><span class="label">' + label + '</span>' +
+    '<span class="value ' + (cls || '') + '">' + value + '</span></div>';
+}
+
+function renderTable() {
+  var d = lastData;
+  var hasXY = d.mode === 'single';
+  var html = '<div class="result-table-wrap"><table><thead><tr>' +
+    '<th>桩号</th>' + (hasXY ? '<th>x (m)</th><th>切线高程 (m)</th><th>竖距 y (m)</th>' : '') +
+    '<th>设计高程 (m)</th>' +
+    '</tr></thead><tbody>';
+  d.rows.forEach(function(r) {
+    var isVP = r.isBP || r.isVP;
+    html += '<tr' + (isVP ? ' class="highlight"' : '') + '>' +
+      '<td>' + formatSta(r.sta) + (isVP ? ' ★' : '') + '</td>' +
+      (hasXY ? '<td>' + (r.x !== undefined ? r.x.toFixed(2) : '-') + '</td><td>' + (r.tang !== undefined ? r.tang.toFixed(3) : '-') + '</td><td>' + (r.y !== undefined ? r.y.toFixed(3) : '-') + '</td>' : '') +
+      '<td>' + r.design.toFixed(3) + '</td>' +
+      '</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="btn-group-row" style="margin-top:10px">' +
+    '<button class="btn btn-example" onclick="exportCSV()">📥 导出CSV</button></div>';
+  document.getElementById('tableWrap').innerHTML = html;
+}
+
+function exportCSV() {
+  var d = lastData;
+  if (!d) return;
+  var hasXY = d.mode === 'single';
+  var csv = '桩号' + (hasXY ? ',x(m),切线高程(m),竖距y(m)' : '') + ',设计高程(m)\n';
+  d.rows.forEach(function(r) {
+    csv += formatSta(r.sta) + (hasXY ? ',' + (r.x !== undefined ? r.x.toFixed(2) : '') + ',' + (r.tang !== undefined ? r.tang.toFixed(3) : '') + ',' + (r.y !== undefined ? r.y.toFixed(3) : '') : '') + ',' + r.design.toFixed(3) + '\n';
+  });
+  var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  var tag = d.mode === 'single' ? formatSta(d.staP).replace(/[+]/g, '_') : '全线';
+  a.download = '竖曲线_' + tag + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+// ========== 绘图 ==========
+function drawCurve() {
+  var d = lastData;
+  var canvas = document.getElementById('curveCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width = canvas.offsetWidth || 800;
+  var H = canvas.height = 340;
+  ctx.clearRect(0, 0, W, H);
+
+  var rows = d.rows;
+  if (!rows || rows.length === 0) return;
+
+  var minSta = rows[0].sta, maxSta = rows[rows.length - 1].sta;
+  // 多点模式：纳入切线延伸端点，避免切线被裁
+  if (d.mode === 'multi' && d.vps) {
+    d.vps.forEach(function(v) {
+      if (v.r > 0 && v.i1 !== undefined && v.i2 !== undefined) {
+        var omega = Math.abs(v.i1 - v.i2);
+        if (omega > 0.0001) {
+          var Tv = v.r * omega / 200;
+          var extT = Math.max(8, Tv * 0.6);
+          if (v.sta - Tv - extT < minSta) minSta = v.sta - Tv - extT;
+          if (v.sta + Tv + extT > maxSta) maxSta = v.sta + Tv + extT;
+        }
+      }
+    });
+  }
+  var staSpan = maxSta - minSta;
+  if (staSpan < 1) { minSta -= 50; maxSta += 50; }
+  else { minSta -= staSpan * 0.05; maxSta += staSpan * 0.05; }
+
+  var minElev = Infinity, maxElev = -Infinity;
+  rows.forEach(function(r) {
+    if (r.design < minElev) minElev = r.design;
+    if (r.design > maxElev) maxElev = r.design;
+  });
+  // 多点模式：切线端点高程纳入范围
+  if (d.mode === 'multi' && d.vps) {
+    d.vps.forEach(function(v) {
+      if (v.r > 0 && v.i1 !== undefined && v.i2 !== undefined) {
+        var omega = Math.abs(v.i1 - v.i2);
+        if (omega > 0.0001) {
+          var Tv = v.r * omega / 200;
+          var extT = Math.max(8, Tv * 0.6);
+          var leftE = v.elev - v.i1 / 100 * (Tv + extT);
+          var rightE = v.elev + v.i2 / 100 * (Tv + extT);
+          if (leftE < minElev) minElev = leftE;
+          if (rightE < minElev) minElev = rightE;
+          if (leftE > maxElev) maxElev = leftE;
+          if (rightE > maxElev) maxElev = rightE;
+        }
+      }
+    });
+  }
+  var elevSpan = maxElev - minElev;
+  if (elevSpan < 0.5) { minElev -= 0.5; maxElev += 0.5; elevSpan = maxElev - minElev; }
+  minElev -= elevSpan * 0.15;
+  maxElev += elevSpan * 0.15;
+
+  var padL = 60, padR = 30, padT = 30, padB = 40;
+  function px(s) { return padL + (s - minSta) / (maxSta - minSta) * (W - padL - padR); }
+  function py(e) { return H - padB - (e - minElev) / (maxElev - minElev) * (H - padT - padB); }
+
+  // 网格
+  ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
+  for (var i = 0; i < W; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke(); }
+  for (var j = 0; j < H; j += 40) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke(); }
+
+  // 桩号刻度
+  var pxPerMeter = (W - padL - padR) / (maxSta - minSta);
+  var cand = [5, 10, 20, 50, 100, 200, 500, 1000];
+  var interval = 100;
+  for (var c = 0; c < cand.length; c++) {
+    if (cand[c] * pxPerMeter >= 55) { interval = cand[c]; break; }
+  }
+  ctx.textAlign = 'center';
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+  var sTick = Math.ceil(minSta / interval) * interval;
+  for (var s = sTick; s <= maxSta; s += interval) {
+    var sx = px(s);
+    ctx.beginPath(); ctx.moveTo(sx, H - padB); ctx.lineTo(sx, H - padB + 4); ctx.stroke();
+    ctx.fillStyle = '#666'; ctx.font = '10px sans-serif';
+    ctx.fillText(formatSta(s), sx, H - padB + 13);
+  }
+  ctx.textAlign = 'start';
+
+  // Y 轴高程刻度（自动选间隔）
+  var pxPerElev = (H - padT - padB) / (maxElev - minElev);
+  var elevCand = [0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50];
+  var eInterval = 1;
+  for (var c2 = 0; c2 < elevCand.length; c2++) {
+    if (elevCand[c2] * pxPerElev >= 30) { eInterval = elevCand[c2]; break; }
+  }
+  ctx.textAlign = 'right';
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+  var eTick = Math.ceil(minElev / eInterval) * eInterval;
+  for (var e = eTick; e <= maxElev; e += eInterval) {
+    var ey = py(e);
+    ctx.beginPath(); ctx.moveTo(padL - 4, ey); ctx.lineTo(padL, ey); ctx.stroke();
+    ctx.fillStyle = '#666'; ctx.font = '10px sans-serif';
+    ctx.fillText(e.toFixed(2), padL - 6, ey + 3);
+  }
+  ctx.textAlign = 'start';
+
+  if (d.mode === 'single') {
+    // 前坡切线
+    ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    var tStart = d.staStart - d.T * 0.4;
+    ctx.moveTo(px(tStart), py(d.elevStart + d.i1 / 100 * (tStart - d.staStart)));
+    ctx.lineTo(px(d.staP), py(d.elevP));
+    ctx.stroke();
+    ctx.strokeStyle = '#e65100';
+    ctx.beginPath();
+    var tEnd = d.staEnd + d.T * 0.4;
+    ctx.moveTo(px(d.staP), py(d.elevP));
+    ctx.lineTo(px(tEnd), py(d.elevP + d.i2 / 100 * (tEnd - d.staP)));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    var steps = 80;
+    for (var k = 0; k <= steps; k++) {
+      var s = d.staStart + (d.staEnd - d.staStart) * k / steps;
+      var x = s - d.staStart;
+      var tang = d.elevStart + d.i1 / 100 * x;
+      var y = x * x / (2 * d.R);
+      var elev = d.type === 'convex' ? tang - y : tang + y;
+      if (k === 0) ctx.moveTo(px(s), py(elev));
+      else ctx.lineTo(px(s), py(elev));
+    }
+    ctx.stroke();
+
+    // 变坡点标记：画在切线交点位置（高程 = 输入的变坡点高程，与输入一致）
+    ctx.fillStyle = '#999';
+    ctx.beginPath(); ctx.arc(px(d.staP), py(d.elevP), 6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#333'; ctx.font = '11px sans-serif';
+    // 标注文字：靠近右边界时右对齐（往左画），否则左对齐（往右画），保证 H= 标高完整可见
+    var bpLabel = '变坡点 ' + formatSta(d.staP) + '  H=' + d.elevP.toFixed(3) + 'm';
+    if (px(d.staP) > W - 120) {
+      ctx.textAlign = 'end';
+      ctx.fillText(bpLabel, px(d.staP) - 10, py(d.elevP) - 10);
+    } else {
+      ctx.textAlign = 'start';
+      ctx.fillText(bpLabel, px(d.staP) + 10, py(d.elevP) - 10);
+    }
+    ctx.textAlign = 'start';
+
+    ctx.fillStyle = '#1565c0'; ctx.font = '10px sans-serif';
+    ctx.fillText(formatSta(d.staStart), px(d.staStart) - 20, py(d.elevStart) - 10);
+    var elevEnd = d.elevStart + d.i1 / 100 * d.L;
+    ctx.fillText(formatSta(d.staEnd), px(d.staEnd) - 20, py(elevEnd) - 10);
+    document.getElementById('chartTitle').textContent = '— 单点竖曲线 ' + formatSta(d.staP);
+  } else {
+    // 多点模式
+    ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    rows.forEach(function(r, idx) {
+      if (idx === 0) ctx.moveTo(px(r.sta), py(r.design));
+      else ctx.lineTo(px(r.sta), py(r.design));
+    });
+    ctx.stroke();
+
+    // 每个变坡点的前坡/后坡切线（虚线，交于变坡点）
+    ctx.setLineDash([6, 4]);
+    d.vps.forEach(function(v) {
+      if (v.r > 0 && v.i1 !== undefined && v.i2 !== undefined) {
+        var omega = Math.abs(v.i1 - v.i2);
+        if (omega > 0.0001) {
+          var Tv = v.r * omega / 200;
+          var extT = Math.max(8, Tv * 0.6);
+          var leftX = v.sta - Tv - extT;
+          var leftE = v.elev - v.i1 / 100 * (Tv + extT);
+          var rightX = v.sta + Tv + extT;
+          var rightE = v.elev + v.i2 / 100 * (Tv + extT);
+          ctx.strokeStyle = '#4c956c'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(px(leftX), py(leftE)); ctx.lineTo(px(v.sta), py(v.elev)); ctx.stroke();
+          ctx.strokeStyle = '#e65100'; ctx.lineWidth = 1.5;
+          ctx.beginPath(); ctx.moveTo(px(v.sta), py(v.elev)); ctx.lineTo(px(rightX), py(rightE)); ctx.stroke();
+        }
+      }
+    });
+    ctx.setLineDash([]);
+
+    // 变坡点标记：画在切线交点位置（高程 = 输入的变坡点高程）
+    d.vps.forEach(function(v) {
+      ctx.fillStyle = '#999';
+      ctx.beginPath(); ctx.arc(px(v.sta), py(v.elev), 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#333'; ctx.font = '11px sans-serif';
+      var vpLabel = '变坡点 ' + formatSta(v.sta) + '  H=' + v.elev.toFixed(3) + 'm';
+      if (px(v.sta) > W - 120) {
+        ctx.textAlign = 'end';
+        ctx.fillText(vpLabel, px(v.sta) - 8, py(v.elev) - 8);
+      } else {
+        ctx.textAlign = 'start';
+        ctx.fillText(vpLabel, px(v.sta) + 8, py(v.elev) - 8);
+      }
+      ctx.textAlign = 'start';
+    });
+    document.getElementById('chartTitle').textContent = '— 多变坡点全线纵断面';
+  }
+
+  ctx.fillStyle = '#999'; ctx.font = '10px sans-serif';
+  ctx.fillText('高程 (m)', 4, padT + 8);
+}
+
+// ========== 初始化 ==========
+renderVpTable();
+if (!restoreState()) {
+  loadExample();
+  saveState();
+}
+</script>
+
+<div style="text-align:center;padding:12px 0 2rem;border-top:1px solid #dce3e0;margin-top:1rem;color:#666;font-size:0.85rem;position:relative;z-index:1">
+  <a href="mailto:lvmyth@qq.com" style="color:#666;text-decoration:none">By Lvmyth AI</a>
+</div>
+
+<script src="../navbar.js"></script>
+<script src="../particles.js"></script>
+</body>
+</html>
