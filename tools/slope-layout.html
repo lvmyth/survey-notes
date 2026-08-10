@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>边坡放样计算器</title>
+<meta name="description" content="通用边坡放样在线计算器（道路路堤/路堑/基坑/堤防通用）——坡脚坡顶位置计算、坡比换算、高程反算、边坡长计算，Canvas断面可视化，现场手机可用">
+<meta name="keywords" content="边坡放样,坡脚,坡顶,坡比,路堤,路堑,基坑,堤防,填挖方,高程放样">
+<meta name="author" content="郑杰明 (Lvmyth AI)">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://lvmyth.github.io/survey-notes/tools/slope-layout.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="边坡放样计算器">
+<meta property="og:description" content="通用边坡放样在线计算器——坡脚坡顶位置计算、坡比换算、高程反算、边坡长计算，现场手机可用">
+<meta property="og:url" content="https://lvmyth.github.io/survey-notes/tools/slope-layout.html">
+<meta property="og:image" content="https://lvmyth.github.io/survey-notes/images/logo.jpg">
+<meta property="og:site_name" content="测量工程笔记">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="边坡放样计算器">
+<meta name="twitter:description" content="通用边坡放样在线计算器——坡脚坡顶位置计算、坡比换算、高程反算、边坡长计算，现场手机可用">
+<meta name="twitter:image" content="https://lvmyth.github.io/survey-notes/images/logo.jpg">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"边坡放样计算器","url":"https://lvmyth.github.io/survey-notes/tools/slope-layout.html","image":"https://lvmyth.github.io/survey-notes/images/logo.jpg","description":"通用边坡放样在线计算器——坡脚坡顶位置计算、坡比换算、高程反算、边坡长计算，道路路堤/路堑/基坑/堤防通用，现场手机可用","applicationCategory":"UtilityApplication","operatingSystem":"Web","publisher":{"@type":"Organization","name":"测量工程笔记","url":"https://lvmyth.github.io/survey-notes"}}
+</script>
+<style>
+:root {
+  --primary: #2c6e49; --primary-dark: #1b4d2e; --primary-light: #4c956c;
+  --accent: #e65100; --bg: #f4f7f5; --bg-card: #ffffff; --text: #333333;
+  --text-light: #666666; --border: #dce3e0; --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --bg-nav: #1a2f24; --text-on-dark: #ecf0f1; --accent-light: #6fb98a;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { padding: 64px 20px 20px; font-family: 'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+.container { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+.panel { display: flex; gap: 16px; align-items: flex-start; }
+.panel-left { flex: 0 0 400px; }
+.panel-right { flex: 1; min-width: 0; }
+.card { background: var(--bg-card); border-radius: 8px; padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+.card h3 { font-size: 15px; color: var(--primary-dark); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--bg); }
+.field-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.field-row label { font-size: 13px; color: var(--text); min-width: 110px; flex-shrink: 0; }
+.field-row input, .field-row select { padding: 7px 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; font-family: Consolas,monospace; outline: none; background: white; min-width: 60px; }
+.field-row input { width: 150px; flex: none; }
+.field-row select { flex: 1; }
+.field-row input:focus, .field-row select:focus { border-color: var(--primary); }
+.hint { font-size: 11px; color: var(--text-light); }
+.section-title { font-size: 13px; font-weight: 600; color: var(--primary-dark); margin: 14px 0 8px; padding-left: 8px; border-left: 3px solid var(--primary); }
+.btn { padding: 9px 16px; border: none; border-radius: 5px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+.btn-primary { background: var(--primary); color: white; width: 100%; margin-bottom: 8px; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn-group-row { display: flex; gap: 8px; }
+.btn-example { background: #e9ecef; color: var(--text); font-size: 12px; flex: 1; }
+.result-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px dashed var(--border); font-size: 14px; }
+.result-item:last-child { border-bottom: none; }
+.result-item .label { color: var(--text-light); }
+.result-item .value { font-family: Consolas,monospace; font-weight: 700; color: var(--primary-dark); font-size: 16px; }
+.result-item .value.accent { color: var(--accent); }
+.result-item .value.blue { color: #1565c0; }
+.canvas-container { background: white; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+#slopeCanvas { display: block; width: 100%; height: 320px; }
+.legend { display: flex; gap: 16px; font-size: 12px; color: var(--text-light); padding: 8px 4px; flex-wrap: wrap; }
+.legend span i { display: inline-block; width: 14px; height: 3px; margin-right: 4px; vertical-align: middle; border-radius: 2px; }
+@media (max-width: 900px) { .panel { flex-direction: column; } .panel-left { flex: 1; width: 100%; } }
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:#f5f7f0}
+</style>
+<link rel="stylesheet" href="tools-common.css">
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<div class="container">
+  <div class="panel">
+    <!-- ========== 左侧输入面板 ========== -->
+    <div class="panel-left">
+      <div class="card">
+        <h3>📐 边坡放样计算</h3>
+
+        <div class="section-title">场景选择</div>
+        <div class="field-row">
+          <label>工程类型</label>
+          <select id="scene" onchange="onSceneChange()">
+            <option value="embankment">路堤（填方）</option>
+            <option value="cutting">路堑（挖方）</option>
+            <option value="foundation">基坑（放坡开挖）</option>
+            <option value="dike">堤防/坝坡</option>
+          </select>
+        </div>
+        <div class="hint" id="sceneHint">填方路基：从坡脚填筑到设计坡顶</div>
+        <div class="field-row">
+          <label>放坡方式</label>
+          <select id="side" onchange="onSceneChange()">
+            <option value="both">双面放坡（对称）</option>
+            <option value="left">单面放坡（左侧）</option>
+            <option value="right">单面放坡（右侧）</option>
+          </select>
+        </div>
+        <div class="hint">单面放坡：仅一侧放坡，另一侧为挡墙/山体/原地面</div>
+
+        <div class="section-title">边坡参数</div>
+        <div class="field-row">
+          <label>坡比 1:</label>
+          <input id="slopeRatio" type="number" value="1.5" step="0.1" min="0.1">
+          <span class="hint">水平:垂直（如1:1.5）</span>
+        </div>
+
+        <div class="section-title">高程数据（m）</div>
+        <div class="field-row"><label>坡顶高程</label><input id="elevTop" type="number" value="105.000" step="0.001"></div>
+        <div class="field-row"><label>坡脚高程</label><input id="elevBottom" type="number" value="100.000" step="0.001"></div>
+        <div class="hint">高差 = 坡顶 − 坡脚，自动计算</div>
+
+        <div class="section-title">路堤/路堑附加参数</div>
+        <div class="field-row"><label id="roadWidthLabel">路宽（m）</label><input id="roadWidth" type="number" value="12.0" step="0.1"><span class="hint" id="roadWidthHint">仅路堤/路堑</span></div>
+
+        <button class="btn btn-primary" onclick="calcSlope()">计算放样数据</button>
+        <div class="btn-group-row">
+          <button class="btn btn-example" onclick="loadExample()">载入示例</button>
+          <button class="btn btn-example" onclick="invertCalc()">↔️ 高程反算</button>
+        </div>
+
+        <div class="section-title">高程反算（现场常用）</div>
+        <div class="field-row"><label>水平距离 (m)</label><input id="invDist" type="number" placeholder="距坡顶水平距离" step="0.01"></div>
+        <div class="field-row"><label>该处高程 (m)</label><input id="invElev" type="number" placeholder="待求高程" step="0.001"></div>
+        <div class="hint">输入水平距离，反算该处坡面高程；或输入高程反算水平距离</div>
+
+        <div id="invResult">
+          <div class="hint" style="padding:8px">点击"高程反算"查看结果。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== 右侧结果面板 ========== -->
+    <div class="panel-right">
+      <div class="card">
+        <h3>🗺️ 边坡断面图</h3>
+        <div class="canvas-container"><canvas id="slopeCanvas"></canvas></div>
+        <div class="legend">
+          <span><i style="background:#2c6e49"></i>坡面线</span>
+          <span><i style="background:#1565c0"></i>路宽/平台</span>
+          <span><i style="background:#e65100"></i>坡顶/坡脚点</span>
+          <span><i style="background:#999"></i>地面线</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📊 放样数据结果</h3>
+        <div id="result">
+          <div class="hint" style="padding:12px">输入参数，点击"计算放样数据"查看结果。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ========== 工具函数 ==========
+var lastData = null;
+
+function onSceneChange() {
+  var scene = document.getElementById('scene').value;
+  var hints = {
+    embankment: '填方路基：路面窄在上（坡顶）、原地面宽在下（坡脚），从坡脚填筑到路肩，放坡脚线',
+    cutting: '挖方路基：原地面开口宽在上（坡顶）、路面窄在下（坡脚），从坡顶开挖到路面边缘，放坡顶线',
+    foundation: '基坑放坡开挖：地面开口宽、坑底窄，坡从地面放到坑底，放坑底边线',
+    dike: '堤防/坝坡：按设计坡比放坡脚和坡顶'
+  };
+  document.getElementById('sceneHint').textContent = hints[scene] || '';
+  // 宽度输入框标签随场景变化
+  var wLabels = { embankment: '路宽（m）', cutting: '路宽（m）', foundation: '坑底宽（m）', dike: '堤顶宽（m）' };
+  var wHints = { embankment: '路面宽度', cutting: '路面宽度', foundation: '基坑底部宽度', dike: '堤顶宽度' };
+  var wLabel = document.getElementById('roadWidthLabel');
+  var wHint = document.getElementById('roadWidthHint');
+  if (wLabel) wLabel.textContent = wLabels[scene] || '宽度（m）';
+  if (wHint) wHint.textContent = wHints[scene] || '';
+}
+
+function loadExample() {
+  document.getElementById('scene').value = 'embankment';
+  document.getElementById('side').value = 'both';
+  document.getElementById('slopeRatio').value = '1.5';
+  document.getElementById('elevTop').value = '105.000';
+  document.getElementById('elevBottom').value = '100.000';
+  document.getElementById('roadWidth').value = '12.0';
+  onSceneChange();
+  calcSlope();
+}
+
+function calcSlope() {
+  var slopeRatio = parseFloat(document.getElementById('slopeRatio').value);
+  var elevTop = parseFloat(document.getElementById('elevTop').value);
+  var elevBottom = parseFloat(document.getElementById('elevBottom').value);
+  var roadWidth = parseFloat(document.getElementById('roadWidth').value) || 0;
+  var scene = document.getElementById('scene').value;
+  var side = document.getElementById('side').value;
+
+  if (isNaN(slopeRatio) || slopeRatio <= 0 || isNaN(elevTop) || isNaN(elevBottom)) {
+    alert('请填写有效的坡比和高程');
+    return;
+  }
+
+  var dh = elevTop - elevBottom;        // 高差 = 坡顶 − 坡脚（路堤/路堑通常为正：坡顶高于坡脚）
+  var absDh = Math.abs(dh);
+  var horizontal = absDh * slopeRatio;  // 水平距离
+  var slopeLen = Math.sqrt(horizontal * horizontal + absDh * absDh); // 边坡斜长
+  var slopeAngle = Math.atan(1 / slopeRatio) * 180 / Math.PI; // 坡角
+
+  lastData = {
+    slopeRatio: slopeRatio, elevTop: elevTop, elevBottom: elevBottom,
+    dh: dh, absDh: absDh, horizontal: horizontal, slopeLen: slopeLen,
+    slopeAngle: slopeAngle, roadWidth: roadWidth, scene: scene, side: side
+  };
+
+  renderResult();
+  drawSlope();
+}
+
+function renderResult() {
+  var d = lastData;
+  var html = '';
+  var sceneNames = { embankment: '路堤（填方）', cutting: '路堑（挖方）', foundation: '基坑', dike: '堤防/坝坡' };
+  var sides = (d.side === 'both') ? 2 : 1;
+  var sideName = d.side === 'both' ? '双面放坡' : (d.side === 'left' ? '单面放坡（左侧）' : '单面放坡（右侧）');
+
+  html += '<div class="section-title">边坡要素</div>';
+  html += resultRow('工程类型', sceneNames[d.scene]);
+  html += resultRow('坡比', '1:' + d.slopeRatio);
+  html += resultRow('坡顶高程', d.elevTop.toFixed(3) + ' m');
+  html += resultRow('坡脚高程', d.elevBottom.toFixed(3) + ' m');
+  html += resultRow('高差 Δh', (d.dh >= 0 ? '+' : '') + d.dh.toFixed(3) + ' m');
+
+  html += '<div class="section-title">放样数据（核心）</div>';
+  html += resultRow('坡脚-坡顶水平距', d.horizontal.toFixed(2) + ' m', 'accent');
+  html += resultRow('边坡斜长', d.slopeLen.toFixed(2) + ' m', 'blue');
+  html += resultRow('坡角 α', d.slopeAngle.toFixed(2) + '°');
+  html += resultRow('坡度（%）', (d.absDh / (d.horizontal || 1) * 100).toFixed(2) + '%');
+
+  if (d.scene === 'embankment' || d.scene === 'cutting') {
+    html += '<div class="section-title">路堤/路堑</div>';
+    var half = d.roadWidth / 2;
+    html += resultRow('路宽', d.roadWidth.toFixed(1) + ' m');
+    html += resultRow('半幅宽', half.toFixed(2) + ' m');
+    html += resultRow('放坡方式', sideName);
+    if (sides === 1) {
+      // 单面放坡：放坡侧坡脚到对侧路肩的水平距离 = 路宽 + 水平距
+      var oneWidth = d.roadWidth + d.horizontal;
+      html += resultRow('放坡侧水平距', d.horizontal.toFixed(2) + ' m', 'blue');
+      html += resultRow('坡脚至对侧路肩', oneWidth.toFixed(2) + ' m');
+    } else if (d.scene === 'embankment') {
+      var totalWidth = d.roadWidth + 2 * d.horizontal;
+      html += resultRow('坡脚间距（含两坡）', totalWidth.toFixed(2) + ' m', 'blue');
+    } else {
+      var topWidth = d.roadWidth + 2 * d.horizontal;
+      html += resultRow('坡顶间距（含两坡）', topWidth.toFixed(2) + ' m', 'blue');
+    }
+  } else if (d.scene === 'foundation') {
+    html += '<div class="section-title">基坑</div>';
+    html += resultRow('坑底宽', d.roadWidth.toFixed(1) + ' m');
+    html += resultRow('放坡方式', sideName);
+    html += resultRow('地面开口宽', (d.roadWidth + sides * d.horizontal).toFixed(2) + ' m', 'blue');
+  } else {
+    html += '<div class="section-title">堤防/坝坡</div>';
+    html += resultRow('堤顶宽', d.roadWidth.toFixed(1) + ' m');
+    html += resultRow('放坡方式', sideName);
+  }
+
+  document.getElementById('result').innerHTML = html;
+}
+
+function resultRow(label, value, cls) {
+  return '<div class="result-item"><span class="label">' + label + '</span>' +
+    '<span class="value ' + (cls || '') + '">' + value + '</span></div>';
+}
+
+// ========== 高程反算 ==========
+function invertCalc() {
+  if (!lastData) { alert('请先计算放样数据'); return; }
+  var d = lastData;
+  var invDist = parseFloat(document.getElementById('invDist').value);
+  var invElev = parseFloat(document.getElementById('invElev').value);
+
+  var html = '<div class="section-title">反算结果</div>';
+
+  if (!isNaN(invDist) && invDist >= 0 && invDist <= d.horizontal) {
+    // 由水平距离反算高程（沿坡面）
+    var drop = invDist / d.slopeRatio;
+    var elev = d.dh >= 0 ? d.elevTop - drop : d.elevTop + drop;
+    // 坡顶高于坡脚（常规）：沿坡面向下降；坡顶低于坡脚：沿坡面向上升
+    html += resultRow('距坡顶 ' + invDist.toFixed(2) + 'm 处高程', elev.toFixed(3) + ' m', 'accent');
+  }
+  if (!isNaN(invElev)) {
+    // 由高程反算水平距离
+    var lowElev = Math.min(d.elevTop, d.elevBottom);
+    var highElev = Math.max(d.elevTop, d.elevBottom);
+    if (invElev <= highElev && invElev >= lowElev) {
+      var drop2 = Math.abs(d.elevTop - invElev);
+      var dist2 = drop2 * d.slopeRatio;
+      html += resultRow('高程 ' + invElev.toFixed(3) + 'm 距坡顶', dist2.toFixed(2) + ' m', 'blue');
+    } else {
+      html += '<div class="hint" style="padding:8px">⚠️ 高程超出坡顶~坡脚范围</div>';
+    }
+  }
+  if (isNaN(invDist) && isNaN(invElev)) {
+    html = '<div class="hint" style="padding:8px">请输入水平距离或高程其中一项</div>';
+  }
+  document.getElementById('invResult').innerHTML = html;
+}
+
+// ========== 绘图 ==========
+function drawSlope() {
+  var d = lastData;
+  var canvas = document.getElementById('slopeCanvas');
+  var ctx = canvas.getContext('2d');
+  var W = canvas.width = canvas.offsetWidth || 800;
+  var H = canvas.height = 320;
+  ctx.clearRect(0, 0, W, H);
+
+  // 网格
+  ctx.strokeStyle = '#f0f0f0'; ctx.lineWidth = 1;
+  for (var i = 0; i < W; i += 40) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke(); }
+  for (var j = 0; j < H; j += 40) { ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(W, j); ctx.stroke(); }
+
+  var padL = 60, padR = 40, padT = 30, padB = 40;
+  // 绘图范围：水平方向 = 路宽 + 放坡侧数*水平距 + 边距
+  var sides = (d.side === 'both') ? 2 : 1;
+  var totalH = d.roadWidth + sides * d.horizontal + 20;
+  var totalV = d.absDh + 5;
+  var scaleX = (W - padL - padR) / totalH;
+  var scaleY = (H - padT - padB) / totalV;
+  var scale = Math.min(scaleX, scaleY);
+
+  function px(x) { return padL + x * scale; }
+  function py(e) { return H - padB - (e - d.elevBottom + 2) * scale; }
+
+  var half = d.roadWidth / 2;
+  var isFill = d.dh >= 0; // 填方：坡顶在上，坡脚在下
+
+  // 地面线（坡脚高程水平线）
+  ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+  ctx.beginPath();
+  ctx.moveTo(padL, py(d.elevBottom));
+  ctx.lineTo(W - padR, py(d.elevBottom));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#999'; ctx.font = '11px sans-serif';
+  ctx.fillText('坡脚高程 ' + d.elevBottom.toFixed(2) + 'm', padL + 4, py(d.elevBottom) + 16);
+
+  if (d.scene === 'embankment') {
+    // 路堤：上窄下宽——路面窄在上（坡顶），原地面宽在下（坡脚）
+    // 坡顶平台（路宽）
+    ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(px((totalH - d.roadWidth) / 2), py(d.elevTop));
+    ctx.lineTo(px((totalH + d.roadWidth) / 2), py(d.elevTop));
+    ctx.stroke();
+
+    ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    // 左侧坡
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.beginPath();
+      ctx.moveTo(px((totalH - d.roadWidth) / 2), py(d.elevTop));
+      ctx.lineTo(px((totalH - d.roadWidth) / 2 - d.horizontal), py(d.elevBottom));
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#999'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px((totalH - d.roadWidth) / 2), py(d.elevTop));
+      ctx.lineTo(px((totalH - d.roadWidth) / 2), py(d.elevBottom));
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    }
+    // 右侧坡
+    if (d.side === 'both' || d.side === 'right') {
+      ctx.beginPath();
+      ctx.moveTo(px((totalH + d.roadWidth) / 2), py(d.elevTop));
+      ctx.lineTo(px((totalH + d.roadWidth) / 2 + d.horizontal), py(d.elevBottom));
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#999'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px((totalH + d.roadWidth) / 2), py(d.elevTop));
+      ctx.lineTo(px((totalH + d.roadWidth) / 2), py(d.elevBottom));
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    }
+
+    // 标注
+    ctx.fillStyle = '#2c6e49'; ctx.font = '12px sans-serif';
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.fillText('1:' + d.slopeRatio, px((totalH - d.roadWidth) / 2 - d.horizontal / 2) - 15, py((d.elevTop + d.elevBottom) / 2));
+    }
+    if (d.side === 'both' || d.side === 'right') {
+      ctx.fillText('1:' + d.slopeRatio, px((totalH + d.roadWidth) / 2 + d.horizontal / 2) - 5, py((d.elevTop + d.elevBottom) / 2));
+    }
+
+    // 坡顶/坡脚标注
+    ctx.fillStyle = '#e65100';
+    ctx.fillText('坡顶', px((totalH - d.roadWidth) / 2) - 20, py(d.elevTop) - 8);
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.fillText('坡脚', px((totalH - d.roadWidth) / 2 - d.horizontal) - 20, py(d.elevBottom) + 16);
+    }
+    if (d.side === 'right') {
+      ctx.fillText('挡墙/山体', px((totalH - d.roadWidth) / 2) + 6, py(d.elevBottom) + 16);
+    }
+
+    // 高程标注
+    ctx.fillStyle = '#1565c0'; ctx.font = '11px sans-serif';
+    ctx.fillText('H=' + d.elevTop.toFixed(2), px((totalH + d.roadWidth) / 2) + 8, py(d.elevTop) - 8);
+
+    // 水平距离标注
+    ctx.fillStyle = '#333';
+    if (d.side === 'both') {
+      ctx.fillText('← ' + d.horizontal.toFixed(1) + 'm →', px((totalH - d.roadWidth) / 2 - d.horizontal / 2) - 25, py(d.elevBottom) + 30);
+      ctx.fillText('← ' + d.horizontal.toFixed(1) + 'm →', px((totalH + d.roadWidth) / 2 + d.horizontal / 2) - 5, py(d.elevBottom) + 30);
+    } else if (d.side === 'left') {
+      ctx.fillText('← ' + d.horizontal.toFixed(1) + 'm', px((totalH - d.roadWidth) / 2 - d.horizontal / 2) - 25, py(d.elevBottom) + 30);
+    } else {
+      ctx.fillText(d.horizontal.toFixed(1) + 'm →', px((totalH + d.roadWidth) / 2 + d.horizontal / 2) - 5, py(d.elevBottom) + 30);
+    }
+  } else if (d.scene === 'cutting') {
+    // 路堑：上宽下窄——原地面开口宽在上（坡顶），路面窄在下（坡脚），坡从原地面挖到路面边缘
+    var halfW = d.roadWidth / 2;
+    var cx2;
+    if (d.side === 'both') cx2 = totalH / 2;
+    else if (d.side === 'left') cx2 = totalH - 10 - halfW;   // 路面靠右，左侧留放坡空间
+    else cx2 = 10 + halfW;                                   // 路面靠左，右侧留放坡空间
+    var rL = cx2 - halfW, rR = cx2 + halfW;
+    var gL2 = rL - (d.side === 'right' ? 0 : d.horizontal);  // 原地面开口左缘
+    var gR2 = rR + (d.side === 'left' ? 0 : d.horizontal);   // 原地面开口右缘
+
+    // 路面线（底部，蓝色实线）
+    ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(px(rL), py(d.elevBottom));
+    ctx.lineTo(px(rR), py(d.elevBottom));
+    ctx.stroke();
+
+    // 原地面线（顶部，灰色虚线）
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(px(gL2), py(d.elevTop));
+    ctx.lineTo(px(gR2), py(d.elevTop));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 左侧坡（从原地面放到路面）
+    ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.beginPath();
+      ctx.moveTo(px(gL2), py(d.elevTop));
+      ctx.lineTo(px(rL), py(d.elevBottom));
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#999'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px(rL), py(d.elevTop));
+      ctx.lineTo(px(rL), py(d.elevBottom));
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    }
+    // 右侧坡
+    if (d.side === 'both' || d.side === 'right') {
+      ctx.beginPath();
+      ctx.moveTo(px(gR2), py(d.elevTop));
+      ctx.lineTo(px(rR), py(d.elevBottom));
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#999'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px(rR), py(d.elevTop));
+      ctx.lineTo(px(rR), py(d.elevBottom));
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    }
+
+    // 标注
+    ctx.fillStyle = '#e65100'; ctx.font = '12px sans-serif';
+    ctx.fillText('路面', px(cx2) - 15, py(d.elevBottom) + 16);
+    ctx.fillText('原地面', px(cx2) - 24, py(d.elevTop) - 8);
+    ctx.fillStyle = '#2c6e49';
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.fillText('挖方边坡', px((gL2 + rL) / 2) - 30, py((d.elevTop + d.elevBottom) / 2));
+    }
+    if (d.side === 'right') {
+      ctx.fillText('挡墙/山体', px(rL) + 6, py((d.elevTop + d.elevBottom) / 2));
+    }
+  } else if (d.scene === 'foundation') {
+    // 基坑：上宽下窄——地面开口宽在上，坑底窄在下，坡从地面（坡顶）放到坑底（坡脚）
+    var halfB = d.roadWidth / 2;   // 坑底半宽
+    var cx;                        // 坑底中心 x
+    if (d.side === 'both') {
+      cx = totalH / 2;
+    } else if (d.side === 'left') {
+      cx = totalH - 10 - halfB;    // 坑底靠右，左侧留放坡空间
+    } else {
+      cx = 10 + halfB;             // 坑底靠左，右侧留放坡空间
+    }
+    var gL = cx - halfB - (d.side === 'right' ? 0 : d.horizontal); // 地面左缘
+    var gR = cx + halfB + (d.side === 'left' ? 0 : d.horizontal);  // 地面右缘
+
+    // 坑底线（底部，蓝色实线）
+    ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(px(cx - halfB), py(d.elevBottom));
+    ctx.lineTo(px(cx + halfB), py(d.elevBottom));
+    ctx.stroke();
+
+    // 地面线（顶部，灰色虚线）
+    ctx.strokeStyle = '#999'; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(px(gL), py(d.elevTop));
+    ctx.lineTo(px(gR), py(d.elevTop));
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 左侧坡（从地面放到坑底）
+    ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.beginPath();
+      ctx.moveTo(px(cx - halfB - d.horizontal), py(d.elevTop));
+      ctx.lineTo(px(cx - halfB), py(d.elevBottom));
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#999'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px(cx - halfB), py(d.elevTop));
+      ctx.lineTo(px(cx - halfB), py(d.elevBottom));
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    }
+    // 右侧坡
+    if (d.side === 'both' || d.side === 'right') {
+      ctx.beginPath();
+      ctx.moveTo(px(cx + halfB + d.horizontal), py(d.elevTop));
+      ctx.lineTo(px(cx + halfB), py(d.elevBottom));
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#999'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px(cx + halfB), py(d.elevTop));
+      ctx.lineTo(px(cx + halfB), py(d.elevBottom));
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    }
+
+    // 标注
+    ctx.fillStyle = '#e65100'; ctx.font = '12px sans-serif';
+    ctx.fillText('地面', px(cx) - 15, py(d.elevTop) - 8);
+    ctx.fillText('坑底', px(cx) - 15, py(d.elevBottom) + 16);
+    ctx.fillStyle = '#2c6e49';
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.fillText('放坡', px(cx - halfB - d.horizontal / 2) - 15, py((d.elevTop + d.elevBottom) / 2));
+    }
+    if (d.side === 'right') {
+      ctx.fillText('既有建筑/挡墙', px(cx - halfB) + 6, py((d.elevTop + d.elevBottom) / 2));
+    }
+  } else {
+    // 堤防：梯形断面（双面）或一侧挡墙单面放坡
+    var bottomW = d.roadWidth + sides * d.horizontal;
+    ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(px((totalH - d.roadWidth) / 2), py(d.elevTop));
+    ctx.lineTo(px((totalH + d.roadWidth) / 2), py(d.elevTop));
+    ctx.stroke();
+
+    ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.beginPath();
+      ctx.moveTo(px((totalH - d.roadWidth) / 2), py(d.elevTop));
+      ctx.lineTo(px((totalH - d.roadWidth) / 2 - d.horizontal), py(d.elevBottom));
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#999'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px((totalH - d.roadWidth) / 2), py(d.elevTop));
+      ctx.lineTo(px((totalH - d.roadWidth) / 2), py(d.elevBottom));
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    }
+    if (d.side === 'both' || d.side === 'right') {
+      ctx.beginPath();
+      ctx.moveTo(px((totalH + d.roadWidth) / 2), py(d.elevTop));
+      ctx.lineTo(px((totalH + d.roadWidth) / 2 + d.horizontal), py(d.elevBottom));
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = '#999'; ctx.setLineDash([4, 3]); ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(px((totalH + d.roadWidth) / 2), py(d.elevTop));
+      ctx.lineTo(px((totalH + d.roadWidth) / 2), py(d.elevBottom));
+      ctx.stroke();
+      ctx.setLineDash([]); ctx.strokeStyle = '#2c6e49'; ctx.lineWidth = 2.5;
+    }
+
+    ctx.fillStyle = '#2c6e49'; ctx.font = '12px sans-serif';
+    if (d.side === 'both' || d.side === 'left') {
+      ctx.fillText('1:' + d.slopeRatio, px((totalH - d.roadWidth) / 2 - d.horizontal / 2) - 15, py((d.elevTop + d.elevBottom) / 2));
+    }
+    if (d.side === 'both' || d.side === 'right') {
+      ctx.fillText('1:' + d.slopeRatio, px((totalH + d.roadWidth) / 2 + d.horizontal / 2) - 5, py((d.elevTop + d.elevBottom) / 2));
+    }
+  }
+}
+
+// ========== 初始化 ==========
+loadExample();
+</script>
+
+<div style="text-align:center;padding:12px 0 2rem;border-top:1px solid #dce3e0;margin-top:1rem;color:#666;font-size:0.85rem;position:relative;z-index:1">
+  <a href="mailto:lvmyth@qq.com" style="color:#666;text-decoration:none">By Lvmyth AI</a>
+</div>
+
+<script src="../navbar.js"></script>
+<script src="../particles.js"></script>
+</body>
+</html>

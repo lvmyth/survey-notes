@@ -6,7 +6,7 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Sun, 09 Aug 2026 03:31:45 GMT</lastBuildDate>
+  <lastBuildDate>Mon, 10 Aug 2026 02:33:34 GMT</lastBuildDate>
 
   <item>
     <title>本地部署RAG测量助手：把规范和博客变成私人AI知识库</title>
@@ -109,6 +109,15 @@
     <pubDate>Tue, 21 Jul 2026 00:00:00 +0800</pubDate>
     <description>AI 看起来离测量很远，但事实上测量是 AI 落地最直接的领域之一。本文从五个层面讲清楚为什么每个测量员都应该开始接触 AI。</description>
     <category>AI前沿</category>
+  </item>
+
+  <item>
+    <title>道路测量技术：从选线到通车的全程测绘</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=road-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=road-survey</guid>
+    <pubDate>Sat, 18 Jul 2026 00:00:00 +0800</pubDate>
+    <description>道路是典型的线状工程，测量形成&apos;控制→中线→纵横断面→曲线测设→施工放样→竣工&apos;完整技术链。本文系统讲解中线测量、圆曲线与缓和曲线测设（含完整算例）、纵横断面测量、路基放样，以及RTK/无人机/三维激光扫描带来的变革。</description>
+    <category>测量实操</category>
   </item>
 
   <item>
