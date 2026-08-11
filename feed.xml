@@ -6,7 +6,17 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Tue, 11 Aug 2026 02:42:25 GMT</lastBuildDate>
+  <lastBuildDate>Tue, 11 Aug 2026 15:13:53 GMT</lastBuildDate>
+
+  <item>
+    <title>让 RAG 测量助手会算数据：Function Calling 工具调用实战</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=rag-tool-calling</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=rag-tool-calling</guid>
+    <pubDate>Fri, 07 Aug 2026 00:00:00 +0800</pubDate>
+    <description>测量员高频使用的其实是计算——坐标反算、导线平差、竖曲线，这些公式固定的运算让大模型直接算必然出错。本文结合本地 RAG 助手（tool_dispatch 关键词快路径 + calculators 算法库），讲解 Function Calling 工具调用：工具注册表 Schema、DeepSeek 完整实现、多参数校验与回显确认、计算+规范问答双引擎路由，配真实案例与防坑清单。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
+  </item>
 
   <item>
     <title>RAG 进阶：从「能问答」到「答得准」</title>

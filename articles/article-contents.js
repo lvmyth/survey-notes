@@ -1273,6 +1273,406 @@ RAG 进阶的核心是一条评估驱动的优化循环：\n\
 // 文章：rag-assistant
 ARTICLE_CONTENTS["rag-assistant"] = "# 本地部署RAG测量助手：把规范和博客变成私人AI知识库\n\n> 你写了几十篇技术博客、收藏了一堆测量规范PDF、积攒了多年经验笔记——但每次遇到问题，还是得翻书、翻文件夹、翻收藏夹。如果这些东西能变成一个\"问什么答什么\"的AI助手呢？本文从零开始，用 Python + FAISS + Ollama 在本地搭一个测量知识库，数据不出门，条文可溯源。\n\n## 引子\n\n技术员问我：\"GB50026 对施工放样的精度要求是多少？\"\n\n我知道规范里有，但具体在哪一页哪一条，一时说不准。翻规范——扫描件PDF，连文字层都没有，Ctrl+F都搜不了。翻博客——我自己写的文章，大概在那一篇，但也要找一会儿。翻收藏夹——更别提了，乱成一锅粥。\n\n回来后我想：**我手里有30篇博客、7本规范、9篇论文、14章教材，为什么不能把这些东西喂给AI，让它帮我查？**\n\n通用大模型（ChatGPT、DeepSeek）确实强，但它们不知道你的规范条文号、不知道你项目的具体数据、甚至会一本正经地编造不存在的公式。你需要的是一个**只基于你的资料回答问题**的AI——这就是 RAG（检索增强生成）。\n\n## 一、什么是RAG\n\nRAG 的原理一句话就能说清楚：\n\n**先检索，再生成。**\n\n```\n用户提问 → 向量检索找到相关段落 → 把段落塞进Prompt → 大模型基于段落回答\n```\n\n大模型本身不存储你的资料，它只负责\"阅读理解\"——你把相关资料递给它，它帮你总结、归纳、回答。这样既利用了大模型的语言能力，又保证了回答有据可查。\n\n为什么说 RAG 特别适合测量行业？\n\n- **规范条文必须精确**：差一个字就是违规，AI不能瞎编\n- **公式参数必须准确**：坐标正反算、闭合差计算，错一个符号就全错\n- **数据不能外泄**：项目坐标、监测数据属于内部资料，不方便传到云端\n- **知识高度结构化**：规范有条文号、公式有编号、文章有标题——天然适合切片检索\n\n## 二、技术选型：为什么不用RAGFlow\n\n市面上有不少RAG平台，RAGFlow 是最知名的开源方案之一。它功能全面——内置文档解析、分块策略、多知识库管理、对话模板——但代价是**重量级**：\n\n| 组件 | RAGFlow 方案 | 我的方案 |\n|------|-------------|---------|\n| 向量库 | Elasticsearch（约2GB） | FAISS（几MB） |\n| 文件存储 | MinIO | 本地文件系统 |\n| 数据库 | MySQL + Redis | pickle 序列化 |\n| 部署方式 | Docker Compose（5个容器） | Python venv（一个命令） |\n| 内存占用 | 约9GB | 约2GB |\n| 界面 | RAGFlow Web | Streamlit（200行代码） |\n\nRAGFlow 适合团队协作、大规模知识管理。但对于个人测量员来说，**一个Python脚本 + 一个Streamlit页面就够了**。轻量、可控、好调试，出了问题自己能查代码。\n\n最终技术栈：\n\n- **向量库**：FAISS（Facebook开源，纯C++性能炸裂，Python调用极简）\n- **嵌入模型**：BAAI/bge-small-zh-v1.5（中文向量化，95MB，CPU就能跑）\n- **大模型**：Ollama qwen2.5:3b（本地零成本）或 DeepSeek API（云端效果更好）\n- **界面**：Streamlit（Python写Web界面，几十行搞定）\n- **OCR**：pdfplumber + 自定义脚本（处理扫描件规范）\n\n## 三、知识源：你手里已经有什么\n\nRAG 的核心不是代码，而是**你喂给它什么资料**。我整理了五类知识源：\n\n| 类别 | 内容 | 数量 |\n|------|------|------|\n| 博客文章 | 测量工程笔记全部文章 | 30篇 |\n| 测量规范 | GB50026、GB55018、JGJ8、JTG C10等 | 7本 |\n| 专业论文 | 全站仪应用、CASS成图、土方计算等 | 9篇 |\n| 教材章节 | 水准测量、角度测量、控制测量、GPS等 | 14章 |\n| 经验笔记 | 丈量人生（多年工地经验总结） | 1篇 |\n\n这些资料大部分是 .md、.txt 格式，直接可用。规范PDF是扫描件，需要OCR提取文字后才能入库。\n\n## 四、架构与实现\n\n整个项目的架构：\n\n```\n知识源(博客30篇 + 规范7本 + 论文9篇 + 教材14章 + 笔记)\n   ↓ extract_knowledge.py 提取\n文本文件 data/source/{blog,spec,papers,textbook,notes}/\n   ↓ rag.py 切分 + bge 向量化\nFAISS 向量库 data/faiss/\n   ↓ 检索 Top-K + LLM 生成\nStreamlit 网页 / CLI 命令行\n```\n\n### 4.1 知识提取\n\n`extract_knowledge.py` 负责把各种格式的资料统一转成纯文本文件：\n\n```python\n# 博客文章：从 content-*.js 提取 markdown\nblog_root = r\"E:\\Lvmyth\\测量员\\Blog\"\n# 解析 JS 文件中的 ARTICLE_CONTENTS[\"id\"] = \"markdown\"\n# 自动补充标题、日期、标签等元信息\n\n# 规范PDF：用 pdfplumber 提取文字\nimport pdfplumber\nwith pdfplumber.open(pdf_path) as doc:\n    for page in doc.pages:\n        text = page.extract_text()\n        # 过滤无文字层的扫描页\n\n# 经验笔记：直接复制 .md/.txt\n```\n\n提取后的文件结构：\n\n```\ndata/source/\n├── blog/          # 30篇博客 (.md)\n├── spec/          # 7本规范 (.txt)\n├── papers/        # 9篇论文 (.txt)\n├── textbook/      # 14章教材 (.txt)\n└── notes/         # 经验笔记 (.md)\n```\n\n### 4.2 文本切分\n\n一篇博客可能有三五千字，一本规范十几万字。大模型的上下文窗口有限，直接整篇塞进去不现实。需要把长文本**切分成小块**：\n\n```python\ndef split_text(text, size=500, overlap=80):\n    \"\"\"按段落优先的滑动窗口切分\"\"\"\n    text = text.strip()\n    if len(text) <= size:\n        return [text] if text else []\n    # 先按空行分段落\n    paras = [p.strip() for p in re.split(r\"\\n\\s*\\n\", text) if p.strip()]\n    chunks, cur = [], \"\"\n    for p in paras:\n        if len(p) > size:  # 超长段落内部再切\n            for i in range(0, len(p), size - overlap):\n                chunks.append(p[i:i + size])\n            cur = \"\"\n            continue\n        if len(cur) + len(p) + 1 > size and cur:\n            chunks.append(cur)\n            # 保留尾部80字作为下一块前缀，避免切断上下文\n            cur = cur[-overlap:] + \"\\n\" + p if overlap else p\n        else:\n            cur = (cur + \"\\n\" + p).strip()\n    if cur:\n        chunks.append(cur)\n    return chunks\n```\n\n两个关键参数：\n\n- **块大小（size=500）**：每块约500字。太小检索不到完整信息，太大一条检索结果占太多上下文\n- **重叠（overlap=80）**：相邻块重叠80字。防止关键信息被切断在两块交界处\n\n比如\"闭合差限差\"这个词如果正好被切在两块之间，检索时两块都匹配不上。加了重叠，至少有一块能完整包含它。\n\n### 4.3 向量化与入库\n\n文本切完后，需要把每块文本转成**向量**（一串数字），这样就能用数学方法计算\"问题和文本块有多相似\"。\n\n```python\nfrom fastembed import TextEmbedding\nimport faiss, numpy as np\n\n# 加载中文嵌入模型（首次下载约95MB，走国内镜像）\nembedder = TextEmbedding(\n    model_name=\"BAAI/bge-small-zh-v1.5\",\n    cache_dir=FASTEMBED_CACHE,\n    local_files_only=True,  # 加载完后不联网\n)\n\n# 文本 → 512维向量\nvecs = np.array(list(embedder.embed(chunks)), dtype=np.float32)\nfaiss.normalize_L2(vecs)  # 归一化后内积 = 余弦相似度\n\n# 创建FAISS索引（IndexFlatIP = 精确内积检索）\nindex = faiss.IndexFlatIP(vecs.shape[1])\nindex.add(vecs)\n\n# 持久化到磁盘\narr = faiss.serialize_index(index)\nwith open(\"data/faiss/index.faiss\", \"wb\") as f:\n    f.write(arr)\n```\n\n为什么选 bge-small-zh-v1.5？\n\n- **专为中文优化**：测量规范全是中文，英文嵌入模型分不清\"闭合差\"和\"闭合差限差\"的区别\n- **体积小**：只有95MB，CPU就能推理，不需要GPU\n- **ONNX运行时**：通过fastembed调用，不依赖PyTorch，安装简单\n\n为什么选 FAISS 而不是 ChromaDB？这个后面\"踩坑\"部分会讲。\n\n### 4.4 检索与生成\n\n用户提问时，先把问题转成向量，在FAISS里找最相似的 Top-K 个文本块，然后把这些块和问题一起交给大模型：\n\n```python\nclass RAGEngine:\n    def ask(self, query, k=3):\n        # 1. 向量检索\n        chunks, metas, dists = self.search(query, k)\n\n        # 2. 构造Prompt\n        prompt = self.build_prompt(query, chunks, metas)\n        # prompt 格式：\n        # 用户问题：坐标正反算公式是什么？\n        # 【参考资料】\n        # [资料1] 来源:blog/coordinate-transformation.md\n        # 坐标正算公式：X=XA+D·cosα...\n\n        # 3. 大模型生成\n        from openai import OpenAI\n        client = OpenAI(api_key=\"ollama\", base_url=\"http://localhost:11434/v1\")\n        resp = client.chat.completions.create(\n            model=\"qwen2.5:3b\",\n            messages=[\n                {\"role\": \"system\", \"content\": SYSTEM_PROMPT},\n                {\"role\": \"user\", \"content\": prompt},\n            ],\n            temperature=0.3,\n        )\n        return resp.choices[0].message.content, chunks, metas\n```\n\nSystem Prompt 是整个系统的灵魂：\n\n```python\nSYSTEM_PROMPT = (\n    \"你是「测量员 AI 助手」，一位经验丰富的工程测量专家助手。\"\n    \"请只依据下面提供的【参考资料】回答问题，不要编造。\"\n    \"回答要专业、简洁、有条理；涉及公式时用清晰文字表达。\"\n    \"如果参考资料不足以回答，明确说明『资料中未找到相关依据』，\"\n    \"并给出你基于专业常识的提示。回答最后列出引用的资料来源。\"\n)\n```\n\n关键设计：\n\n- **\"只依据参考资料回答，不要编造\"**：这是RAG最核心的约束，防止模型胡说八道\n- **\"资料中未找到相关依据\"**：让模型诚实承认不知道，而不是编一个答案\n- **\"列出引用的资料来源\"**：每个回答都能追溯到具体文档\n\n## 五、两种大模型：本地 vs 云端\n\n项目支持两种LLM后端，在 `.env` 里一行配置切换：\n\n```bash\n# .env 文件\n# 方式一：本地模型（零成本，需要8GB+内存）\nLLM_PROVIDER=ollama\nOLLAMA_MODEL=qwen2.5:3b\n\n# 方式二：DeepSeek API（效果更好，需充值）\nLLM_PROVIDER=deepseek\nDEEPSEEK_API_KEY=sk-xxx\n```\n\n### 本地模型：Ollama + qwen2.5\n\nOllama 是本地运行大模型最简单的方案。安装后一行命令拉模型：\n\n```bash\nollama pull qwen2.5:3b   # 约2GB，3B参数\n```\n\n为了在低配电脑上流畅运行，我写了一个优化版 Modelfile：\n\n```dockerfile\nFROM qwen2.5:3b\n\n# 缩小上下文窗口（我们的prompt不到2000 token，不需要32768）\nPARAMETER num_ctx 2048\n\n# 强制所有层上GPU（如果有显卡）\nPARAMETER num_gpu 99\n\n# 限制输出长度，避免长篇大论拖慢速度\nPARAMETER num_predict 512\n\n# 降低温度，减少采样开销，回答更确定\nPARAMETER temperature 0.1\n```\n\n优化后，3B模型在纯CPU上约10-15秒出答案，有显卡的话3-5秒。\n\n模型选择参考：\n\n| 模型 | 内存需求 | 回答延迟 | 效果 |\n|------|---------|---------|------|\n| qwen2.5:3b | 8GB | 10-15秒 | 基础可用 |\n| qwen2.5:7b | 16GB | 3-5秒 | 显著提升 |\n| qwen2.5:14b | 32GB | 2-3秒 | 最佳效果 |\n\n### 云端模型：DeepSeek API\n\nDeepSeek 的 API 价格非常便宜（百万token约1-2元），而且回答质量比本地3B模型好很多。如果你不方便装Ollama，或者对回答质量要求高，直接用API模式。\n\n两者通过 OpenAI SDK 统一调用，切换只需改一个环境变量——这是架构设计时预留的灵活性。\n\n## 六、启动与使用\n\n### 一键启动\n\n写了个 `start.bat`，双击就行：\n\n```bat\n@echo off\necho [1/2] Activating Python venv...\ncall \"E:\\Lvmyth\\RAG测量助手\\venv\\Scripts\\activate.bat\"\necho [2/2] Starting Streamlit...\nstreamlit run scripts/app.py\n```\n\nOllama 会在程序里自动检测并启动，不需要手动开。浏览器会自动打开网页界面。\n\n### Streamlit 界面\n\n界面用 Streamlit 写的，200行代码搞定：\n\n- 左侧显示知识库规模（多少个文本块）和模型状态\n- 中间是输入框 + 示例问题按钮\n- 提问后流式输出回答（逐字显示，不用等全部生成完）\n- 回答下方显示引用来源和检索到的原文片段\n\n预设了几个高频问题按钮，点一下就能问：\n\n- 坐标正反算公式是什么？\n- 导线测量角度闭合差怎么计算？\n- 水准测量闭合差限差是多少？\n- 弧垂测控有哪些观测方法？\n- 全站仪施工放样的步骤？\n- GB50026 对施工测量有什么要求？\n\n![测量员AI知识助手界面](images/rag-assistant-ui.png)\n\n> 界面截图：左侧显示知识库规模，中间是输入框和示例问题按钮，回答流式输出并带引用来源。\n\n### 命令行模式\n\n不想开网页？命令行也能用：\n\n```bash\nvenv\\Scripts\\python scripts\\rag.py \"坐标正反算公式是什么？\"\n```\n\n输出包括知识库规模、检索到的文本块来源和相似度、以及大模型的回答。\n\n### 实际问答效果\n\n下面是一个真实问答示例：让助手用卡西欧 fx-5800P 编写一个面积计算程序。\n\n![卡西欧5800P面积计算程序示例](images/rag-assistant-casio-example.png)\n\n> 助手根据知识库里的编程经验和公式，给出了完整的 fx-5800P 程序代码，包括坐标输入、极坐标转换和方位角归算。\n\n## 七、踩过的坑\n\n### 坑1：ChromaDB 的 HNSW 持久化 bug\n\n最初用的是 ChromaDB（build_index.py 里还留着旧代码）。它在 Windows 上有一个顽固的 bug：HNSW 索引持久化时偶尔会写坏，下次加载直接报错。\n\n排查了好几天，最后决定**彻底换掉 ChromaDB，改用 FAISS**。FAISS 是 Facebook 开源的向量检索库，纯 C++ 实现，稳定性和性能都没得说。切换后没有再出过问题。\n\n### 坑2：FAISS 的中文路径问题\n\nFAISS 的 C++ 底层在 Windows 上处理中文路径时会乱码。解决办法是绕过 FAISS 的原生持久化，用 Python 序列化：\n\n```python\n# 不用 faiss.write_index（中文路径会出问题）\n# 改用 Python 序列化绕过\narr = faiss.serialize_index(index)\nwith open(index_path, \"wb\") as f:\n    f.write(arr)\n```\n\n### 坑3：扫描件PDF没有文字层\n\nGB50026-2020 的PDF是扫描件，pdfplumber 提取出来全是空白。必须 OCR 才能入库。\n\n写了几个OCR脚本处理不同来源的扫描件：\n\n- `ocr_pdf.py`：通用PDF OCR\n- `ocr_cehui.py`：测绘类文档专用（处理表格和公式）\n- `ocr_jtg.py`：交通部规范专用（处理特殊排版）\n\nOCR 是最耗时的步骤，一本规范可能要跑半小时。但这是一次性的——OCR完存成 .txt，以后就不用再跑了。\n\n### 坑4：模型占用VRAM不释放\n\nOllama 默认会在5分钟后释放模型占用的显存。但如果你频繁提问，每次重新加载模型要等好几秒。\n\n解决办法是在请求里加 `keep_alive` 参数，让模型常驻显存：\n\n```python\nextra_body = {\"keep_alive\": \"30m\"}  # 保持30分钟\n```\n\n同时在引擎初始化时发一个空请求预热模型，第一次提问就不用等加载了。\n\n## 八、扩展与优化\n\n### 多知识库策略\n\n随着内容增多，可以按专业方向建立分类检索。目前所有资料混在一起，但已经在元数据里标记了类别（blog/spec/papers/textbook/notes），未来可以按类别分别建索引，查询时指定搜索范围。\n\n| 知识库 | 包含内容 | 适用场景 |\n|-------|---------|--------|\n| 测量基础规范库 | GB50026、GB55018 | 查限差、查精度等级 |\n| 变形监测库 | JGJ8、沉降监测案例 | 查监测方法、预警值 |\n| 道路测量库 | JTG C10、道路放样手册 | 查曲线计算、放样方法 |\n| 公式速查库 | 博客编程类文章 | 查公式推导、代码实现 |\n\n### 对话模板\n\n为高频问题设置模板，一键触发常见查询：\n\n- **【查限差】** 帮我查{规范名称}中关于{测量项目}的限差条文\n- **【查公式】** {公式名称}的计算公式和参数说明\n- **【查操作】** {仪器/软件}的{操作步骤}流程\n- **【查标准】** {工程项目}的精度等级要求\n\n### 扩展知识源\n\n在 `data/source/` 下加 `.md` 或 `.txt` 文件，重新跑 `build_index.py` 就能增量更新。计划后续加入：\n\n- 更多规范（CJJ/T 8、DL/T 5076等已有文本）\n- CAS操作手册\n- 项目实测数据（脱敏后）\n- 外业操作视频的字幕文本\n\n## 结语\n\n测量工作的本质是精准——数据要精确到毫米，规范要引用到条文号，计算要落实到公式。\n\n本地 RAG 测量助手让这种精准从\"翻书找\"变成\"秒级答\"，而且每一个答案都能追溯到来源。你的电脑里装着整个测量规范库，数据不出门，术语不混淆，条文可溯源——这就是测量员的AI助手该有的样子。\n\n整个项目的代码不到1000行，核心逻辑就四个文件：提取知识、构建索引、检索生成、界面展示。如果你也有自己的技术博客或资料库，照着这个思路搭一个，半天就能跑起来。\n\n> 技术栈：Python + FAISS + fastembed + Ollama + Streamlit\n";
 
+// --- content-rag-tool-calling.js
+// RAG 工具调用文章
+ARTICLE_CONTENTS["rag-tool-calling"] = "# 让 RAG 测量助手会算数据：Function Calling 工具调用实战\n\
+\n\
+> 我的本地 RAG 测量助手（`E:\\Lvmyth\\RAG测量助手`）跑通了三件事：规范问答、文档检索、进阶重排。但测量员真正高频使用的其实是**计算**：坐标反算、导线平差、竖曲线、填挖方——这些是公式固定的确定性运算。最初我在 `tool_dispatch.py` 里用关键词 + 正则来识别计算请求（「含'反算'两个字就走坐标反算」），能跑通简单场景，但遇到「帮我算一下从 A 点到 B 点的平距和方位角」这种绕弯的问法就抓瞎。能不能让 RAG 助手直接「算」？直接问大模型「算一下导线平差」，它会把公式算错、把数据编出来——测量数值错一个数字就是事故。正确的路线是：**让大模型只做「听懂人话、选对工具、填好参数」，把计算交给你自己验证过的测量算法**。本文承接 RAG 系列前几篇，讲解如何用 Function Calling（函数调用）把 RAG 测量助手升级为「会算数据」的助手：工具注册表设计、DeepSeek Function Calling 完整实现、多参数工具的 Schema 与校验、以及「计算 + 规范问答」双引擎混合路由，并附真实项目案例。\n\
+\n\
+## 一、为什么要让 RAG 助手会算\n\
+\n\
+### 1.1 问答与计算是两类需求\n\
+\n\
+| | 规范问答 | 测量计算 |\n\
+|---|---|---|\n\
+| 例子 | 「贯通误差允许多少？」 | 「坐标反算 (0,0)(100,100)」 |\n\
+| 性质 | 检索 + 总结 | 确定性运算 |\n\
+| 正确性 | 语义相关即可 | **数值必须精确** |\n\
+| 适合谁来算 | 大模型生成 | 程序算法 |\n\
+\n\
+### 1.2 为什么不能让大模型直接算\n\
+\n\
+- LLM 是概率模型，公式推导和数值运算**天生不可靠**——平方、开方、三角函数都可能错\n\
+- 测量公式是确定的（坐标正算、平差、曲线要素），完全没必要让 LLM 推理\n\
+- 行业规矩：**测量数据必须可验算**，LLM 算的没法验算，算法算的有完整过程\n\
+\n\
+### 1.3 正确路线\n\
+\n\
+```text\n\
+大模型：听懂意图 → 选择工具 → 抽取参数（结构化 JSON）\n\
+你的算法：执行计算（验证过的公式，可打印计算过程）\n\
+大模型：把结果组织成人话\n\
+```\n\
+\n\
+关键原则一句话：**公式永远走你的代码，LLM 只当「翻译官」**。\n\
+\n\
+---\n\
+\n\
+## 二、我本地助手的现状与痛点\n\
+\n\
+### 2.1 现在的做法：关键词 + 正则（`tool_dispatch.py`）\n\
+\n\
+我本地 `scripts/tool_dispatch.py` 的思路是：问答前先检测是不是计算请求，用关键词匹配工具类型、正则提取参数、调用 `calculators.py` 计算：\n\
+\n\
+```python\n\
+# tool_dispatch.py 核心逻辑（简化）\n\
+def try_calculate(q):\n\
+    q_clean = q.strip()\n\
+    if len(q_clean) < 4:\n\
+        return None\n\
+    handlers = [\n\
+        (_match_inverse, _calc_inverse, \"坐标反算\"),\n\
+        (_match_forward, _calc_forward, \"坐标正算\"),\n\
+        (_match_angle, _calc_angle, \"角度换算\"),\n\
+        (_match_arch, _calc_arch, \"弦长拱高求半径\"),\n\
+    ]\n\
+    for matcher, calc_fn, tool in handlers:\n\
+        params = matcher(q_clean)\n\
+        if params is not None:\n\
+            return calc_fn(tool, params)\n\
+    return None\n\
+```\n\
+\n\
+`calculators.py` 里是验证过的算法：`coord_forward`（正算）、`coord_inverse`（反算）、`traverse_adjust`（导线平差）、`leveling_adjust`（水准平差）、`polygon_area`（面积）等。\n\
+\n\
+### 2.2 这个方案的三个短板\n\
+\n\
+| 短板 | 例子 |\n\
+|------|------|\n\
+| **问法呆板** | 只认「反算」「正算」等固定词，绕弯问法就漏 |\n\
+| **参数提取脆弱** | 「从 (0,0) 到 (100,100) 求平距」——「求平距」不在关键词表里 |\n\
+| **多参数工具没法扩展** | 导线平差十几个测站，正则根本抠不出来 |\n\
+\n\
+**结论**：关键词方案适合当「快路径」兜底，真正的解法是 Function Calling——让模型来做意图识别和参数抽取（这是模型的强项），正则只管简单的。\n\
+\n\
+---\n\
+\n\
+## 三、工具调用（Function Calling）原理\n\
+\n\
+### 3.1 什么是 Function Calling\n\
+\n\
+大模型 API 支持的一种机制：你注册一批「工具」（函数名 + 参数 Schema），模型在回答时如果发现需要计算，**不是自己算，而是返回一段结构化调用请求**：\n\
+\n\
+```json\n\
+{\n\
+  \"name\": \"coordinate_inverse\",\n\
+  \"arguments\": {\"x1\": 0, \"y1\": 0, \"x2\": 100, \"y2\": 100}\n\
+}\n\
+```\n\
+\n\
+你的程序收到后执行真实函数，把结果回传给模型，模型再组织成最终回答。\n\
+\n\
+### 3.2 流程\n\
+\n\
+```text\n\
+用户：「坐标反算 (0,0) (100,100)」\n\
+  ↓\n\
+① 模型 + 工具列表 → 决定调用 coordinate_inverse，生成参数\n\
+  ↓\n\
+② 你的程序执行算法 → 返回 {平距: 141.4214, 方位角: 45}\n\
+  ↓\n\
+③ 结果回填 → 模型组织回答：「平距 141.4214m，方位角 45°00′00″」\n\
+```\n\
+\n\
+### 3.3 为什么比「自然语言解析」强\n\
+\n\
+- 多参数工具（导线平差十几个测站）靠提示词「从话里抠参数」必然出错\n\
+- Function Calling 让模型**结构化输出**——参数抽取是模型的本职，不是附带的文本生成\n\
+- 参数缺失时模型会明确不调用或反问，而不是瞎填\n\
+\n\
+> 注意：Function Calling 不是让模型「会写代码」，而是让模型「会填参数」。计算逻辑始终在你这边。\n\
+\n\
+---\n\
+\n\
+## 四、工具注册表设计\n\
+\n\
+### 4.1 每个工具一份 Schema\n\
+\n\
+```python\n\
+TOOLS = [\n\
+    {\n\
+        \"type\": \"function\",\n\
+        \"function\": {\n\
+            \"name\": \"coordinate_inverse\",\n\
+            \"description\": \"坐标反算：由两点坐标求平距与方位角\",\n\
+            \"parameters\": {\n\
+                \"type\": \"object\",\n\
+                \"properties\": {\n\
+                    \"x1\": {\"type\": \"number\", \"description\": \"起点X坐标(m)\"},\n\
+                    \"y1\": {\"type\": \"number\", \"description\": \"起点Y坐标(m)\"},\n\
+                    \"x2\": {\"type\": \"number\", \"description\": \"终点X坐标(m)\"},\n\
+                    \"y2\": {\"type\": \"number\", \"description\": \"终点Y坐标(m)\"}\n\
+                },\n\
+                \"required\": [\"x1\", \"y1\", \"x2\", \"y2\"]\n\
+            }\n\
+        }\n\
+    },\n\
+    # 导线平差、水准平差、弧上三点…… 依次追加\n\
+]\n\
+```\n\
+\n\
+工具名与 `calculators.py` 里的函数一一对应——`coordinate_inverse` 对应 `coord_inverse`，`traverse_adjust` 对应 `traverse_adjust`，这样分发逻辑最简单。\n\
+\n\
+### 4.2 Schema 的质量决定解析质量\n\
+\n\
+- **description 写清楚**：参数含义、单位（m/度/%）、取值范围\n\
+- **required 列全**：缺了模型才知道要问用户\n\
+- **多参数用数组/对象**：导线平差的观测列表用 `array`，模型能结构化抽取\n\
+\n\
+### 4.3 多参数工具 Schema 示例（导线平差）\n\
+\n\
+```python\n\
+{\n\
+    \"name\": \"traverse_adjust\",\n\
+    \"description\": \"导线平差：输入起算点、起始方位角与各边观测数据，返回平差后坐标\",\n\
+    \"parameters\": {\n\
+        \"type\": \"object\",\n\
+        \"properties\": {\n\
+            \"start\": {\n\
+                \"type\": \"object\",\n\
+                \"description\": \"起算点坐标\",\n\
+                \"properties\": {\"x\": {\"type\": \"number\"}, \"y\": {\"type\": \"number\"}},\n\
+                \"required\": [\"x\", \"y\"]\n\
+            },\n\
+            \"start_azimuth\": {\"type\": \"number\", \"description\": \"起始方位角（度）\"},\n\
+            \"obs\": {\n\
+                \"type\": \"array\",\n\
+                \"description\": \"观测数据，每项一段边\",\n\
+                \"items\": {\n\
+                    \"type\": \"object\",\n\
+                    \"properties\": {\n\
+                        \"point\": {\"type\": \"string\", \"description\": \"前视点名\"},\n\
+                        \"angle\": {\"type\": \"number\", \"description\": \"水平角（十进制度）\"},\n\
+                        \"dist\": {\"type\": \"number\", \"description\": \"边长（m）\"}\n\
+                    },\n\
+                    \"required\": [\"point\", \"angle\", \"dist\"]\n\
+                }\n\
+            }\n\
+        },\n\
+        \"required\": [\"start\", \"start_azimuth\", \"obs\"]\n\
+    }\n\
+}\n\
+```\n\
+\n\
+---\n\
+\n\
+## 五、DeepSeek Function Calling 完整实现\n\
+\n\
+### 5.1 依赖与客户端\n\
+\n\
+```bash\n\
+pip install openai\n\
+```\n\
+\n\
+```python\n\
+import json\n\
+from openai import OpenAI\n\
+\n\
+client = OpenAI(api_key=\"你的KEY\", base_url=\"https://api.deepseek.com\")\n\
+```\n\
+\n\
+### 5.2 核心循环\n\
+\n\
+```python\n\
+def ask_with_tools(user_input, history=None):\n\
+    messages = list(history or []) + [{\"role\": \"user\", \"content\": user_input}]\n\
+\n\
+    resp = client.chat.completions.create(\n\
+        model=\"deepseek-chat\",\n\
+        messages=messages,\n\
+        tools=TOOLS,\n\
+        tool_choice=\"auto\"\n\
+    )\n\
+    msg = resp.choices[0].message\n\
+\n\
+    # 模型要求调用工具\n\
+    if msg.tool_calls:\n\
+        for tc in msg.tool_calls:\n\
+            fn_name = tc.function.name\n\
+            args = json.loads(tc.function.arguments)\n\
+            result = run_survey_tool(fn_name, args)     # 执行你的算法\n\
+            messages.append(msg)\n\
+            messages.append({\n\
+                \"role\": \"tool\",\n\
+                \"tool_call_id\": tc.id,\n\
+                \"content\": json.dumps(result, ensure_ascii=False)\n\
+            })\n\
+        # 结果回填后，模型组织最终回答\n\
+        final = client.chat.completions.create(\n\
+            model=\"deepseek-chat\", messages=messages, tools=TOOLS\n\
+        )\n\
+        return final.choices[0].message.content\n\
+    return msg.content\n\
+```\n\
+\n\
+### 5.3 工具分发（名字 → 你的函数）\n\
+\n\
+```python\n\
+def run_survey_tool(name, args):\n\
+    # 你的测量工具 Python 模块——公式都在这里，验证过的\n\
+    import calculators as T   # 我本地 scripts/calculators.py\n\
+\n\
+    if not hasattr(T, name):\n\
+        return {\"error\": f\"未注册工具: {name}\"}\n\
+    try:\n\
+        fn = getattr(T, name)\n\
+        return fn(**args)          # 参数解包，直接调用\n\
+    except TypeError as e:\n\
+        return {\"error\": f\"参数错误: {e}\", \"need_more_info\": True}\n\
+```\n\
+\n\
+> 注意：`calculators` 就是你的测量算法库——坐标、平差、曲线计算都在里面。工具名与函数名一一对应，Schema 里的 description 可以直接用函数的 docstring 生成，保证描述与实现一致。\n\
+\n\
+---\n\
+\n\
+## 六、参数解析与校验（多参数工具的关键）\n\
+\n\
+### 6.1 角度单位约定\n\
+\n\
+Schema 里统一「十进制度」，模型抽取时自行换算：\n\
+\n\
+```text\n\
+用户：「A-B 边 120°15′30″」\n\
+模型输出：{\"angle\": 120.2583}\n\
+```\n\
+\n\
+换算规则写在 description 里，模型会处理。返回结果时程序再转回度分秒显示（`calculators.dd2dms_str` 已实现）。\n\
+\n\
+### 6.2 缺失参数反问\n\
+\n\
+```python\n\
+def validate_args(fn_name, args):\n\
+    schema = get_schema(fn_name)      # 从 TOOLS 里找\n\
+    required = schema[\"function\"][\"parameters\"].get(\"required\", [])\n\
+    missing = [r for r in required if r not in args or args[r] in (None, \"\", [])]\n\
+    return missing\n\
+\n\
+# 缺参数时，把提示回传给模型，让它反问用户\n\
+missing = validate_args(fn_name, args)\n\
+if missing:\n\
+    return {\"error\": f\"缺少参数: {missing}，请向用户询问\"}\n\
+```\n\
+\n\
+### 6.3 关键参数回显确认\n\
+\n\
+起算坐标、起算方位角这类**输错代价大**的参数，解析后回显让用户确认：\n\
+\n\
+```python\n\
+def confirm_critical(fn_name, args):\n\
+    if fn_name == 'traverse_adjust':\n\
+        return (f\"确认导线起算：起点({args['start']['x']}, {args['start']['y']})，\"\n\
+                f\"起始方位角 {args['start_azimuth']}°？回复'确认'开始计算\")\n\
+    return None\n\
+```\n\
+\n\
+### 6.4 本地备用（ollama qwen2.5）\n\
+\n\
+不想联网时本地模型也支持 tools 参数，代码几乎一致：\n\
+\n\
+```python\n\
+resp = requests.post(\"http://localhost:11434/api/chat\", json={\n\
+    \"model\": \"qwen2.5:7b\", \"messages\": messages, \"tools\": TOOLS\n\
+})\n\
+```\n\
+\n\
+局限：大数组参数（十几站导线）本地模型容易截断——这正是推荐 DeepSeek 做主力解析的原因。\n\
+\n\
+---\n\
+\n\
+## 七、双引擎混合路由：完整的测量助手\n\
+\n\
+```text\n\
+用户问题\n\
+  ├─ 需要计算？ → Function Calling 引擎（DeepSeek 解析 + calculators 算法）\n\
+  └─ 规范/文档问答？ → 向量检索 RAG 引擎（前几篇）\n\
+```\n\
+\n\
+路由判断可以简单规则（含「算/平差/反算/坐标」等词走计算），也可以让模型自己判断（tools + 一个 query 工具）。我本地采用**先快路径后兜底**：先跑 `tool_dispatch.try_calculate`（零成本的关键词匹配），命中直接返回；未命中再走 Function Calling 让模型判断；两者都判定不是计算，才进向量 RAG。\n\
+\n\
+```text\n\
+测量员 AI 知识助手（一个入口）\n\
+  ├── 坐标反算/正算\n\
+  ├── 导线平差、水准平差\n\
+  ├── 竖曲线、曲线要素\n\
+  ├── 弧上三点、后方交会\n\
+  ├── 横断面填挖、断面计算\n\
+  └── 规范条文、博客文章（向量 RAG）\n\
+```\n\
+\n\
+---\n\
+\n\
+## 八、实战效果（真实案例）\n\
+\n\
+以本地部署的助手为例：\n\
+\n\
+```text\n\
+用户：坐标反算 (0,0) (100,100)\n\
+\n\
+助手：\n\
+■ 坐标反算  平距 141.4214 m，方位角 45.0000°（45°0'0.0\"）\n\
+\n\
+计算过程：\n\
+- 起点 A (0.0000, 0.0000) → 终点 B (100.0000, 100.0000)\n\
+- ΔX = 100.0000  ΔY = 100.0000\n\
+- 平距 D = 141.4214 m\n\
+- 方位角 α = 45.0000° = 45°0'0.0\"\n\
+\n\
+⚡ 已自动调用测量程序算法直接计算（未经过 LLM，结果可靠）\n\
+```\n\
+\n\
+三个细节值得坚持：\n\
+\n\
+1. **标注「未经过 LLM」**——让用户知道结果是算法算的，可信\n\
+2. **展示计算过程**——可验算，工程习惯\n\
+3. **度分秒转换显示**——符合测量员阅读习惯\n\
+\
+### 真实部署效果\n\
+\
+下面是三个本地实测案例（坐标反算 / 坐标正算 / 角度换算），分别展示三种最常用的工具调用效果：\n\
+\
+#### 1) 坐标反算（A→B 的平距与方位角）\n\
+\
+![坐标反算](images/tool-calling-coord-inverse.png)\n\
+\
+#### 2) 坐标正算（已知起点+平距+方位角 → 终点）\n\
+\
+![坐标正算](images/tool-calling-coord-forward.png)\n\
+\
+#### 3) 角度换算（度分秒 → 十进制度）\n\
+\
+![角度换算](images/tool-calling-angle-convert.png)\n\
+\
+三个截图都显示助手在最后一行标注「已自动调用测量程序算法直接计算（未经过 LLM，结果可靠）」——这是规范，工程化 AI 助手就该这样让用户知道结果来源。\n\
+\
+---\n\
+\n\
+## 九、防坑清单\n\
+\n\
+| 坑 | 对策 |\n\
+|---|---|\n\
+| 让模型「算」而不是「调工具」 | System Prompt 明确：「涉及计算必须调用工具，禁止自行计算」 |\n\
+| 模型编造参数 | required 校验 + 关键参数回显确认 |\n\
+| 单位不一致 | Schema 统一单位并写进 description |\n\
+| 大数组被截断 | 用 DeepSeek 而非本地小模型；必要时分批让用户确认 |\n\
+| 工具名与函数不一致 | 用 docstring 自动生成 description，工具注册表单一来源 |\n\
+| 计算结果格式混乱 | 程序返回结构化数据（列表/字典），模型只负责转述 |\n\
+| 用户输入不规范 | 模型抽取容错 + 反问机制兜底 |\n\
+\n\
+---\n\
+\n\
+## 十、小结\n\
+\n\
+让 RAG 助手「会算」，本质是给助手**接了手脚**：\n\
+\n\
+- **理解层**：DeepSeek Function Calling 把自然语言变成结构化工具调用（听懂人话、选对工具、填好参数）\n\
+- **执行层**：你自己的测量算法库（验证过的公式、可打印过程、可验算）\n\
+- **组织层**：模型把结果翻译成人话，标注「算法计算，结果可靠」\n\
+\n\
+从我本地助手的演进看，`tool_dispatch.py` 的关键词快路径 + Function Calling 兜底是性价比最高的组合——快路径零成本覆盖常见问法，Function Calling 补齐绕弯问法和多参数工具。一条铁律：**公式永远在你自己手里**。模型负责「想」，算法负责「算」，这个分工让 AI 助手既有大模型的自然语言能力，又有测量程序的计算可靠性——这才是测量行业用 AI 的正确姿势。\n\
+\n\
+> 相关文章：本文是 RAG 系列的进阶篇，前序为《本地部署RAG测量助手》《Faiss向量检索实战》《RAG 进阶》；工具算法本身见《测量辅助计算 Python 程序集》《导线计算原理与 Python 实现》。\n\
+";
+
 // --- content-resection-principle.js
 // 文章：resection-principle
 ARTICLE_CONTENTS["resection-principle"] = "# 测角后方交会坐标计算原理与实操要点\n\n> 在工程测量中，后方交会是一种常用的**自由设站**方法，尤其适用于无法直接到达已知控制点的场景。本文介绍测角后方交会的几何原理、计算方法及现场操作注意事项。\n\n---\n\n## 一、什么是测角后方交会\n\n**后方交会（Resection）** 是指在待定点 P 上架设仪器，观测三个已知控制点 A、B、C，测得水平角 α = ∠APB 和 β = ∠BPC，通过几何关系反算 P 点坐标的方法。\n\n相比前方交会，后方交会的优势在于：\n- 无需已知点通视，适合遮挡复杂环境\n- 设站自由，便于选择稳定点位\n- 可现场实时计算，快速定位\n\n---\n\n## 二、几何原理（辅助圆法）\n\n### 核心思路\n\n测角后方交会的本质是**圆周角定理**的应用：\n\n> 同弧所对的圆周角相等。\n\n根据这一性质，可以构造两个辅助圆：\n\n1. **辅助圆 1**：过 A、B 两点，使圆周角等于观测角 α\n2. **辅助圆 2**：过 B、C 两点，使圆周角等于观测角 β\n\n两圆的交点即为待定点 P（另一交点为 B 点，需排除）。\n\n### 计算步骤\n\n1. 计算弦长 AB 和 BC\n2. 根据弦长和圆周角求圆半径：R = 弦长 / (2·sinθ)\n3. 求圆心坐标（弦的中垂线上，距离弦中点 h = 弦长/(2·tanθ)）\n4. 求两圆交点，排除 B 点后得 P 点坐标\n\n---\n\n## 三、实操演示\n\n### 示例 1：常规情况\n\n已知点坐标：\n- A (1000.0, 1000.0)\n- B (2500.0, 1200.0)\n- C (1800.0, 2200.0)\n\n观测角度：\n- α = 136°23′50″\n- β = 56°06′14″\n\n计算结果：\n- **P (1500.003, 800.000)**\n\n![测角后方交会几何图解](images/resection_result.png)\n\n图中可见：\n- 粉色虚线为辅助圆 1（过 A、B）\n- 蓝灰色虚线为辅助圆 2（过 B、C）\n- 两圆相交于 B 点（排除）和 P 点（所求）\n\n### 示例 2：特殊角度情况\n\n已知点坐标：\n- A (0.0, 0.0)\n- B (100.0, 0.0)\n- C (50.0, 86.603)\n\n观测角度：\n- α = 90°00′00″\n- β = 45°00′00″\n\n计算结果：\n- **P (50.000, -50.000)**\n\n![直角情况下的后方交会](images/resection_result2.png)\n\n---\n\n## 四、操作注意事项\n\n### ⚠️ 危险圆（Dead Circle）\n\n当 **A、B、C、P 四点共圆** 时，两辅助圆重合，无法确定唯一解，这种情况称为\"危险圆\"。\n\n**如何避免：**\n1. 选点时确保 P 点不在 A、B、C 三点的外接圆上\n2. 现场大致估算 P 点位置，避免与已知点形成对称分布\n3. 若计算提示\"危险圆\"或\"无解\"，应重新选点\n\n### 🔧 现场操作要点\n\n| 项目 | 要求 |\n|------|------|\n| **仪器对中** | 严格对中，误差 ≤ 1mm |\n| **目标照准** | 使用觇牌或反射片，避免照准偏差 |\n| **角度观测** | 正倒镜观测 2-4 测回，取平均值 |\n| **点位选择** | P 点到三已知点距离宜相近，图形强度均匀 |\n| **检核** | 计算后应反算角度，与设计值对比检核 |\n\n### 📐 图形强度要求\n\n- 三个已知点应构成**锐角三角形**，避免三点共线\n- P 点宜位于三角形内部或附近，距离各已知点不宜过远\n- 观测角 α、β 宜在 30°~150° 之间，避免过小或过大角度\n\n---\n\n## 五、在线工具\n\n本站提供两种计算方式：\n\n1. **网页版**：在浏览器中直接使用，无需安装 → [测角后方交会工具](tools/resection.html)\n2. **小程序版**：微信搜索「阿明测量工具」，随时随地计算\n\n输入三个已知点坐标和两个观测水平角，即可自动计算 P 点坐标并显示几何图解。\n\n---\n\n## 六、参考资料\n\n- 《工程测量规范》GB 50026\n- 《测量学》（武汉大学出版社）\n- Cassini 后方交会公式推导\n";
