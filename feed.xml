@@ -6,7 +6,27 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Mon, 10 Aug 2026 02:33:34 GMT</lastBuildDate>
+  <lastBuildDate>Tue, 11 Aug 2026 02:42:25 GMT</lastBuildDate>
+
+  <item>
+    <title>RAG 进阶：从「能问答」到「答得准」</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=rag-advanced</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=rag-advanced</guid>
+    <pubDate>Thu, 06 Aug 2026 00:00:00 +0800</pubDate>
+    <description>基础 RAG 跑通不难，难的是答得准：问贯通误差答非所问、规范数字答错、甚至编造条文。本文结合本地测量助手实战，讲透三大进阶方向——检索质量（分块/混合检索/查询改写/重排序）、生成质量（Prompt/多轮/上下文管理）、效果评估（Recall@K/MRR/RAGAS），附完整进阶代码与基线对比方法。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
+  </item>
+
+  <item>
+    <title>Faiss 向量检索实战：把测量知识库装进百毫秒</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=faiss-vector-search</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=faiss-vector-search</guid>
+    <pubDate>Wed, 05 Aug 2026 00:00:00 +0800</pubDate>
+    <description>RAG 助手背后那个&apos;快得像闪电&apos;的检索到底是怎么实现的？本文以测量知识库为主线，讲透 Faiss 向量检索：为什么需要语义检索、索引类型怎么选、从 embedding 到建库到检索的完整可运行代码，再到 IVF/HNSW 进阶与 BM25 混合检索。学完你的 RAG 就从&apos;能用&apos;变成&apos;懂为什么&apos;。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
+  </item>
 
   <item>
     <title>本地部署RAG测量助手：把规范和博客变成私人AI知识库</title>
@@ -16,6 +36,15 @@
     <description>你写了几十篇博客、收藏了一堆规范PDF、积攒了多年笔记——但每次遇到问题还得翻书。本文用 Python + FAISS + Ollama 在本地搭一个测量知识库，数据不出门，条文可溯源。从知识提取、文本切分、向量化到检索生成，完整跑通一个RAG案例。</description>
     <category>AI前沿</category>
     <category>编程工具</category>
+  </item>
+
+  <item>
+    <title>地下连续墙施工测量：成槽垂直度的毫米级守护</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=diaphragm-wall-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=diaphragm-wall-survey</guid>
+    <pubDate>Fri, 24 Jul 2026 00:00:00 +0800</pubDate>
+    <description>城市深基坑里，地下连续墙是最常见的围护结构。本文系统讲解地连墙施工测量完整链条：导墙放样定轴线、槽段划分与闭合检核、成槽垂直度控制（1/200 与超声波测槽仪）、钢筋笼与接头管定位、成墙后与基坑监测衔接，配垂直度判定、分幅放样、浮笼监测三个算例。</description>
+    <category>测量实操</category>
   </item>
 
   <item>
@@ -112,6 +141,15 @@
   </item>
 
   <item>
+    <title>桥梁施工测量：从桥轴线到合龙的控制技术</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=bridge-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=bridge-survey</guid>
+    <pubDate>Sun, 19 Jul 2026 00:00:00 +0800</pubDate>
+    <description>桥梁的每一根桩、每个墩台、每段梁都必须落在设计位置上，误差稍大轻则支座偏位、重则合龙失败。本文系统讲解桥梁施工测量全流程：控制网、墩台定位（含方向交会法算例）、基础与墩身放样、预拱度（含计算算例）、跨河水准、变形监测与特殊桥型测量。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
     <title>道路测量技术：从选线到通车的全程测绘</title>
     <link>https://www.axureshow.com/project/snUNZfl9/?id=road-survey</link>
     <guid>https://www.axureshow.com/project/snUNZfl9/?id=road-survey</guid>
@@ -162,6 +200,15 @@
     <guid>https://www.axureshow.com/project/snUNZfl9/?id=tunnel-monitoring</guid>
     <pubDate>Wed, 08 Jul 2026 00:00:00 +0800</pubDate>
     <description>隧道施工最怕围岩突然失稳、拱顶塌落，但围岩的&apos;脾气&apos;并非毫无征兆——它会在破坏前持续变形。本文从测点布设、量测频率、位移管理等级到回归分析，配完整算例，系统讲透隧道监控量测这套&apos;从布点到判读&apos;的动态观测体系。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>隧道洞内控制测量：黑暗中的精度保障</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=tunnel-internal-control</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=tunnel-internal-control</guid>
+    <pubDate>Tue, 07 Jul 2026 00:00:00 +0800</pubDate>
+    <description>隧道一进洞，通视与开阔就消失了——洞内狭窄昏暗、测站间距只有几十米，导线只能一段段向前延伸，误差随距离累积。本文系统讲解洞内导线布设、高程控制、误差来源与抑制（强制对中/长边化/分级复测）、中线腰线与激光指向仪标定，配导线推算、对中误差、定向精度等算例。</description>
     <category>测量实操</category>
   </item>
 
