@@ -6,7 +6,7 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Tue, 11 Aug 2026 15:13:53 GMT</lastBuildDate>
+  <lastBuildDate>Wed, 12 Aug 2026 01:57:33 GMT</lastBuildDate>
 
   <item>
     <title>让 RAG 测量助手会算数据：Function Calling 工具调用实战</title>
