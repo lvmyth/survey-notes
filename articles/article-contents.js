@@ -1269,6 +1269,320 @@ RAG 进阶的核心是一条评估驱动的优化循环：\n\
 > 相关文章：本文承接《本地部署RAG测量助手》《Faiss向量检索实战》；评估中的误差与指标概念可参考《误差理论与精度评定》。\n\
 ";
 
+// --- content-rag-agentic-practice.js
+// Agentic RAG 升级实践文章
+ARTICLE_CONTENTS["rag-agentic-practice"] = "# Agentic RAG 升级实践：从「会算」到「会想」\n\
+\n\
+> 上一篇文章《让 RAG 测量助手会算数据》讲的是 Function Calling——助手学会了「听懂人话、选对工具、填好参数」。但用起来会发现一个限制：它仍然是一次问答一次工具调用，遇到「先查资料再算」的多步任务就不行了。这次我把本地 RAG 测量助手升级成了 **Agentic RAG**：让大模型不再是被动的问答器，而是会**自主规划步骤、循环调用工具、检查中间结果**的智能体。本地 `scripts/` 里新增了 `agent_tools.py`（9 个测量工具的 function calling Schema 与执行入口），`rag.py` 增加了 `agent_ask`（ReAct 决策循环），Streamlit 界面也已接入。本文记录这次升级的完整实践：从 Function Calling 到 Agent 决策循环的原理、为什么用 DeepSeek API 做决策而把计算留在本地、测量场景的多步流程设计（平差+限差校验、查表+计算等）、以及实际调优中踩过的坑和经验。\n\
+\n\
+## 一、为什么还要升级：从「会算」到「会想」\n\
+\n\
+### 1.1 Function Calling 的边界\n\
+\n\
+升级前的助手（Function Calling 版）能力模型：\n\
+\n\
+```text\n\
+用户 → LLM 判断 → 调一个工具 → 回答\n\
+```\n\
+\n\
+问题场景：\n\
+\n\
+```text\n\
+「把这段导线平差了，看看闭合差符不符合一级导线要求」\n\
+旧助手：调 traverse_adjust → 返回闭合差 → 结束\n\
+         ✗ 不会再去查规范允许值、不会对比、不会给结论\n\
+```\n\
+\n\
+它**算**了，但没「**办完事**」——中间还缺「查规范限差」和「对比下结论」两步。\n\
+\n\
+### 1.2 Agentic RAG 的能力模型\n\
+\n\
+```text\n\
+用户 → LLM 自主决策（循环）：\n\
+   ├─ 「需要平差」 → 调 traverse_adjust\n\
+   ├─ 「需要规范」 → 调 search_kb（检索限差）\n\
+   ├─ 「可以对比了」 → 调 check_limits\n\
+   └─ 「办完了」 → 组织最终回答\n\
+```\n\
+\n\
+关键区别：**工具调用由模型自主编排，不再一次定生死**。模型每一步都在问自己：「信息够了吗？不够就调工具，够了就回答。」\n\
+\n\
+### 1.3 能力对比\n\
+\n\
+| 能力 | 普通 RAG | Function Calling | **Agentic RAG** |\n\
+|---|---|---|---|\n\
+| 单步问答 | ✅ | ✅ | ✅ |\n\
+| 单步计算 | ❌ | ✅ | ✅ |\n\
+| 多步编排 | ❌ | ❌ | ✅ |\n\
+| 自主查漏 | ❌ | ❌ | ✅ |\n\
+| 结果自查 | ❌ | 部分 | ✅ |\n\
+\n\
+> 注意：Agentic RAG 不是推倒重来——它是在 Function Calling 基础上加了**决策循环**。工具、算法、注册表全部复用，只多了一个「while 循环」。\n\
+\n\
+---\n\
+\n\
+## 二、Agent 决策循环（核心机制）\n\
+\n\
+### 2.1 循环本质\n\
+\n\
+Agentic RAG 的引擎是经典的 **ReAct 模式**（Reason + Act）：\n\
+\n\
+```text\n\
+循环直到模型说「可以回答」：\n\
+  思考（Reason）：现在缺什么？\n\
+  行动（Act）：调工具 or 直接回答\n\
+  观察（Observe）：拿到工具结果，更新认知\n\
+```\n\
+\n\
+### 2.2 为什么本地也能跑\n\
+\n\
+- **决策层**：需要较强推理能力 → DeepSeek API（便宜、解析强）\n\
+- **执行层**：计算/检索 → 本地算法库 + 本地 RAG（公式可靠、不花钱）\n\
+- **数据层**：规范/表格 → 本地向量库 + SQLite\n\
+\n\
+**决策花钱但算得快，执行免费且绝对可靠**——这是个人项目最优解。\n\
+\n\
+---\n\
+\n\
+## 三、升级实现：DeepSeek API + 本地执行\n\
+\n\
+### 3.1 工具层（完全复用）\n\
+\n\
+测量算法库、工具注册表、工具分发函数——全部沿用 Function Calling 版。我本地把它整理成了 `agent_tools.py`，给 `calculators.py` 的 9 个工具定义了完整 Schema：\n\
+\n\
+```python\n\
+# agent_tools.py — 9 个工具的 function calling Schema\n\
+TOOL_DEFS = [\n\
+    {\n\
+        \"type\": \"function\",\n\
+        \"function\": {\n\
+            \"name\": \"coord_inverse\",\n\
+            \"description\": \"坐标反算：由两点坐标计算平距和方位角（度）。测量常用。\",\n\
+            \"parameters\": {\n\
+                \"type\": \"object\",\n\
+                \"properties\": {\n\
+                    \"x1\": {\"type\": \"number\", \"description\": \"起点 X 坐标\"},\n\
+                    \"y1\": {\"type\": \"number\", \"description\": \"起点 Y 坐标\"},\n\
+                    \"x2\": {\"type\": \"number\", \"description\": \"终点 X 坐标\"},\n\
+                    \"y2\": {\"type\": \"number\", \"description\": \"终点 Y 坐标\"},\n\
+                },\n\
+                \"required\": [\"x1\", \"y1\", \"x2\", \"y2\"],\n\
+            },\n\
+        },\n\
+    },\n\
+    # coord_forward / angle_convert / foot_point / radius_from_chord_arch\n\
+    # arc_3points / polygon_area / traverse_adjust / leveling_adjust …… 依次追加\n\
+]\n\
+```\n\
+\n\
+执行入口统一走 `execute_tool(name, args)`——内部按名字分发到 `calculators` 的验证函数，返回统一格式的结果文本：\n\
+\n\
+```python\n\
+def execute_tool(name, args):\n\
+    \"\"\"执行工具，返回 (是否成功, 结果文本)\"\"\"\n\
+    try:\n\
+        if name == \"coord_inverse\":\n\
+            r = calc.coord_inverse(args[\"x1\"], args[\"y1\"], args[\"x2\"], args[\"y2\"])\n\
+            if r is None:\n\
+                return False, \"两点重合，无法反算\"\n\
+            d, a, dx, dy = r\n\
+            return True, (f\"平距 D={d:.4f} m，方位角 α={a:.4f}°（{calc.dd2dms_str(a)}），\"\n\
+                          f\"ΔX={dx:.4f}，ΔY={dy:.4f}\")\n\
+        # …… 其余 8 个工具同理\n\
+    except Exception as e:\n\
+        return False, f\"计算失败: {e}\"\n\
+```\n\
+\n\
+> 注意：`execute_tool` 返回 `(成功与否, 文本)` 二元组——失败信息也回填给模型，让它改参数重试或问用户，而不是静默出错。\n\
+\n\
+### 3.2 决策层：Agent 循环（`rag.py` 的 `agent_ask`）\n\
+\n\
+与 Function Calling 的唯一区别：**循环 + 让模型自己决定何时停止**：\n\
+\n\
+```python\n\
+def agent_ask(self, query, k=None):\n\
+    \"\"\"Agentic RAG：检索 → LLM 带工具决策 → 执行计算工具 → 汇总回答\"\"\"\n\
+    from agent_tools import TOOL_DEFS, execute_tool\n\
+    import json as _json\n\
+\n\
+    client = OpenAI(api_key=DEEPSEEK_KEY, base_url=DEEPSEEK_BASE)\n\
+    chunks, metas, dists = self.search(query, k)   # 先检索资料\n\
+    prompt = self.build_prompt(query, chunks, metas)\n\
+    messages = [\n\
+        {\"role\": \"system\", \"content\": SYSTEM_PROMPT + \" 如需计算，调用提供的测量计算工具。\"},\n\
+        {\"role\": \"user\", \"content\": prompt},\n\
+    ]\n\
+    tool_events = []\n\
+    max_rounds = 3\n\
+\n\
+    for _round in range(max_rounds):\n\
+        resp = client.chat.completions.create(\n\
+            model=DEEPSEEK_MODEL, messages=messages, tools=TOOL_DEFS,\n\
+        )\n\
+        msg = resp.choices[0].message\n\
+        tool_calls = getattr(msg, \"tool_calls\", None)\n\
+\n\
+        if not tool_calls:            # 没有工具调用 → 最终回答\n\
+            return (msg.content or \"\", chunks, metas, tool_events), None\n\
+\n\
+        # 有工具调用：回填 assistant 消息 + 执行工具 + 回填 tool 结果\n\
+        messages.append({\"role\": \"assistant\", \"content\": msg.content or \"\",\n\
+                          \"tool_calls\": [{\"id\": tc.id, \"type\": \"function\",\n\
+                                          \"function\": tc.function} for tc in tool_calls]})\n\
+        for tc in tool_calls:\n\
+            fn_name = tc.function.name\n\
+            fn_args = _json.loads(tc.function.arguments or \"{}\")\n\
+            ok, text = execute_tool(fn_name, fn_args)\n\
+            tool_events.append({\"tool\": fn_name, \"args\": fn_args, \"ok\": ok, \"result\": text})\n\
+            messages.append({\"role\": \"tool\", \"tool_call_id\": tc.id, \"content\": text})\n\
+\n\
+        # ← 关键：continue 回到循环，让模型看工具结果再决策下一步\n\
+\n\
+    # 超出轮数兜底：用最后消息再问一次\n\
+    resp = client.chat.completions.create(\n\
+        model=DEEPSEEK_MODEL, messages=messages, temperature=TEMPERATURE,\n\
+    )\n\
+    return (resp.choices[0].message.content or \"\", chunks, metas, tool_events), None\n\
+```\n\
+\n\
+**核心就一行：工具结果回填后回到循环开头**——让模型「看一眼结果再决定下一步」。这就是 Agent 和 Function Calling 的分水岭。\n\
+\n\
+### 3.3 界面接入（app.py）\n\
+\n\
+Streamlit 里 DeepSeek 模式直接走 `engine.agent_ask(q, k=k)`，并把 `tool_events` 渲染出来——用户能看到助手「调了什么工具、拿到什么结果」，透明可验算：\n\
+\n\
+```python\n\
+# app.py — DeepSeek 模式：直接走 Agentic RAG（LLM 自主决定是否调用计算工具）\n\
+resp, err = engine.agent_ask(q, k=k)\n\
+if err:\n\
+    st.error(err)\n\
+else:\n\
+    answer, chunks, metas, tool_events = resp\n\
+    # 展示工具调用过程（tool_events）+ 最终回答 + 引用来源\n\
+```\n\
+\n\
+---\n\
+\n\
+## 四、测量场景的多步流程（升级后的能力）\n\
+\n\
+### 场景 A：导线平差 + 限差校验（查 + 算 + 结论）\n\
+\n\
+```text\n\
+用户：「把这段导线平差了，看看符不符合一级导线要求」\n\
+  ↓ 步骤1  traverse_adjust(观测数据)      → 闭合差 8″，相对 1/144972\n\
+  ↓ 步骤2  search_kb(「一级导线 闭合差允许值」) → ±10√n″、1/20000\n\
+  ↓ 步骤3  check_limits(结果, 等级)      → 8″ ≤ 20″ ✅，1/144972 ≥ 1/20000 ✅\n\
+  ↓ 步骤4  回答：「闭合差合格，平差坐标如下……结论：✅ 成果可用」\n\
+```\n\
+\n\
+**升级前做不到**——旧助手算完就停了，不会去查规范、不会对比。\n\
+\n\
+### 场景 B：查表 + 计算（数据衔接）\n\
+\n\
+```text\n\
+用户：「K1+120 的设计高程是多少？顺带算下它和地面的填挖值」\n\
+  ↓ query_table(设计高程表, K1+120) → 45.350\n\
+  ↓ query_table(地面高程表, K1+120) → 100.200\n\
+  ↓ fill_cut_calc(45.350, 100.200) → +45.150 异常偏大\n\
+  ↓ 自查：|填挖值| > 阈值 → 提示「数据可能有误，请核对」\n\
+  ↓ 回答 + 异常警示\n\
+```\n\
+\n\
+### 场景 C：坐标正算 + 反算校验（结果自洽）\n\
+\n\
+```text\n\
+用户：「从 A(500,300) 方位角 45° 距离 100m 求 B」\n\
+  ↓ coordinate_forward → B(570.711, 370.711)\n\
+  ↓ coordinate_inverse(A, B) → 平距 100.000、方位 45° ✓ 自洽\n\
+  ↓ 回答（附校验：「正算结果经反算校验一致」）\n\
+```\n\
+\n\
+> 注意：**正算→反算校验**是测量 Agent 最值得做的自查——算错当场发现，不用等用户验算。这类「业务自检」逻辑比通用 Prompt 约束有效得多。\n\
+\n\
+### 真实部署效果\n\
+\n\
+下面是本地 Agentic RAG 助手的三个真实截图（场景 A「导线平差+限差校验」），展示助手自主完成多步决策的全过程：\n\
+\n\
+#### 1) 助手主界面与示例问\n\
+\n\
+![助手主界面](images/agentic-rag-angle-convert.png)\n\
+\n\
+顶部展示 6 个常见测量问题的示例问（坐标反算/角度闭合差/水准限差/弧形调控/全站仪放样/GB50026 等），方便快速点击。向量模型 BAAI/bge-small-zh-v1.5，DeepSeek + 本地 FAISS 混合架构。\n\
+\n\
+#### 2) 多步决策过程（5 轮工具调用）\n\
+\n\
+![多步决策过程](images/agentic-rag-traverse-adjust.png)\n\
+\n\
+用户问「帮我算个闭合导线平差」后，助手自主规划了 5 步：先 4 次 angle_convert 把度分秒转十进制度（1°11′48.0″、190°14′47.0″、59°5′59.0″、78°2′53.0″），再调一次 traverse_adjust 完成 11 个测站的角度闭合差和坐标推算。\n\
+\n\
+#### 3) 最终结果与精度评定\n\
+\n\
+![最终结果](images/agentic-rag-traverse-result.png)\n\
+\n\
+助手一次性给出**角度闭合差（-5.0″，合格）、坐标闭合差（fx=+0.006m, fy=+0.025m, fs=0.025m）、全长 1432.35m、相对闭合差 1/57000（远优于 1/2000 规范要求）、平差后 11 个点坐标、精度评定**——所有数值来自 calculators 算法的真实计算，**结论引自规范条文（通过本地 RAG 检索）**。整个过程不需要用户介入「查规范」「写脚本」「算坐标」，助手自己串联。\n\
+\n\
+---\n\
+\n\
+## 五、调优实战：踩过的坑与经验\n\
+\n\
+### 5.1 DeepSeek 决策的实际表现\n\
+\n\
+- **多步决策（2~4 步）**：稳定，工具选择正确率高\n\
+- **参数抽取**：坐标、角度、边长等数字参数准确；度分秒（「120°15′30″」）能正确转十进制\n\
+- **编造参数**：偶发——`required` 校验 + 关键参数回显确认必须保留\n\
+- **过度调用**：偶尔连续调同一个工具（拿到结果还调）——靠 `max_rounds` 限制 + Prompt 约束「能回答就停止」\n\
+\n\
+### 5.2 Schema 描述是调优主线\n\
+\n\
+实测规律：**解析不准，八成是 description 没写清楚**。有效做法：\n\
+\n\
+- 参数写清单位：「角度为十进制度（120°15′30″=120.2583）」\n\
+- 数组参数写结构：「每项 {点名, 水平角, 边长}」\n\
+- 写清边界：「obs 至少 3 项」\n\
+\n\
+### 5.3 循环兜底\n\
+\n\
+```text\n\
+1. max_rounds 上限（默认 3 轮）——防死循环\n\
+2. 工具返回错误 → 回填给模型 → 让它改参数重试或问用户\n\
+3. 超轮数 → 用最后消息再问一次，明确提示用户简化问题\n\
+```\n\
+\n\
+### 5.4 成本控制\n\
+\n\
+- 决策走 DeepSeek（便宜，多步也就几分钱）\n\
+- 执行走本地（免费）\n\
+- 规范问答仍走本地 RAG（省 API）——只在**需要计算/多步**时才走 Agent 循环\n\
+\n\
+---\n\
+\n\
+## 六、防坑清单\n\
+\n\
+| 坑 | 对策 |\n\
+|---|---|\n\
+| 模型自己「算」而不调工具 | System Prompt 强制「禁止自行计算」+ 工具结果回填 |\n\
+| 编造缺失参数 | required 校验 + 关键参数回显确认 |\n\
+| 死循环/过度调用 | max_rounds + 「能回答就停止」约束 |\n\
+| 多步中结果被遗忘 | 每步把工具结果完整回填进 messages |\n\
+| 单位/格式不一致 | Schema description 写死单位与格式 |\n\
+| 异常数值被忽略 | 业务自检（反算校验/阈值检查）写进流程 |\n\
+| API 调用失败 | 重试机制 + 降级到本地模型 |\n\
+\n\
+---\n\
+\n\
+## 七、小结\n\
+\n\
+这次升级的本质，是把助手从「问答器」变成了「办事员」：\n\
+\n\
+- **Function Calling 让助手会算**（单步工具调用）\n\
+- **Agentic RAG 让助手会想**（多步自主决策循环）\n\
+- **DeepSeek 决策 + 本地执行**，让「想」很聪明、「算」很可靠、成本很低\n\
+\n\
+对测量场景，Agentic RAG 最有价值的不是复杂推理，而是**把「查资料→算数据→对规范→下结论」串成自动化流程**——平差完自动对照限差、查完表自动算填挖、算完坐标自动反算校验。这些「查+算+检」组合，是普通 RAG 和计算器都做不到的，也是测量 AI 助手真正值钱的地方。\n\
+\n\
+> 相关文章：本文承接《让 RAG 测量助手会算数据》（Function Calling 基础）与 RAG 系列前几篇；Agent 涉及的测量算法见《测量辅助计算 Python 程序集》《导线计算原理与 Python 实现》。\n\
+";
+
 // --- content-rag-assistant.js
 // 文章：rag-assistant
 ARTICLE_CONTENTS["rag-assistant"] = "# 本地部署RAG测量助手：把规范和博客变成私人AI知识库\n\n> 你写了几十篇技术博客、收藏了一堆测量规范PDF、积攒了多年经验笔记——但每次遇到问题，还是得翻书、翻文件夹、翻收藏夹。如果这些东西能变成一个\"问什么答什么\"的AI助手呢？本文从零开始，用 Python + FAISS + Ollama 在本地搭一个测量知识库，数据不出门，条文可溯源。\n\n## 引子\n\n技术员问我：\"GB50026 对施工放样的精度要求是多少？\"\n\n我知道规范里有，但具体在哪一页哪一条，一时说不准。翻规范——扫描件PDF，连文字层都没有，Ctrl+F都搜不了。翻博客——我自己写的文章，大概在那一篇，但也要找一会儿。翻收藏夹——更别提了，乱成一锅粥。\n\n回来后我想：**我手里有30篇博客、7本规范、9篇论文、14章教材，为什么不能把这些东西喂给AI，让它帮我查？**\n\n通用大模型（ChatGPT、DeepSeek）确实强，但它们不知道你的规范条文号、不知道你项目的具体数据、甚至会一本正经地编造不存在的公式。你需要的是一个**只基于你的资料回答问题**的AI——这就是 RAG（检索增强生成）。\n\n## 一、什么是RAG\n\nRAG 的原理一句话就能说清楚：\n\n**先检索，再生成。**\n\n```\n用户提问 → 向量检索找到相关段落 → 把段落塞进Prompt → 大模型基于段落回答\n```\n\n大模型本身不存储你的资料，它只负责\"阅读理解\"——你把相关资料递给它，它帮你总结、归纳、回答。这样既利用了大模型的语言能力，又保证了回答有据可查。\n\n为什么说 RAG 特别适合测量行业？\n\n- **规范条文必须精确**：差一个字就是违规，AI不能瞎编\n- **公式参数必须准确**：坐标正反算、闭合差计算，错一个符号就全错\n- **数据不能外泄**：项目坐标、监测数据属于内部资料，不方便传到云端\n- **知识高度结构化**：规范有条文号、公式有编号、文章有标题——天然适合切片检索\n\n## 二、技术选型：为什么不用RAGFlow\n\n市面上有不少RAG平台，RAGFlow 是最知名的开源方案之一。它功能全面——内置文档解析、分块策略、多知识库管理、对话模板——但代价是**重量级**：\n\n| 组件 | RAGFlow 方案 | 我的方案 |\n|------|-------------|---------|\n| 向量库 | Elasticsearch（约2GB） | FAISS（几MB） |\n| 文件存储 | MinIO | 本地文件系统 |\n| 数据库 | MySQL + Redis | pickle 序列化 |\n| 部署方式 | Docker Compose（5个容器） | Python venv（一个命令） |\n| 内存占用 | 约9GB | 约2GB |\n| 界面 | RAGFlow Web | Streamlit（200行代码） |\n\nRAGFlow 适合团队协作、大规模知识管理。但对于个人测量员来说，**一个Python脚本 + 一个Streamlit页面就够了**。轻量、可控、好调试，出了问题自己能查代码。\n\n最终技术栈：\n\n- **向量库**：FAISS（Facebook开源，纯C++性能炸裂，Python调用极简）\n- **嵌入模型**：BAAI/bge-small-zh-v1.5（中文向量化，95MB，CPU就能跑）\n- **大模型**：Ollama qwen2.5:3b（本地零成本）或 DeepSeek API（云端效果更好）\n- **界面**：Streamlit（Python写Web界面，几十行搞定）\n- **OCR**：pdfplumber + 自定义脚本（处理扫描件规范）\n\n## 三、知识源：你手里已经有什么\n\nRAG 的核心不是代码，而是**你喂给它什么资料**。我整理了五类知识源：\n\n| 类别 | 内容 | 数量 |\n|------|------|------|\n| 博客文章 | 测量工程笔记全部文章 | 30篇 |\n| 测量规范 | GB50026、GB55018、JGJ8、JTG C10等 | 7本 |\n| 专业论文 | 全站仪应用、CASS成图、土方计算等 | 9篇 |\n| 教材章节 | 水准测量、角度测量、控制测量、GPS等 | 14章 |\n| 经验笔记 | 丈量人生（多年工地经验总结） | 1篇 |\n\n这些资料大部分是 .md、.txt 格式，直接可用。规范PDF是扫描件，需要OCR提取文字后才能入库。\n\n## 四、架构与实现\n\n整个项目的架构：\n\n```\n知识源(博客30篇 + 规范7本 + 论文9篇 + 教材14章 + 笔记)\n   ↓ extract_knowledge.py 提取\n文本文件 data/source/{blog,spec,papers,textbook,notes}/\n   ↓ rag.py 切分 + bge 向量化\nFAISS 向量库 data/faiss/\n   ↓ 检索 Top-K + LLM 生成\nStreamlit 网页 / CLI 命令行\n```\n\n### 4.1 知识提取\n\n`extract_knowledge.py` 负责把各种格式的资料统一转成纯文本文件：\n\n```python\n# 博客文章：从 content-*.js 提取 markdown\nblog_root = r\"E:\\Lvmyth\\测量员\\Blog\"\n# 解析 JS 文件中的 ARTICLE_CONTENTS[\"id\"] = \"markdown\"\n# 自动补充标题、日期、标签等元信息\n\n# 规范PDF：用 pdfplumber 提取文字\nimport pdfplumber\nwith pdfplumber.open(pdf_path) as doc:\n    for page in doc.pages:\n        text = page.extract_text()\n        # 过滤无文字层的扫描页\n\n# 经验笔记：直接复制 .md/.txt\n```\n\n提取后的文件结构：\n\n```\ndata/source/\n├── blog/          # 30篇博客 (.md)\n├── spec/          # 7本规范 (.txt)\n├── papers/        # 9篇论文 (.txt)\n├── textbook/      # 14章教材 (.txt)\n└── notes/         # 经验笔记 (.md)\n```\n\n### 4.2 文本切分\n\n一篇博客可能有三五千字，一本规范十几万字。大模型的上下文窗口有限，直接整篇塞进去不现实。需要把长文本**切分成小块**：\n\n```python\ndef split_text(text, size=500, overlap=80):\n    \"\"\"按段落优先的滑动窗口切分\"\"\"\n    text = text.strip()\n    if len(text) <= size:\n        return [text] if text else []\n    # 先按空行分段落\n    paras = [p.strip() for p in re.split(r\"\\n\\s*\\n\", text) if p.strip()]\n    chunks, cur = [], \"\"\n    for p in paras:\n        if len(p) > size:  # 超长段落内部再切\n            for i in range(0, len(p), size - overlap):\n                chunks.append(p[i:i + size])\n            cur = \"\"\n            continue\n        if len(cur) + len(p) + 1 > size and cur:\n            chunks.append(cur)\n            # 保留尾部80字作为下一块前缀，避免切断上下文\n            cur = cur[-overlap:] + \"\\n\" + p if overlap else p\n        else:\n            cur = (cur + \"\\n\" + p).strip()\n    if cur:\n        chunks.append(cur)\n    return chunks\n```\n\n两个关键参数：\n\n- **块大小（size=500）**：每块约500字。太小检索不到完整信息，太大一条检索结果占太多上下文\n- **重叠（overlap=80）**：相邻块重叠80字。防止关键信息被切断在两块交界处\n\n比如\"闭合差限差\"这个词如果正好被切在两块之间，检索时两块都匹配不上。加了重叠，至少有一块能完整包含它。\n\n### 4.3 向量化与入库\n\n文本切完后，需要把每块文本转成**向量**（一串数字），这样就能用数学方法计算\"问题和文本块有多相似\"。\n\n```python\nfrom fastembed import TextEmbedding\nimport faiss, numpy as np\n\n# 加载中文嵌入模型（首次下载约95MB，走国内镜像）\nembedder = TextEmbedding(\n    model_name=\"BAAI/bge-small-zh-v1.5\",\n    cache_dir=FASTEMBED_CACHE,\n    local_files_only=True,  # 加载完后不联网\n)\n\n# 文本 → 512维向量\nvecs = np.array(list(embedder.embed(chunks)), dtype=np.float32)\nfaiss.normalize_L2(vecs)  # 归一化后内积 = 余弦相似度\n\n# 创建FAISS索引（IndexFlatIP = 精确内积检索）\nindex = faiss.IndexFlatIP(vecs.shape[1])\nindex.add(vecs)\n\n# 持久化到磁盘\narr = faiss.serialize_index(index)\nwith open(\"data/faiss/index.faiss\", \"wb\") as f:\n    f.write(arr)\n```\n\n为什么选 bge-small-zh-v1.5？\n\n- **专为中文优化**：测量规范全是中文，英文嵌入模型分不清\"闭合差\"和\"闭合差限差\"的区别\n- **体积小**：只有95MB，CPU就能推理，不需要GPU\n- **ONNX运行时**：通过fastembed调用，不依赖PyTorch，安装简单\n\n为什么选 FAISS 而不是 ChromaDB？这个后面\"踩坑\"部分会讲。\n\n### 4.4 检索与生成\n\n用户提问时，先把问题转成向量，在FAISS里找最相似的 Top-K 个文本块，然后把这些块和问题一起交给大模型：\n\n```python\nclass RAGEngine:\n    def ask(self, query, k=3):\n        # 1. 向量检索\n        chunks, metas, dists = self.search(query, k)\n\n        # 2. 构造Prompt\n        prompt = self.build_prompt(query, chunks, metas)\n        # prompt 格式：\n        # 用户问题：坐标正反算公式是什么？\n        # 【参考资料】\n        # [资料1] 来源:blog/coordinate-transformation.md\n        # 坐标正算公式：X=XA+D·cosα...\n\n        # 3. 大模型生成\n        from openai import OpenAI\n        client = OpenAI(api_key=\"ollama\", base_url=\"http://localhost:11434/v1\")\n        resp = client.chat.completions.create(\n            model=\"qwen2.5:3b\",\n            messages=[\n                {\"role\": \"system\", \"content\": SYSTEM_PROMPT},\n                {\"role\": \"user\", \"content\": prompt},\n            ],\n            temperature=0.3,\n        )\n        return resp.choices[0].message.content, chunks, metas\n```\n\nSystem Prompt 是整个系统的灵魂：\n\n```python\nSYSTEM_PROMPT = (\n    \"你是「测量员 AI 助手」，一位经验丰富的工程测量专家助手。\"\n    \"请只依据下面提供的【参考资料】回答问题，不要编造。\"\n    \"回答要专业、简洁、有条理；涉及公式时用清晰文字表达。\"\n    \"如果参考资料不足以回答，明确说明『资料中未找到相关依据』，\"\n    \"并给出你基于专业常识的提示。回答最后列出引用的资料来源。\"\n)\n```\n\n关键设计：\n\n- **\"只依据参考资料回答，不要编造\"**：这是RAG最核心的约束，防止模型胡说八道\n- **\"资料中未找到相关依据\"**：让模型诚实承认不知道，而不是编一个答案\n- **\"列出引用的资料来源\"**：每个回答都能追溯到具体文档\n\n## 五、两种大模型：本地 vs 云端\n\n项目支持两种LLM后端，在 `.env` 里一行配置切换：\n\n```bash\n# .env 文件\n# 方式一：本地模型（零成本，需要8GB+内存）\nLLM_PROVIDER=ollama\nOLLAMA_MODEL=qwen2.5:3b\n\n# 方式二：DeepSeek API（效果更好，需充值）\nLLM_PROVIDER=deepseek\nDEEPSEEK_API_KEY=sk-xxx\n```\n\n### 本地模型：Ollama + qwen2.5\n\nOllama 是本地运行大模型最简单的方案。安装后一行命令拉模型：\n\n```bash\nollama pull qwen2.5:3b   # 约2GB，3B参数\n```\n\n为了在低配电脑上流畅运行，我写了一个优化版 Modelfile：\n\n```dockerfile\nFROM qwen2.5:3b\n\n# 缩小上下文窗口（我们的prompt不到2000 token，不需要32768）\nPARAMETER num_ctx 2048\n\n# 强制所有层上GPU（如果有显卡）\nPARAMETER num_gpu 99\n\n# 限制输出长度，避免长篇大论拖慢速度\nPARAMETER num_predict 512\n\n# 降低温度，减少采样开销，回答更确定\nPARAMETER temperature 0.1\n```\n\n优化后，3B模型在纯CPU上约10-15秒出答案，有显卡的话3-5秒。\n\n模型选择参考：\n\n| 模型 | 内存需求 | 回答延迟 | 效果 |\n|------|---------|---------|------|\n| qwen2.5:3b | 8GB | 10-15秒 | 基础可用 |\n| qwen2.5:7b | 16GB | 3-5秒 | 显著提升 |\n| qwen2.5:14b | 32GB | 2-3秒 | 最佳效果 |\n\n### 云端模型：DeepSeek API\n\nDeepSeek 的 API 价格非常便宜（百万token约1-2元），而且回答质量比本地3B模型好很多。如果你不方便装Ollama，或者对回答质量要求高，直接用API模式。\n\n两者通过 OpenAI SDK 统一调用，切换只需改一个环境变量——这是架构设计时预留的灵活性。\n\n## 六、启动与使用\n\n### 一键启动\n\n写了个 `start.bat`，双击就行：\n\n```bat\n@echo off\necho [1/2] Activating Python venv...\ncall \"E:\\Lvmyth\\RAG测量助手\\venv\\Scripts\\activate.bat\"\necho [2/2] Starting Streamlit...\nstreamlit run scripts/app.py\n```\n\nOllama 会在程序里自动检测并启动，不需要手动开。浏览器会自动打开网页界面。\n\n### Streamlit 界面\n\n界面用 Streamlit 写的，200行代码搞定：\n\n- 左侧显示知识库规模（多少个文本块）和模型状态\n- 中间是输入框 + 示例问题按钮\n- 提问后流式输出回答（逐字显示，不用等全部生成完）\n- 回答下方显示引用来源和检索到的原文片段\n\n预设了几个高频问题按钮，点一下就能问：\n\n- 坐标正反算公式是什么？\n- 导线测量角度闭合差怎么计算？\n- 水准测量闭合差限差是多少？\n- 弧垂测控有哪些观测方法？\n- 全站仪施工放样的步骤？\n- GB50026 对施工测量有什么要求？\n\n![测量员AI知识助手界面](images/rag-assistant-ui.png)\n\n> 界面截图：左侧显示知识库规模，中间是输入框和示例问题按钮，回答流式输出并带引用来源。\n\n### 命令行模式\n\n不想开网页？命令行也能用：\n\n```bash\nvenv\\Scripts\\python scripts\\rag.py \"坐标正反算公式是什么？\"\n```\n\n输出包括知识库规模、检索到的文本块来源和相似度、以及大模型的回答。\n\n### 实际问答效果\n\n下面是一个真实问答示例：让助手用卡西欧 fx-5800P 编写一个面积计算程序。\n\n![卡西欧5800P面积计算程序示例](images/rag-assistant-casio-example.png)\n\n> 助手根据知识库里的编程经验和公式，给出了完整的 fx-5800P 程序代码，包括坐标输入、极坐标转换和方位角归算。\n\n## 七、踩过的坑\n\n### 坑1：ChromaDB 的 HNSW 持久化 bug\n\n最初用的是 ChromaDB（build_index.py 里还留着旧代码）。它在 Windows 上有一个顽固的 bug：HNSW 索引持久化时偶尔会写坏，下次加载直接报错。\n\n排查了好几天，最后决定**彻底换掉 ChromaDB，改用 FAISS**。FAISS 是 Facebook 开源的向量检索库，纯 C++ 实现，稳定性和性能都没得说。切换后没有再出过问题。\n\n### 坑2：FAISS 的中文路径问题\n\nFAISS 的 C++ 底层在 Windows 上处理中文路径时会乱码。解决办法是绕过 FAISS 的原生持久化，用 Python 序列化：\n\n```python\n# 不用 faiss.write_index（中文路径会出问题）\n# 改用 Python 序列化绕过\narr = faiss.serialize_index(index)\nwith open(index_path, \"wb\") as f:\n    f.write(arr)\n```\n\n### 坑3：扫描件PDF没有文字层\n\nGB50026-2020 的PDF是扫描件，pdfplumber 提取出来全是空白。必须 OCR 才能入库。\n\n写了几个OCR脚本处理不同来源的扫描件：\n\n- `ocr_pdf.py`：通用PDF OCR\n- `ocr_cehui.py`：测绘类文档专用（处理表格和公式）\n- `ocr_jtg.py`：交通部规范专用（处理特殊排版）\n\nOCR 是最耗时的步骤，一本规范可能要跑半小时。但这是一次性的——OCR完存成 .txt，以后就不用再跑了。\n\n### 坑4：模型占用VRAM不释放\n\nOllama 默认会在5分钟后释放模型占用的显存。但如果你频繁提问，每次重新加载模型要等好几秒。\n\n解决办法是在请求里加 `keep_alive` 参数，让模型常驻显存：\n\n```python\nextra_body = {\"keep_alive\": \"30m\"}  # 保持30分钟\n```\n\n同时在引擎初始化时发一个空请求预热模型，第一次提问就不用等加载了。\n\n## 八、扩展与优化\n\n### 多知识库策略\n\n随着内容增多，可以按专业方向建立分类检索。目前所有资料混在一起，但已经在元数据里标记了类别（blog/spec/papers/textbook/notes），未来可以按类别分别建索引，查询时指定搜索范围。\n\n| 知识库 | 包含内容 | 适用场景 |\n|-------|---------|--------|\n| 测量基础规范库 | GB50026、GB55018 | 查限差、查精度等级 |\n| 变形监测库 | JGJ8、沉降监测案例 | 查监测方法、预警值 |\n| 道路测量库 | JTG C10、道路放样手册 | 查曲线计算、放样方法 |\n| 公式速查库 | 博客编程类文章 | 查公式推导、代码实现 |\n\n### 对话模板\n\n为高频问题设置模板，一键触发常见查询：\n\n- **【查限差】** 帮我查{规范名称}中关于{测量项目}的限差条文\n- **【查公式】** {公式名称}的计算公式和参数说明\n- **【查操作】** {仪器/软件}的{操作步骤}流程\n- **【查标准】** {工程项目}的精度等级要求\n\n### 扩展知识源\n\n在 `data/source/` 下加 `.md` 或 `.txt` 文件，重新跑 `build_index.py` 就能增量更新。计划后续加入：\n\n- 更多规范（CJJ/T 8、DL/T 5076等已有文本）\n- CAS操作手册\n- 项目实测数据（脱敏后）\n- 外业操作视频的字幕文本\n\n## 结语\n\n测量工作的本质是精准——数据要精确到毫米，规范要引用到条文号，计算要落实到公式。\n\n本地 RAG 测量助手让这种精准从\"翻书找\"变成\"秒级答\"，而且每一个答案都能追溯到来源。你的电脑里装着整个测量规范库，数据不出门，术语不混淆，条文可溯源——这就是测量员的AI助手该有的样子。\n\n整个项目的代码不到1000行，核心逻辑就四个文件：提取知识、构建索引、检索生成、界面展示。如果你也有自己的技术博客或资料库，照着这个思路搭一个，半天就能跑起来。\n\n> 技术栈：Python + FAISS + fastembed + Ollama + Streamlit\n";

@@ -6,7 +6,17 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Wed, 12 Aug 2026 01:57:33 GMT</lastBuildDate>
+  <lastBuildDate>Wed, 12 Aug 2026 09:14:48 GMT</lastBuildDate>
+
+  <item>
+    <title>Agentic RAG 升级实践：从「会算」到「会想」</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=rag-agentic-practice</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=rag-agentic-practice</guid>
+    <pubDate>Sat, 08 Aug 2026 00:00:00 +0800</pubDate>
+    <description>Function Calling 让助手会算，但一次只能调一个工具，遇到「先平差再查限差再对比」的多步任务就停了。本文结合本地 RAG 助手升级实战（agent_tools.py 工具注册表 + agent_ask 决策循环），讲解 ReAct 模式、DeepSeek 决策+本地执行架构、测量多步流程设计（平差+限差校验、正算+反算自查）与调优经验。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
+  </item>
 
   <item>
     <title>让 RAG 测量助手会算数据：Function Calling 工具调用实战</title>
