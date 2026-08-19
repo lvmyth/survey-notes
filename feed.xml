@@ -6,7 +6,7 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Wed, 12 Aug 2026 09:14:48 GMT</lastBuildDate>
+  <lastBuildDate>Wed, 19 Aug 2026 15:44:06 GMT</lastBuildDate>
 
   <item>
     <title>Agentic RAG 升级实践：从「会算」到「会想」</title>
@@ -56,6 +56,24 @@
     <description>你写了几十篇博客、收藏了一堆规范PDF、积攒了多年笔记——但每次遇到问题还得翻书。本文用 Python + FAISS + Ollama 在本地搭一个测量知识库，数据不出门，条文可溯源。从知识提取、文本切分、向量化到检索生成，完整跑通一个RAG案例。</description>
     <category>AI前沿</category>
     <category>编程工具</category>
+  </item>
+
+  <item>
+    <title>农田水利测量：从渠道到田块的精度工程</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=farmland-irrigation-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=farmland-irrigation-survey</guid>
+    <pubDate>Sat, 01 Aug 2026 00:00:00 +0800</pubDate>
+    <description>一条灌溉渠道比降千分之一二，渠底高程差一厘米水就流不到田头。本文系统讲解农田水利测量：渠道选线与纵横断面、渠底比降控制、梯形断面土方计算、渡槽/倒虹吸/水闸等渠系建筑物测量、泵站高程、塘坝库容、高标准农田田块平整，配比降计算、土方量、开口线放样三个算例。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>CRD 工法：软弱围岩大断面隧道的分部开挖艺术</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=crd-method</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=crd-method</guid>
+    <pubDate>Mon, 27 Jul 2026 00:00:00 +0800</pubDate>
+    <description>浅埋、软弱围岩、大跨度的隧道全断面开挖就是灾难——CRD 工法把大断面切成&apos;田&apos;字形，竖向中隔壁加临时仰拱，每个分部自成封闭受力体系。本文系统讲解 CRD 原理与适用条件、与 CD/双侧壁导坑对比、四部开挖工序、测量配合与监控量测，配断面划分、拆撑条件判定两个算例。</description>
+    <category>测量实操</category>
   </item>
 
   <item>
