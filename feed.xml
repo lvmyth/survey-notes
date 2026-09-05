@@ -6,7 +6,34 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Wed, 19 Aug 2026 15:44:06 GMT</lastBuildDate>
+  <lastBuildDate>Sat, 05 Sep 2026 13:35:34 GMT</lastBuildDate>
+
+  <item>
+    <title>无人机航测：测量员的新翅膀</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=drone-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=drone-survey</guid>
+    <pubDate>Sun, 16 Aug 2026 00:00:00 +0800</pubDate>
+    <description>一架无人机飞20分钟，几平方公里地形全回来了——但航测不是飞上去拍拍那么简单：像控点怎么布、航线怎么飞、空三怎么算、成果精度怎么保。本文系统讲解无人机航测完整流程：系统组成、航线规划与航飞、像控点布设（测量员核心角色）、空三加密与成图、DOM/DSM/点云成果、无人机LiDAR，以及土方库容带状地形等工程应用，配像控点数量估算和地面分辨率计算算例。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>精密工程测量：毫米级的测量艺术</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=precise-engineering-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=precise-engineering-survey</guid>
+    <pubDate>Sat, 15 Aug 2026 00:00:00 +0800</pubDate>
+    <description>普通测量到厘米级，但高铁轨道差1mm就颠、大坝变2mm就预警、盾构偏5mm就接不上——精密工程测量研究怎么把毫米级精度测出来。本文系统讲解精密测量与普通测量的区别、高铁CPIII控制网与轨道精调、精密水准、测量机器人自动化监测、大型设备安装测量，以及强制对中/折光/温度等误差控制，配CPIII自由设站精度和精密水准闭合差等算例。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>RTK测量实操：从架站到放样的每一步</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=rtk-practice</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=rtk-practice</guid>
+    <pubDate>Mon, 10 Aug 2026 00:00:00 +0800</pubDate>
+    <description>RTK 光懂原理不够，打开手簿那一刻才是开始：坐标系统怎么设、四参数七参数怎么求、点校正做了没、为什么固定了还偏几公分。本文承接 GNSS 原理，系统讲透 RTK 实操：系统组成与连接、坐标系统与转换参数（四参数/七参数怎么选）、求转换参数完整流程、点校正正确用法、点线面放样、固定解判断与精度检核，配四参数计算等完整算例。</description>
+    <category>测量实操</category>
+  </item>
 
   <item>
     <title>Agentic RAG 升级实践：从「会算」到「会想」</title>
@@ -39,6 +66,15 @@
   </item>
 
   <item>
+    <title>排水管道施工测量：管底坡度的毫米级控制</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=pipe-construction-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=pipe-construction-survey</guid>
+    <pubDate>Thu, 06 Aug 2026 00:00:00 +0800</pubDate>
+    <description>排水管道靠一根根带坡度的管子把雨污水送走，坡度错了轻则积水、重则倒坡反水。本文系统讲解排水管道施工测量：管道定线与井位放样、管底坡度控制（逐井高程推算+坡度板法）、沟槽开挖放样与基底高程、管节安装的高程与中线控制、检查井测量、闭水试验与竣工测量，并配逐井坡度推算、开挖深度、管节复核等完整算例。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
     <title>Faiss 向量检索实战：把测量知识库装进百毫秒</title>
     <link>https://www.axureshow.com/project/snUNZfl9/?id=faiss-vector-search</link>
     <guid>https://www.axureshow.com/project/snUNZfl9/?id=faiss-vector-search</guid>
@@ -56,6 +92,15 @@
     <description>你写了几十篇博客、收藏了一堆规范PDF、积攒了多年笔记——但每次遇到问题还得翻书。本文用 Python + FAISS + Ollama 在本地搭一个测量知识库，数据不出门，条文可溯源。从知识提取、文本切分、向量化到检索生成，完整跑通一个RAG案例。</description>
     <category>AI前沿</category>
     <category>编程工具</category>
+  </item>
+
+  <item>
+    <title>顶管施工测量：黑暗管道里的方向控制</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=pipe-jacking-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=pipe-jacking-survey</guid>
+    <pubDate>Mon, 03 Aug 2026 00:00:00 +0800</pubDate>
+    <description>顶管是在不开挖地表的情况下把管道从工作井顶进接收井的工艺，机头在地下十几米看不见摸不着，全靠测量系统导航。本文系统讲解激光导向系统的原理与架设、顶进偏差测量（水平/高程/旋转）、纠偏计算（直线纠偏与提前量）、长距离顶管对策（中继间、陀螺定向）、下穿构筑物时的测量控制，并配激光靶读数、纠偏量计算等完整算例。</description>
+    <category>测量实操</category>
   </item>
 
   <item>
