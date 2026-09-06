@@ -378,10 +378,12 @@ body {
 .article-content li { margin-bottom: 0.3rem; }
 
 .article-content table {
+  display: block;
   width: 100%;
   border-collapse: collapse;
   margin: 1rem 0;
   font-size: 0.92rem;
+  overflow-x: auto;
 }
 
 .article-content th, .article-content td {

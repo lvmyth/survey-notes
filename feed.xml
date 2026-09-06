@@ -6,7 +6,7 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Sat, 05 Sep 2026 13:35:34 GMT</lastBuildDate>
+  <lastBuildDate>Sun, 06 Sep 2026 03:05:36 GMT</lastBuildDate>
 
   <item>
     <title>无人机航测：测量员的新翅膀</title>
@@ -27,12 +27,42 @@
   </item>
 
   <item>
+    <title>多模态RAG：让测量助手会看</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=multimodal-rag</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=multimodal-rag</guid>
+    <pubDate>Sat, 15 Aug 2026 00:00:00 +0800</pubDate>
+    <description>测量资料一半是图：手写手簿、扫描规范、现场照片，普通RAG只会读字。本文讲多模态RAG两条路线：OCR路线（PaddleOCR识别手簿与扫描规范+后处理管道）与视觉模型路线（Qwen-VL看图纸照片），设计文字型走OCR、图形型走视觉模型的混合架构，并附手写识别/表格结构/图签提取等测量难点防坑清单。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
+  </item>
+
+  <item>
+    <title>RAG知识库工程化：从能用到好用</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=rag-engineering</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=rag-engineering</guid>
+    <pubDate>Wed, 12 Aug 2026 00:00:00 +0800</pubDate>
+    <description>RAG助手当天能跑起来是demo，用三个月就崩：新规范不更新、旧文档还在库里、重复导入、全库重建半小时。本文讲知识库工程化：多库分层数据模型、基于文件哈希的增量更新（改哪篇更哪篇）、版本管理与过期过滤、数据质量检查、多库隔离与检索路由，并给增量更新完整代码。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
+  </item>
+
+  <item>
     <title>RTK测量实操：从架站到放样的每一步</title>
     <link>https://www.axureshow.com/project/snUNZfl9/?id=rtk-practice</link>
     <guid>https://www.axureshow.com/project/snUNZfl9/?id=rtk-practice</guid>
     <pubDate>Mon, 10 Aug 2026 00:00:00 +0800</pubDate>
     <description>RTK 光懂原理不够，打开手簿那一刻才是开始：坐标系统怎么设、四参数七参数怎么求、点校正做了没、为什么固定了还偏几公分。本文承接 GNSS 原理，系统讲透 RTK 实操：系统组成与连接、坐标系统与转换参数（四参数/七参数怎么选）、求转换参数完整流程、点校正正确用法、点线面放样、固定解判断与精度检核，配四参数计算等完整算例。</description>
     <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>给RAG助手装上记忆：从问答历史到长期偏好</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=rag-memory</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=rag-memory</guid>
+    <pubDate>Mon, 10 Aug 2026 00:00:00 +0800</pubDate>
+    <description>RAG助手只有知识没有记忆，重复问题每次重算。本文分清记忆三层次（会话上下文/问答历史/长期偏好），给SQLite存储+Faiss记忆索引+Agent流程增强的完整实现，讲阈值衰减容量等调优，重点谈测量场景旧答案复用陷阱：规范可复用、计算必须重算。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
   </item>
 
   <item>
@@ -75,6 +105,16 @@
   </item>
 
   <item>
+    <title>表格RAG：让AI会查测量数据表</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=table-rag</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=table-rag</guid>
+    <pubDate>Thu, 06 Aug 2026 00:00:00 +0800</pubDate>
+    <description>测量天天和数据表打交道：导线记录、水准手簿、逐桩高程表——这些数字密集、结构规整的表交给普通RAG一切块就散架，embedding 对桩号和高程这类数字也无能为力。本文是 RAG 系列里专讲让 AI 查表格的一篇：对比 Text2SQL、表格向量化、混合路由三条路线，给出 SQLite+本地 LLM 构建测量数据问答系统的完整代码，并附评估与防坑清单。</description>
+    <category>AI前沿</category>
+    <category>编程工具</category>
+  </item>
+
+  <item>
     <title>Faiss 向量检索实战：把测量知识库装进百毫秒</title>
     <link>https://www.axureshow.com/project/snUNZfl9/?id=faiss-vector-search</link>
     <guid>https://www.axureshow.com/project/snUNZfl9/?id=faiss-vector-search</guid>
@@ -92,6 +132,15 @@
     <description>你写了几十篇博客、收藏了一堆规范PDF、积攒了多年笔记——但每次遇到问题还得翻书。本文用 Python + FAISS + Ollama 在本地搭一个测量知识库，数据不出门，条文可溯源。从知识提取、文本切分、向量化到检索生成，完整跑通一个RAG案例。</description>
     <category>AI前沿</category>
     <category>编程工具</category>
+  </item>
+
+  <item>
+    <title>综合管廊变形监测：守护地下生命线的健康</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=utility-tunnel-monitoring</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=utility-tunnel-monitoring</guid>
+    <pubDate>Tue, 04 Aug 2026 00:00:00 +0800</pubDate>
+    <description>综合管廊把电力通信燃气给排水集中地下敷设，称城市生命线，最薄弱环节是节段接头。本文讲管廊变形监测完整内容：监测项目与测点布设、接头差异沉降监测（核心）、精密水准/静力水准/自动化方法、分级控制与频率、施工期与运营期衔接，配差异沉降计算与速率预警判定算例。</description>
+    <category>测量实操</category>
   </item>
 
   <item>
