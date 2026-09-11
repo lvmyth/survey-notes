@@ -6,7 +6,25 @@
   <description>一个测量员用全站仪丈量世界、用代码解决问题的技术笔记</description>
   <language>zh-CN</language>
   <atom:link href="feed.xml" rel="self" type="application/rss+xml"/>
-  <lastBuildDate>Thu, 10 Sep 2026 01:02:38 GMT</lastBuildDate>
+  <lastBuildDate>Fri, 11 Sep 2026 01:49:57 GMT</lastBuildDate>
+
+  <item>
+    <title>变电站构支架 / 设备基础测量</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=substation-foundation-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=substation-foundation-survey</guid>
+    <pubDate>Wed, 02 Sep 2026 00:00:00 +0800</pubDate>
+    <description>变电站构支架与设备基础是电气安装的地基，精度直接决定设备能否对上接口——地脚螺栓偏5mm设备可能就装不进去。本文讲变电站基础测量：厂区控制网、建筑方格网、轴线放样、地脚螺栓群与预埋件、构支架吊装后垂直度与轴线偏位检查，并配方格网放样、螺栓群定位、垂直度判定等完整算例。与《塔基测量》对照看，一个是野外协同，一个是厂区精度。</description>
+    <category>测量实操</category>
+  </item>
+
+  <item>
+    <title>塔基测量：铁塔基础这样放才不歪</title>
+    <link>https://www.axureshow.com/project/snUNZfl9/?id=tower-base-survey</link>
+    <guid>https://www.axureshow.com/project/snUNZfl9/?id=tower-base-survey</guid>
+    <pubDate>Tue, 01 Sep 2026 00:00:00 +0800</pubDate>
+    <description>输电铁塔靠四只独立基础站地上，四脚相对位置差一点铁塔就歪、受力就偏。本文是电力测量系列开篇，系统讲塔基测量：线路复测、塔位中心放样、基础分坑（根开/半根开/坑口坐标）、根开与整基扭转检查、高低腿基础高程控制，并配分坑计算、扭转判定、高低腿基础高度等完整算例。</description>
+    <category>测量实操</category>
+  </item>
 
   <item>
     <title>沉降观测实战：记录建筑每毫米的&quot;下蹲&quot;</title>
